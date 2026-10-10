@@ -83,14 +83,14 @@
   function renderKpis(a) {
     const t = a.totals;
     $("#kpis").innerHTML =
-      kpi(compact(t.tokens_total), "tokens totales") +
-      kpi(compact(t.tokens_in) + " / " + compact(t.tokens_out), "entrada / salida") +
-      kpi(nf(t.calls), "llamadas al modelo") +
-      kpi(money(t.cost_api), "coste estimado") +
-      kpi(t.hours_agent + " h", "tiempo de agente") +
-      kpi(t.hours_app + " h", "tiempo en la app") +
-      kpi(nf(t.tool_calls), "uso de herramientas") +
-      kpi(nf(t.models), "modelos usados");
+      kpi(compact(t.tokens_total), t("kpi_tokens")) +
+      kpi(compact(t.tokens_in) + " / " + compact(t.tokens_out), t("kpi_in_out")) +
+      kpi(nf(t.calls), t("kpi_calls")) +
+      kpi(money(t.cost_api), t("kpi_cost")) +
+      kpi(t.hours_agent + " h", t("kpi_agent_hours")) +
+      kpi(t.hours_app + " h", t("kpi_app_hours")) +
+      kpi(nf(t.tool_calls), t("kpi_tools")) +
+      kpi(nf(t.models), t("kpi_models"));
   }
 
   function renderDaily(series) {
@@ -235,7 +235,7 @@
         <div class="task-meta">${esc(t.workdir || "")} · ${dt(t.created)}${t.finished ? " · " + Math.round(t.finished - t.created) + "s" : ""}${t.error ? " · ↯ " + esc(t.error) : ""}</div>
         ${out ? `<div class="task-out">${esc(out.slice(-4000))}</div>` : ""}
         <div class="task-actions">
-          ${running ? `<button class="mini-btn" data-a="cancel">■ Detener</button>` : ""}
+          ${running ? `<button class="mini-btn" data-a="cancel">■ ${t("t_stop")}</button>` : ""}
           <button class="mini-btn" data-a="del">Borrar</button>
         </div>`;
       el.querySelector('[data-a="cancel"]')?.addEventListener("click", async () => { await api(`/api/tasks/${t.id}/cancel`, { method: "POST" }); loadTasks(); });
@@ -299,7 +299,7 @@
     let evs = [];
     try { evs = (await api("/api/log?limit=300" + (kind ? "&kind=" + encodeURIComponent(kind) : ""))).events; } catch {}
     const box = $("#logList");
-    if (!evs.length) { box.innerHTML = `<div class="empty-note">Sin actividad registrada</div>`; return; }
+    if (!evs.length) { box.innerHTML = `<div class="empty-note">${t("no_activity")}</div>`; return; }
     box.innerHTML = evs.map((e) => `<div class="log-row">
         <span class="lt">${dt(e.ts)}</span>
         <span class="lk">${esc(e.kind)}</span>

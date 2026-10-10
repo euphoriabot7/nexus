@@ -244,7 +244,7 @@ function renderSidebar() {
   group("chats", rest);
 
   if (state.searchResults.length) {
-    const gl = document.createElement("div"); gl.className = "group-label"; gl.textContent = "mensajes";
+    const gl = document.createElement("div"); gl.className = "group-label"; gl.textContent = t("messages_word");
     list.appendChild(gl);
     state.searchResults.forEach((r) => list.appendChild(resItem(r)));
   }
@@ -256,8 +256,8 @@ function chatItem(c) {
   el.className = "chat-item" + (c.id === state.activeId ? " active" : "") + (c.pinned ? " pinned" : "");
   el.innerHTML = `
     <div class="ci-body">
-      <div class="ci-title">${highlight(c.title, state.filter)}${c.agent ? '<span class="ci-agent">AGENTE</span>' : ""}</div>
-      <div class="ci-prev">${c.preview ? esc(c.preview) : "sin mensajes"} · ${timeLabel(c.updated)}</div>
+      <div class="ci-title">${highlight(c.title, state.filter)}${c.agent ? '<span class="ci-agent">${t("mode_agent").toUpperCase()}</span>' : ""}</div>
+      <div class="ci-prev">${c.preview ? esc(c.preview) : t("no_messages_yet")} · ${timeLabel(c.updated)}</div>
     </div>
     <div class="ci-actions">
       <button class="icon-btn" data-pin title="${c.pinned ? "Desfijar" : "Fijar"}">
@@ -322,7 +322,7 @@ async function newChat(provider, model, agent) {
 }
 
 async function openChat(id) {
-  if (state.streaming) return toast("Espera a que termine la respuesta");
+  if (state.streaming) return toast(t("wait_response"));
   state.activeId = id;
   const data = await api(`/api/chats/${id}/messages`);
   state.chat = data.chat;
@@ -356,11 +356,11 @@ function renderEmpty() {
   m.innerHTML = `
     <div class="empty">
       <div class="glyph">◈</div>
-      <h2>Bienvenido a NEXUS</h2>
-      <p>Tu consola de chat local. Elige modelo y modo, y empieza a escribir.</p>
+      <h2>${t("welcome_title")}</h2>
+      <p>${t("welcome_text")}</p>
       <div class="modes">
-        <div class="mode-card"><b>◆ Modo Chat</b>Respuesta directa del modelo, rápida y ligera.</div>
-        <div class="mode-card"><b>◆ Modo Agente</b>Hermes con herramientas: lee archivos, ejecuta comandos, navega.</div>
+        <div class="mode-card"><b>${t("mode_card_chat")}</b>${t("mode_card_chat_desc")}</div>
+        <div class="mode-card"><b>${t("mode_card_agent")}</b>${t("mode_card_agent_desc")}</div>
       </div>
       <div class="chips">${chipsHtml()}</div>
     </div>`;
@@ -369,9 +369,15 @@ function renderEmpty() {
     const modo = c.dataset.mode || "ambos";
     if (modo === "agente" && state.chat && !state.chat.agent) {
       toggleAgent();
-      toast("He activado el modo agente para esta tarea");
+      toast(t("chip_agent_on"));
     }
-    $("#input").value = body; autoGrow(); startTurn({ content: body });
+    // se rellena el campo para poder editarlo antes de enviar
+    const inp = $("#input");
+    inp.value = body;
+    autoGrow();
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    toast(t("chip_ready"), 1600);
   }));
   updateModelPill();
   updateAgentBtn();
@@ -580,7 +586,7 @@ function msgEl(m) {
   wrap.dataset.id = m.id;
   const isUser = m.role === "user";
   const mdl = m.model ? `<span class="mdl">${esc(m.model)}</span>` : "";
-  const badge = (m.meta && m.meta.agent) ? '<span class="badge-agent">AGENTE</span>' : "";
+  const badge = (m.meta && m.meta.agent) ? '<span class="badge-agent">${t("mode_agent").toUpperCase()}</span>' : "";
   wrap.innerHTML = `
     <div class="avatar">${isUser ? "❯" : "◈"}</div>
     <div class="bubble">
@@ -593,7 +599,7 @@ function msgEl(m) {
         ${isUser ? '<button data-act="edit">editar</button>' : '<button data-act="regen">regenerar</button><button data-act="read">leer</button>'}
       </div>
     </div>`;
-  wrap.querySelector('[data-act="copy"]').addEventListener("click", () => { navigator.clipboard.writeText(m.content); toast("Copiado"); });
+  wrap.querySelector('[data-act="copy"]').addEventListener("click", () => { navigator.clipboard.writeText(m.content); toast(t("copied")); });
   const regen = wrap.querySelector('[data-act="regen"]'); if (regen) regen.addEventListener("click", () => startTurn({ regenerate: true }));
   const read = wrap.querySelector('[data-act="read"]'); if (read) read.addEventListener("click", () => readAloud(m.content));
   const edit = wrap.querySelector('[data-act="edit"]'); if (edit) edit.addEventListener("click", () => editMessage(m, wrap));
@@ -601,7 +607,7 @@ function msgEl(m) {
 }
 
 function editMessage(m, wrap) {
-  if (state.streaming) return toast("Espera a que termine la respuesta");
+  if (state.streaming) return toast(t("wait_response"));
   const contentEl = wrap.querySelector(".content");
   const html = `<textarea class="edit-box" rows="3">${esc(m.content)}</textarea>
     <div class="edit-actions"><button class="mini-btn" data-e="save">Guardar y reenviar</button>
@@ -786,7 +792,7 @@ function setStreaming(on) {
   $("#sendBtn").classList.toggle("hidden", on);
   $("#stopBtn").classList.toggle("hidden", !on);
   $("#hintModel").textContent = state.chat ? `${state.chat.provider} · ${state.chat.model}` : "—";
-  $("#modeHint").textContent = state.chat && state.chat.agent ? "◆ modo agente" : "";
+  $("#modeHint").textContent = state.chat && state.chat.agent ? t("mode_agent_hint") : "";
 }
 
 /* --------------------------- streaming (SSE) ---------------------------- */
@@ -822,7 +828,7 @@ async function streamRequest(body, signal, cb) {
 
 /* ----------------------------- selector modelo -------------------------- */
 function updateModelPill() {
-  $("#modelLabel").textContent = state.chat ? state.chat.model : (state.defaults.model || "modelo");
+  $("#modelLabel").textContent = state.chat ? state.chat.model : (state.defaults.model || t("model_word"));
   $("#hintModel").textContent = state.chat ? `${state.chat.provider} · ${state.chat.model}` : "—";
 }
 
@@ -880,8 +886,8 @@ async function selectModel(pid, model) {
 function updateAgentBtn() {
   const on = state.chat && state.chat.agent;
   $("#agentBtn").classList.toggle("on", !!on);
-  $("#agentLabel").textContent = on ? "Agente" : "Chat";
-  $("#modeHint").textContent = on ? "◆ modo agente" : "";
+  $("#agentLabel").textContent = on ? t("mode_agent") : t("mode_chat");
+  $("#modeHint").textContent = on ? t("mode_agent_hint") : "";
 }
 
 async function toggleAgent() {
@@ -943,17 +949,17 @@ async function restoreExamplePrompts() {
     const r = await api("/api/prompts/seed", { method: "POST" });
     await loadPresets();
     renderPresets();
-    toast(r.added ? `${r.added} prompts de ejemplo añadidos` : "Ya tenías todos los ejemplos");
-  } catch (e) { toast("No se pudieron cargar: " + e.message); }
+    toast(r.added ? t("examples_added", { n: r.added }) : t("examples_all"));
+  } catch (e) { toast(t("install_failed", { error: e.message })); }
 }
 
 async function savePreset() {
   const body = $("#input").value.trim();
-  if (!body) return toast("Escribe algo primero");
+  if (!body) return toast(t("write_something"));
   const title = prompt("Nombre de la plantilla:", body.slice(0, 32));
   if (!title) return;
   await api("/api/presets", { method: "POST", body: { title, body } });
-  await loadPresets(); renderPresets(); toast("Plantilla guardada");
+  await loadPresets(); renderPresets(); toast(t("preset_saved"));
 }
 
 /* -------------------------------- menú ---------------------------------- */
@@ -966,7 +972,7 @@ function openMore() {
 
 async function moreAction(act) {
   $("#morePop").classList.add("hidden");
-  if (!["exportAll", "presets"].includes(act)) { if (!state.activeId) return toast("Abre un chat primero"); }
+  if (!["exportAll", "presets"].includes(act)) { if (!state.activeId) return toast(t("open_chat_first")); }
   const id = state.activeId;
   if (act === "presets") { openPresetPop(); }
   else if (act === "rename") {
@@ -988,7 +994,7 @@ async function moreAction(act) {
     download(new Blob([md], { type: "text/markdown" }), state.chat.title.replace(/[^\w\-]+/g, "_") + ".md");
     toast("Exportado");
   } else if (act === "clear") {
-    if (confirm("¿Vaciar todos los mensajes de este chat?")) { await api(`/api/chats/${id}/clear`, { method: "POST" }); state.messages = []; renderMessages(); refreshChats(); }
+    if (confirm(t("confirm_clear"))) { await api(`/api/chats/${id}/clear`, { method: "POST" }); state.messages = []; renderMessages(); refreshChats(); }
   } else if (act === "delete") {
     removeChat(state.chat);
   }
@@ -1060,33 +1066,33 @@ function beep() {
 /* --------------------------- paleta de comandos ------------------------- */
 function paletteItems() {
   const items = [
-    { ico: "＋", label: "Nuevo chat", kind: "acción", run: () => newChat(state.defaults.provider, state.defaults.model) },
-    { ico: "◈", label: "Cambiar modelo", kind: "acción", run: openModelPop },
-    { ico: "◆", label: "Alternar modo agente", kind: "acción", run: toggleAgent },
-    { ico: "▤", label: "Plantillas de prompt", kind: "acción", run: openPresetPop },
-    { ico: "◫", label: "Vista previa lateral (activar/desactivar)", kind: "acción", run: () => {
+    { ico: "＋", label: t("new_chat"), kind: "acción", run: () => newChat(state.defaults.provider, state.defaults.model) },
+    { ico: "◈", label: t("help_change_model"), kind: "acción", run: openModelPop },
+    { ico: "◆", label: t("mode_agent"), kind: "acción", run: toggleAgent },
+    { ico: "▤", label: t("presets_title"), kind: "acción", run: openPresetPop },
+    { ico: "◫", label: t("palette_split_toggle"), kind: "acción", run: () => {
         const on = !LS.get("nexus_splitView", true); LS.set("nexus_splitView", on);
         if (!on) closeSplit();
-        toast("Vista previa lateral " + (on ? "activada" : "desactivada"));
+        toast(t("palette_split_toggle") + (on ? " ✓" : " ✗"));
       } },
-    { ico: "◫", label: "Cerrar vista previa lateral", kind: "acción", run: closeSplit },
-    { ico: "⚙", label: "Ajustes", kind: "acción", run: openSettings },
-    { ico: "🔑", label: "Proveedores y claves", kind: "acción", run: () => openSetup("manage") },
-    { ico: "★", label: "Solo modelos favoritos", kind: "acción", run: () => { $("#favOnly").checked = true; openModelPop(); } },
-    { ico: "⇩", label: "Exportar chat (Markdown)", kind: "acción", run: () => moreAction("export") },
-    { ico: "⇪", label: "Exportar todo (JSON)", kind: "acción", run: exportAll },
-    { ico: "⇧", label: "Importar JSON", kind: "acción", run: () => $("#importFile").click() },
-    { ico: "∑", label: "Estadísticas del chat", kind: "acción", run: () => moreAction("stats") },
-    { ico: "🔊", label: "Leer última respuesta", kind: "acción", run: () => moreAction("read") },
-    { ico: "？", label: "Atajos y trucos", kind: "ayuda", run: openHelp },
-    { ico: "▦", label: "Panel · resumen y gasto", kind: "panel", run: () => openPanel("resumen") },
-    { ico: "▶", label: "Panel · encargar un trabajo", kind: "panel", run: () => openPanel("tareas") },
-    { ico: "▤", label: "Panel · previsualizar proyecto", kind: "panel", run: () => openPanel("proyecto") },
-    { ico: "≡", label: "Panel · registro de actividad", kind: "panel", run: () => openPanel("registro") },
-    { ico: "⇄", label: "Panel · acceso por red local", kind: "panel", run: () => openPanel("red") },
-    { ico: "＋", label: "Nuevo chat en modo agente", kind: "acción", run: () => newChat(state.defaults.provider, state.defaults.model, 1) },
+    { ico: "◫", label: t("palette_split_close"), kind: "acción", run: closeSplit },
+    { ico: "⚙", label: t("settings"), kind: "acción", run: openSettings },
+    { ico: "🔑", label: t("palette_providers"), kind: "acción", run: () => openSetup("manage") },
+    { ico: "★", label: t("palette_only_favs"), kind: "acción", run: () => { $("#favOnly").checked = true; openModelPop(); } },
+    { ico: "⇩", label: t("act_export"), kind: "acción", run: () => moreAction("export") },
+    { ico: "⇪", label: t("palette_export_all"), kind: "acción", run: exportAll },
+    { ico: "⇧", label: t("palette_import"), kind: "acción", run: () => $("#importFile").click() },
+    { ico: "∑", label: t("act_stats"), kind: "acción", run: () => moreAction("stats") },
+    { ico: "🔊", label: t("act_read"), kind: "acción", run: () => moreAction("read") },
+    { ico: "？", label: t("palette_help"), kind: "ayuda", run: openHelp },
+    { ico: "▦", label: t("palette_panel_summary"), kind: "panel", run: () => openPanel("resumen") },
+    { ico: "▶", label: t("palette_panel_tasks"), kind: "panel", run: () => openPanel("tareas") },
+    { ico: "▤", label: t("palette_panel_project"), kind: "panel", run: () => openPanel("proyecto") },
+    { ico: "≡", label: t("palette_panel_log"), kind: "panel", run: () => openPanel("registro") },
+    { ico: "⇄", label: t("palette_panel_lan"), kind: "panel", run: () => openPanel("red") },
+    { ico: "＋", label: t("palette_new_agent"), kind: "acción", run: () => newChat(state.defaults.provider, state.defaults.model, 1) },
   ];
-  ["cyan", "violet", "emerald", "amber", "rose", "ice"].forEach((a) => items.push({ ico: "◐", label: "Tema: " + a, kind: "tema", run: () => applyAccent(a) }));
+  ["cyan", "violet", "emerald", "amber", "rose", "ice"].forEach((a) => items.push({ ico: "◐", label: t("palette_theme", { name: a }), kind: "tema", run: () => applyAccent(a) }));
   state.chats.slice(0, 40).forEach((c) => items.push({ ico: "❯", label: c.title, kind: "chat", run: () => openChat(c.id) }));
   return items;
 }
@@ -1155,7 +1161,7 @@ async function saveSettings() {
     Object.assign(state.chat, body);
   }
   $("#settingsModal").classList.add("hidden");
-  toast("Ajustes guardados");
+  toast(t("settings_saved"));
 }
 
 async function exportAll() {
@@ -1230,7 +1236,7 @@ function initDrag() {
     const mb = $("#menuBtn");
     if (mb) mb.title = collapsed ? "Mostrar historial (Ctrl+B)" : "Ocultar historial (Ctrl+B)";
     const bt = document.querySelector(".brand-text span");
-    if (bt) bt.textContent = mobile ? "consola · móvil" : "consola de chat";
+    if (bt) bt.textContent = mobile ? t("brand_sub_mobile") : t("brand_sub");
   };
   window.__nexusSync = sync;
   window.addEventListener("resize", sync);
@@ -1255,7 +1261,48 @@ async function loadConfigState() {
   return s;
 }
 
+function fillLangSelect() {
+  const sel = $("#langSelect");
+  if (!sel) return;
+  sel.innerHTML = "";
+  (window.NEXUS_LANG_LIST || []).forEach((l) => {
+    const o = document.createElement("option");
+    o.value = l.code;
+    o.textContent = l.name;
+    if (l.code === I18N.lang) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener("change", () => {
+    setLang(sel.value);
+    toast(I18N.name(sel.value));
+  });
+}
+
+/* al cambiar de idioma: aplicar al HTML y repintar lo que se genera en JS */
+window.onLangChange = function () {
+  I18N.apply(document);
+  fillLangSelect();
+  try {
+    renderSidebar();
+    updateModelPill();
+    updateAgentBtn();
+    updateCount();
+    if ($("#messages .empty")) renderEmpty();
+    const panel = $("#panel");
+    if (panel && !panel.classList.contains("hidden") && typeof window.setPanelTab === "function") {
+      const activa = document.querySelector(".panel-tab.on");
+      window.setPanelTab(activa ? activa.dataset.tab : "resumen");
+    }
+    if ($("#presetPop") && !$("#presetPop").classList.contains("hidden")) renderPresets();
+    if ($("#setupModal") && !$("#setupModal").classList.contains("hidden")) renderSetupList();
+    renderHermes();
+  } catch (e) {}
+};
+
 async function boot() {
+  initLang();
+  I18N.apply(document);
+  fillLangSelect();
   applyAccent(LS.get("nexus_accent", "cyan"));
   state.favorites = LS.get("nexus_favs", []);
   initDrag();
@@ -1265,18 +1312,18 @@ async function boot() {
     await loadConfigState();
     const sinProveedor = state.needsSetup || !state.defaults.provider;
     $("#providerStatus").className = "status " + (sinProveedor ? "err" : "ok");
-    $("#providerStatus").querySelector("span").textContent = sinProveedor ? "sin proveedor" : "en línea";
+    $("#providerStatus").querySelector("span").textContent = sinProveedor ? t("status_no_provider") : t("status_online");
     renderSidebar(); updateModelPill();
     if (sinProveedor) openSetup("first");
     else if (state.chats.length) openChat(state.chats[0].id);
     else newChat(state.defaults.provider, state.defaults.model);
   } catch (e) {
     $("#providerStatus").className = "status err";
-    $("#providerStatus").querySelector("span").textContent = "sin servidor";
-    toast("No se pudo conectar con el backend");
+    $("#providerStatus").querySelector("span").textContent = t("status_no_server");
+    toast(t("backend_down"));
   }
   updateCount();
-  if (isMobile()) setTimeout(() => toast("Vista móvil activada — desliza desde el borde para abrir el historial", 3200), 700);
+  if (isMobile()) setTimeout(() => toast(t("brand_sub_mobile") + " · " + t("toggle_history"), 3200), 700);
 }
 
 /* -------------------------------- eventos ------------------------------- */
@@ -1396,7 +1443,7 @@ $("#messages").addEventListener("click", (e) => {
   if (copy) {
     const code = copy.closest(".code-block").querySelector("pre code");
     navigator.clipboard.writeText(code.textContent);
-    copy.textContent = "copiado"; setTimeout(() => (copy.textContent = "copiar"), 1200);
+    copy.textContent = t("copied_blocks"); setTimeout(() => (copy.textContent = t("copy")), 1200);
     return;
   }
   const frameBtn = e.target.closest("[data-openframe]");
@@ -1510,7 +1557,7 @@ async function openSetup(mode = "manage") {
   const modal = $("#setupModal");
   if (!modal) return;
   modal.classList.remove("hidden");
-  $("#setupTitle").textContent = mode === "first" ? "Bienvenido a NEXUS · elige tu proveedor de IA" : "Proveedores y claves";
+  $("#setupTitle").textContent = mode === "first" ? t("setup_title") : t("providers_btn");
   const ruta = info.config_path || "~/.config/nexus/config.json";
   $("#setupPath").textContent = ruta;
   if ($("#settingsCfgPath")) $("#settingsCfgPath").textContent = ruta;
@@ -1569,20 +1616,19 @@ function setupShow(texto, clase) {
 async function testSetup() {
   const spec = setupFormSpec();
   const modelo = $("#spModel").value.trim();
-  setupShow("Probando…", "");
+  setupShow(t("setup_testing"), "");
   $("#setupTest").disabled = true;
   try {
     const r = await api("/api/config/test", { method: "POST", body: { provider: spec.id, spec, model: modelo } });
     if (r.ok) {
       if (!modelo && r.model) $("#spModel").value = r.model;
-      setupShow(`Conexión correcta ✓  ${r.models ? r.models + " modelos disponibles. " : ""}` +
-                `Respuesta de prueba: ${r.reply || "(vacía)"}\nModelo: ${r.model || modelo}`, "ok");
+      setupShow(t("setup_ok", { n: r.models || 0, reply: r.reply || "-", model: r.model || modelo }), "ok");
       $("#setupSave").focus();
     } else {
-      setupShow(`No ha funcionado: ${r.error || "error desconocido"}`, "err");
+      setupShow(t("setup_fail", { error: r.error || "?" }), "err");
     }
   } catch (e) {
-    setupShow("Error de conexión con el backend: " + e.message, "err");
+    setupShow(t("backend_down") + ": " + e.message, "err");
   } finally {
     $("#setupTest").disabled = false;
   }
@@ -1590,7 +1636,7 @@ async function testSetup() {
 
 async function saveSetup() {
   const spec = setupFormSpec();
-  if (!spec.base_url) return setupShow("Escribe la URL base del proveedor.", "err");
+  if (!spec.base_url) return setupShow(t("setup_need_url"), "err");
   $("#setupSave").disabled = true;
   try {
     const r = await api("/api/config", { method: "POST",
@@ -1599,11 +1645,11 @@ async function saveSetup() {
     await loadConfigState();
     refreshChats();
     updateModelPill();
-    setupShow("Guardado ✓  Ya puedes usarlo.", "ok");
-    toast("Proveedor listo: " + (spec.label || spec.id));
+    setupShow(t("setup_saved"), "ok");
+    toast(t("setup_ready", { name: spec.label || spec.id }));
     setTimeout(() => { $("#setupModal").classList.add("hidden"); }, 700);
   } catch (e) {
-    setupShow("No se pudo guardar: " + e.message, "err");
+    setupShow(t("setup_save_failed", { error: e.message }), "err");
   } finally {
     $("#setupSave").disabled = false;
   }
@@ -1613,7 +1659,7 @@ function renderSetupList() {
   const box = $("#setupList");
   const provs = (SETUP.info && SETUP.info.providers) || {};
   const ids = Object.keys(provs);
-  if (!ids.length) { box.innerHTML = `<p class="modal-note">Todavía no has añadido ningún proveedor.</p>`; return; }
+  if (!ids.length) { box.innerHTML = `<p class="modal-note">${t("setup_no_providers")}</p>`; return; }
   const porDefecto = ((SETUP.info && SETUP.info.default) || {}).provider || "";
   box.innerHTML = "";
   ids.forEach((pid) => {
@@ -1623,12 +1669,12 @@ function renderSetupList() {
     row.innerHTML = `<span class="sr-name">${esc(p.label || pid)}</span>` +
       `<span class="sr-tag">${p.has_key ? "clave ✓" : (p.requires_key ? "sin clave" : "local")}` +
       `${p.models && p.models.length ? " · " + p.models.length + " modelos" : ""}` +
-      `${pid === porDefecto ? " · por defecto" : ""}</span>`;
+      `${pid === porDefecto ? " · " + t("setup_default") : ""}</span>`;
     const usar = document.createElement("button");
-    usar.className = "mini-btn"; usar.textContent = "Usar";
+    usar.className = "mini-btn"; usar.textContent = t("setup_use");
     usar.addEventListener("click", () => makeDefault(pid));
     const del = document.createElement("button");
-    del.className = "mini-btn"; del.textContent = "Quitar";
+    del.className = "mini-btn"; del.textContent = t("setup_remove");
     del.addEventListener("click", () => removeProvider(pid));
     row.appendChild(usar); row.appendChild(del);
     box.appendChild(row);
@@ -1641,31 +1687,31 @@ async function makeDefault(pid) {
     await loadConfigState();
     await loadSetupInfo();
     renderSetupList();
-    toast("Proveedor por defecto: " + pid);
-  } catch (e) { toast("No se pudo: " + e.message); }
+    toast(t("setup_default_now", { id: pid }));
+  } catch (e) { toast(t("setup_save_failed", { error: e.message })); }
 }
 
 async function removeProvider(pid) {
-  if (!confirm(`¿Quitar el proveedor "${pid}" de tu configuración?`)) return;
+  if (!confirm(t("setup_confirm_remove", { id: pid }))) return;
   try {
     await api("/api/config", { method: "POST", body: { delete: pid } });
     await loadConfigState();
     await loadSetupInfo();
     renderSetupList();
-    toast("Quitado");
-  } catch (e) { toast("No se pudo: " + e.message); }
+    toast(t("setup_removed"));
+  } catch (e) { toast(t("setup_save_failed", { error: e.message })); }
 }
 
 function renderHermes() {
   const h = SETUP.hermes || {};
   const estado = $("#hermesState");
-  if (h.installed) estado.textContent = "Instalado ✓ (el modo agente está disponible).";
-  else if (h.running) estado.textContent = "Instalándose…";
-  else estado.textContent = "No lo tengo instalado.";
+  if (h.installed) estado.textContent = t("agent_installed");
+  else if (h.running) estado.textContent = t("agent_installing");
+  else estado.textContent = t("agent_missing");
   if ($("#hermesDocs")) $("#hermesDocs").href = h.docs || "https://hermes-agent.nousresearch.com/docs";
   if ($("#hermesInstall")) {
     $("#hermesInstall").disabled = !!h.installed || !!h.running;
-    $("#hermesInstall").textContent = h.installed ? "Ya instalado" : (h.running ? "Instalando…" : "Instalar Hermes");
+    $("#hermesInstall").textContent = h.installed ? t("already_installed") : (h.running ? t("installing") : t("install_hermes"));
   }
   const log = $("#hermesLog");
   if (h.tail) { log.textContent = h.tail; log.classList.remove("hidden"); }
@@ -1674,7 +1720,7 @@ function renderHermes() {
 async function startHermesInstall() {
   const h = SETUP.hermes || {};
   const cmd = h.command || "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash";
-  if (!confirm("Voy a ejecutar el instalador oficial de Hermes en tu equipo:\n\n" + cmd + "\n\n¿Seguir?")) return;
+  if (!confirm(t("confirm_install", { cmd }))) return;
   try {
     const r = await api("/api/hermes/install", { method: "POST" });
     SETUP.hermes = r.status || SETUP.hermes;
@@ -1686,9 +1732,9 @@ async function startHermesInstall() {
       if (SETUP.hermes && !SETUP.hermes.running && SETUP.hermes.exit_code !== null) {
         clearInterval(SETUP.poll); SETUP.poll = null;
         const info = SETUP.hermes;
-        toast(info.installed ? "Hermes instalado ✓" : "El instalador terminó (código " + info.exit_code + ")");
+        toast(info.installed ? t("hermes_installed_ok") : t("hermes_finished", { code: info.exit_code }));
         loadConfigState();
       }
     }, 3000);
-  } catch (e) { toast("No se pudo lanzar: " + e.message); }
+  } catch (e) { toast(t("install_failed", { error: e.message })); }
 }

@@ -842,3 +842,17 @@ body.split-open #messages{transition:margin-right .16s ease}
 .chip-mode{color:var(--accent);font-size:10px;margin-right:4px;vertical-align:1px}
 .preset-item .pt-body{max-height:2.9em;overflow:hidden}
 .pop-foot{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ============ idioma ============ */
+.lang-select{width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line-2);
+  background:var(--panel-solid);color:var(--txt);font-family:var(--font);font-size:13.5px;cursor:pointer}
+.lang-select:focus{outline:none;border-color:var(--accent)}
+/* sentido de lectura para idiomas RTL (árabe) */
+body.rtl #messages .msg{flex-direction:row-reverse}
+body.rtl .msg .bubble{text-align:right}
+body.rtl #splitPane{left:0;right:auto;border-left:none;border-right:1px solid var(--line-2);
+  box-shadow:18px 0 40px rgba(0,0,0,.45)}
+body.rtl.split-open #messages,body.rtl.split-open #main>footer{margin-right:0;margin-left:var(--split-w,44%)}
+body.rtl .sp-head .sp-actions{margin-left:0;margin-right:auto}
+body.rtl #splitGrip{left:auto;right:-3px}
+body.rtl .ci-title,body.rtl .pt-title,body.rtl .pt-body{text-align:right}
