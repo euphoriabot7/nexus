@@ -76,6 +76,7 @@ bash stop.sh             # menghentikan backend
 - **Templat prompt**, **palet perintah** (Ctrl+P), dikte suara dan baca nyaring.
 - Statistik per chat, notifikasi dan suara saat selesai, 6 warna aksen, impor/ekspor JSON.
 - **Antarmuka dalam 7 bahasa** (Inggris, Spanyol, Mandarin, Jepang, Korea, Arab, Indonesia), bisa diganti dari bilah atas; bahasa Arab membalik tata letak.
+- **Lampiran menetap** — gambar atau dokumen yang dikirim tersimpan bersama percakapan (thumbnail atau kartu file, klik untuk membuka/mengunduh), tetap ada setelah muat ulang dan dikirim ulang saat membuat ulang.
 
 ## 🖼 Tangkapan layar
 

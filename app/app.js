@@ -25,12 +25,12 @@ const LS = {
 
 /* ------------------------------- utilidades ------------------------------ */
 function toast(msg, ms = 2200) {
-  const t = $("#toast");
-  t.textContent = msg;
-  t.classList.remove("hidden");
-  requestAnimationFrame(() => t.classList.add("show"));
-  clearTimeout(t._t);
-  t._t = setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.classList.add("hidden"), 250); }, ms);
+  const caja = $("#toast");
+  caja.textContent = msg;
+  caja.classList.remove("hidden");
+  requestAnimationFrame(() => caja.classList.add("show"));
+  clearTimeout(caja._t);
+  caja._t = setTimeout(() => { caja.classList.remove("show"); setTimeout(() => caja.classList.add("hidden"), 250); }, ms);
 }
 
 async function api(path, opts = {}) {
@@ -544,7 +544,7 @@ function handleSplitArtifact(d) {
   else {
     if (SP.path !== path) SP.text = "";
     openSplit({ mode: "code", title: name, path });
-    if (!SP.text) fetch("/preview" + path).then((r) => r.text()).then((t) => { SP.text = t.slice(0, 400000); paintSplit(); }).catch(() => {});
+    if (!SP.text) fetch("/preview" + path).then((r) => r.text()).then((txt) => { SP.text = txt.slice(0, 400000); paintSplit(); }).catch(() => {});
   }
   if (LS.get("nexus_autoPreview", false)) autoPreviewFile(path);
 }
@@ -590,13 +590,14 @@ function msgEl(m) {
   wrap.innerHTML = `
     <div class="avatar">${isUser ? "❯" : "◈"}</div>
     <div class="bubble">
-      <div class="role">${isUser ? "tú" : "asistente"} ${mdl} ${badge}</div>
+      <div class="role">${isUser ? t("role_user") : t("role_assistant")} ${mdl} ${badge}</div>
       <div class="content">${isUser ? esc(m.content) : mdToHtml(m.content)}</div>
+      ${attachmentsHtml(m.meta && m.meta.files)}
       ${metaLine(m)}
       ${artifactsBarHtml(m.meta && m.meta.artifacts)}
       <div class="msg-actions">
-        <button data-act="copy">copiar</button>
-        ${isUser ? '<button data-act="edit">editar</button>' : '<button data-act="regen">regenerar</button><button data-act="read">leer</button>'}
+        <button data-act="copy">${t("act_copy")}</button>
+        ${isUser ? `<button data-act="edit">${t("act_edit")}</button>` : `<button data-act="regen">${t("act_regen")}</button><button data-act="read">${t("act_read")}</button>`}
       </div>
     </div>`;
   wrap.querySelector('[data-act="copy"]').addEventListener("click", () => { navigator.clipboard.writeText(m.content); toast(t("copied")); });
@@ -629,13 +630,13 @@ function metaLine(m) {
   const parts = [];
   if (m.meta.usage) {
     const u = m.meta.usage;
-    const t = u.total_tokens || (u.prompt_tokens || 0) + (u.completion_tokens || 0);
-    if (t) parts.push(`${t} tok`);
-    if (u.completion_tokens) parts.push(`${u.completion_tokens} salida`);
+    const tot = u.total_tokens || (u.prompt_tokens || 0) + (u.completion_tokens || 0);
+    if (tot) parts.push(`${tot} ${t("meta_tokens")}`);
+    if (u.completion_tokens) parts.push(`${u.completion_tokens} ${t("meta_out")}`);
   }
   if (m.meta.latency_ms) parts.push(`${(m.meta.latency_ms / 1000).toFixed(1)}s`);
   if (m.meta.error) parts.push("↯ " + esc(m.meta.error));
-  if (m.meta.interrupted) parts.push("⏹ interrumpido");
+  if (m.meta.interrupted) parts.push("⏹ " + t("meta_interrupted"));
   return parts.length ? `<div class="msg-meta">${parts.join(" · ")}</div>` : "";
 }
 
@@ -660,6 +661,30 @@ function autoGrow() { const el = $("#input"); el.style.height = "auto"; el.style
 function scrollBottom(instant) { const box = $("#messages"); box.scrollTo({ top: box.scrollHeight, behavior: instant ? "auto" : "smooth" }); }
 
 /* --------------------------- adjuntos ----------------------------------- */
+function peso(bytes) {
+  const b = Number(bytes) || 0;
+  if (b < 1024) return b + " B";
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + " KB";
+  return (b / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+// fichas de los adjuntos de un mensaje: imagenes con miniatura, documentos con su nombre
+function attachmentsHtml(files) {
+  const lista = (files || []).filter(Boolean);
+  if (!lista.length) return "";
+  const piezas = lista.map((f) => {
+    const src = f.url || (f.file ? "/api/files/" + encodeURIComponent(f.file) : "");
+    if (f.img && src) {
+      return `<a class="att-img" href="${esc(src)}" target="_blank" title="${esc(f.name)}">
+        <img src="${esc(src)}" alt="${esc(f.name)}" loading="lazy"></a>`;
+    }
+    const enlace = f.file ? `/api/files/${encodeURIComponent(f.file)}` : (f.url || "#");
+    return `<a class="att-file" href="${esc(enlace)}" download="${esc(f.name)}" title="${esc(f.name)}">
+        <span class="af-ico">📄</span><span class="af-name">${esc(f.name)}</span>
+        <span class="af-size">${peso(f.size)}</span></a>`;
+  }).join("");
+  return `<div class="att-block">${piezas}</div>`;
+}
 function clearAttachments() { state.attachments = []; renderAttachChips(); }
 
 function renderAttachChips() {
@@ -692,6 +717,22 @@ function addFiles(files) {
   });
 }
 
+// junta lo que ya teniamos (miniatura local) con la ficha del servidor
+function relink(locales, servidor) {
+  return (servidor || []).map((f, i) => {
+    const loc = (locales || [])[i] || {};
+    return Object.assign({}, f, loc.url && f.img ? { url: loc.url } : {});
+  });
+}
+
+// ficha local (para pintarla al momento); el servidor devuelve la definitiva
+function vistazo(attachments) {
+  return (attachments || []).map((a) => ({
+    name: a.name, mime: a.mime, img: !!a.img, size: Math.round(a.data.length * 0.75),
+    url: `data:${a.mime || "application/octet-stream"};base64,${a.data}`,
+  }));
+}
+
 /* --------------------------- pedir al modelo ---------------------------- */
 async function startTurn({ content = "", editId = null, regenerate = false }) {
   if (state.streaming) return;
@@ -713,11 +754,11 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
     if (idx >= 0) state.messages.splice(idx);
     box.innerHTML = "";
     state.messages.forEach((m) => box.appendChild(msgEl(m)));
-    userMsg = { id: "tmp_u", role: "user", content, model, meta: {} };
+    userMsg = { id: "tmp_u", role: "user", content, model, meta: { files: vistazo(attachments) } };
     state.messages.push(userMsg); box.appendChild(msgEl(userMsg));
   } else if (!regenerate) {
     if (box.querySelector(".empty")) box.innerHTML = "";
-    userMsg = { id: "tmp_u", role: "user", content, model, meta: {} };
+    userMsg = { id: "tmp_u", role: "user", content, model, meta: { files: vistazo(attachments) } };
     state.messages.push(userMsg); box.appendChild(msgEl(userMsg));
   } else {
     const last = [...state.messages].reverse().find((m) => m.role === "assistant");
@@ -744,9 +785,17 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
 
   try {
     await streamRequest(body, state.abort.signal, {
-      onMeta: (d) => { asst.id = d.assistant_message_id; el.dataset.id = asst.id; if (userMsg) userMsg.id = d.user_message_id; },
-      onDelta: (t) => {
-        acc += t;
+      onMeta: (d) => {
+        asst.id = d.assistant_message_id; el.dataset.id = asst.id;
+        if (userMsg) {
+          userMsg.id = d.user_message_id;
+          if (d.files && d.files.length) {
+            userMsg.meta = Object.assign({}, userMsg.meta, { files: relink(userMsg.meta && userMsg.meta.files, d.files) });
+          }
+        }
+      },
+      onDelta: (piece) => {
+        acc += piece;
         if (!raf) raf = requestAnimationFrame(() => {
           contentEl.innerHTML = mdToHtml(acc) + '<span class="cursor"></span>';
           liveSplitFromMarkdown(acc);
@@ -1400,12 +1449,12 @@ $("#drawerBackdrop").addEventListener("click", () => $("#sidebar").classList.add
 // gestos en móvil: abrir desde el borde izquierdo, cerrar deslizando a la izquierda
 let _tsx = 0, _tsy = 0, _tst = 0;
 document.addEventListener("touchstart", (e) => {
-  const t = e.touches[0]; _tsx = t.clientX; _tsy = t.clientY; _tst = Date.now();
+  const toque = e.touches[0]; _tsx = toque.clientX; _tsy = toque.clientY; _tst = Date.now();
 }, { passive: true });
 document.addEventListener("touchend", (e) => {
   if (!isMobile()) return;
-  const t = e.changedTouches[0];
-  const dx = t.clientX - _tsx, dy = t.clientY - _tsy;
+  const toque = e.changedTouches[0];
+  const dx = toque.clientX - _tsx, dy = toque.clientY - _tsy;
   if (Date.now() - _tst > 600 || Math.abs(dy) > 60 || Math.abs(dx) < 60) return;
   const col = $("#sidebar").classList.contains("collapsed");
   if (dx > 0 && col && _tsx < 40) $("#sidebar").classList.remove("collapsed");
@@ -1467,9 +1516,9 @@ $("#messages").addEventListener("scroll", () => {
 });
 $("#chatTitle").addEventListener("change", async (e) => {
   if (!state.activeId) return;
-  const t = e.target.value.trim() || "Sin título";
-  await api(`/api/chats/${state.activeId}`, { method: "PATCH", body: { title: t } });
-  state.chat.title = t; refreshChats();
+  const titulo = e.target.value.trim() || t("untitled");
+  await api(`/api/chats/${state.activeId}`, { method: "PATCH", body: { title: titulo } });
+  state.chat.title = titulo; refreshChats();
 });
 // bloques de codigo: copiar y previsualizar (delegado)
 function blocksOf(scopeEl) {

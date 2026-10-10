@@ -77,6 +77,7 @@ bash stop.sh             # detiene el backend
 - **Plantillas de prompt**, **paleta de comandos** (Ctrl+P), dictado por voz y lectura en alto.
 - Estadísticas por chat, notificación y sonido al terminar, 6 acentos de color e import/export JSON.
 - **Interfaz en 7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio), se cambia desde la barra superior; el árabe pone la interfaz de derecha a izquierda.
+- **Adjuntos que se quedan** — envía imágenes o documentos y se guardan con la conversación (miniatura o ficha del archivo, pulsa para abrir o descargar); siguen ahí al recargar y se reenvían al regenerar.
 
 ## 🖼 Capturas
 

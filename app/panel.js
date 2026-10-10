@@ -24,6 +24,7 @@
   const CODE = [".html", ".htm", ".css", ".js", ".json", ".md", ".txt", ".py", ".sh", ".yml", ".yaml", ".toml", ".csv", ".ts", ".jsx", ".tsx", ".vue", ".sql", ".xml", ".ini", ".conf", ".log", ".env"];
 
   /* ---------------------------- abrir / cerrar --------------------------- */
+  window.renderPricing = () => renderPricing();
   window.openPanel = function (tab) {
     $("#panel").classList.remove("hidden");
     if (tab) setTab(tab);
@@ -72,25 +73,54 @@
   }
 
   /* ------------------------------- resumen ------------------------------- */
+  function renderPricing(info) {
+    const box = $("#pricingInfo");
+    if (!box) return;
+    const i = info || (window.state && state.pricing) || {};
+    const n = i.models || 0;
+    if (!n) { box.textContent = t("pricing_none"); return; }
+    const fecha = i.at ? dt(i.at) : "—";
+    let texto = t("pricing_info", { n: nf(n), date: fecha });
+    const sin = i.no_price || [];
+    if (sin.length) texto += " · " + t("pricing_no_price", { list: sin.slice(0, 3).join(", ") });
+    box.textContent = texto;
+    box.title = sin.length ? t("pricing_no_price_hint") : "";
+  }
+
+  async function refreshPrices() {
+    const b = $("#refreshPrices");
+    if (b) b.disabled = true;
+    try {
+      const r = await api("/api/pricing/refresh", { method: "POST" });
+      if (r.ok) { toast(t("pricing_ok", { n: nf(r.models) })); }
+      else { toast(t("pricing_fail", { error: r.error || "?" })); }
+      if (window.state) state.pricing = r.info;
+      renderPricing(r.info);
+      loadAnalytics();
+    } catch (e) { toast(t("pricing_fail", { error: e.message })); }
+    finally { if (b) b.disabled = false; }
+  }
+
   async function loadAnalytics() {
     try { P.a = await api("/api/analytics?days=" + P.days); }
-    catch (e) { $("#kpis").innerHTML = `<div class="empty-note">No se pudo cargar la analítica</div>`; return; }
+    catch (e) { $("#kpis").innerHTML = `<div class="empty-note">${t("analytics_fail")}</div>`; return; }
     renderKpis(P.a); renderDaily(P.a.per_day); renderModels(P.a.per_model); renderHour(P.a.per_hour); renderWeek(P.a.per_weekday);
+    renderPricing(P.a.pricing || (window.state && state.pricing));
   }
 
   function kpi(val, lab) { return `<div class="kpi"><div class="k-val">${val}</div><div class="k-lab">${lab}</div></div>`; }
 
   function renderKpis(a) {
-    const t = a.totals;
+    const tot = a.totals;
     $("#kpis").innerHTML =
-      kpi(compact(t.tokens_total), t("kpi_tokens")) +
-      kpi(compact(t.tokens_in) + " / " + compact(t.tokens_out), t("kpi_in_out")) +
-      kpi(nf(t.calls), t("kpi_calls")) +
-      kpi(money(t.cost_api), t("kpi_cost")) +
-      kpi(t.hours_agent + " h", t("kpi_agent_hours")) +
-      kpi(t.hours_app + " h", t("kpi_app_hours")) +
-      kpi(nf(t.tool_calls), t("kpi_tools")) +
-      kpi(nf(t.models), t("kpi_models"));
+      kpi(compact(tot.tokens_total), t("kpi_tokens")) +
+      kpi(compact(tot.tokens_in) + " / " + compact(tot.tokens_out), t("kpi_in_out")) +
+      kpi(nf(tot.calls), t("kpi_calls")) +
+      kpi(money(tot.cost_api), t("kpi_cost")) +
+      kpi(tot.hours_agent + " h", t("kpi_agent_hours")) +
+      kpi(tot.hours_app + " h", t("kpi_app_hours")) +
+      kpi(nf(tot.tool_calls), t("kpi_tools")) +
+      kpi(nf(tot.models), t("kpi_models"));
   }
 
   function renderDaily(series) {
@@ -370,6 +400,7 @@
   $("#dashTheme").addEventListener("change", (e) => applyTheme(e.target.value));
   $("#daysSel").addEventListener("change", (e) => { P.days = parseInt(e.target.value, 10) || 30; loadAnalytics(); });
   $("#refreshAnalytics").addEventListener("click", loadAnalytics);
+  $("#refreshPrices").addEventListener("click", refreshPrices);
   $("#exportCsv").addEventListener("click", exportCsv);
   $("#taskCreate").addEventListener("click", createTask);
   $("#projOpen").addEventListener("click", () => openProject($("#projPath").value.trim()));

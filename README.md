@@ -76,6 +76,7 @@ bash stop.sh             # stops the backend
 - **Prompt templates**, a **command palette** (Ctrl+P), voice dictation and read-aloud.
 - Per-chat statistics, desktop notification and sound when a reply lands, 6 accent colours, JSON import/export.
 - **Interface in 7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian), switchable from the top bar; Arabic flips the layout to RTL.
+- **Attachments that stay** — send images or documents and they are saved with the conversation (thumbnail or file chip, click to open or download); they survive reloads and are resent when you regenerate.
 
 ## 🖼 Screenshots
 

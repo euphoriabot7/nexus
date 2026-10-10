@@ -18,6 +18,7 @@ Las claves y los proveedores viven en ~/.config/nexus/config.json (se configuran
 import base64
 import hmac
 import json
+import mimetypes
 import os
 import re
 import shutil
@@ -47,6 +48,7 @@ def _data_dir():
 
 DATA_DIR = _data_dir()
 DB_PATH = DATA_DIR / "nexus.db"
+FILES_DIR = DATA_DIR / "files"            # adjuntos guardados (imagenes y documentos)
 HERMES_ENV = Path.home() / ".hermes" / ".env"          # solo como atajo opcional
 HERMES_PROVIDER_CACHE = Path.home() / ".hermes" / "provider_models_cache.json"
 CONFIG_DIR = Path(os.environ.get("NEXUS_CONFIG_DIR", str(Path.home() / ".config" / "nexus")))
@@ -467,6 +469,7 @@ def ensure_column(conn, table, col, decl):
 
 def init_db():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    FILES_DIR.mkdir(parents=True, exist_ok=True)
     with db() as conn:
         conn.executescript(
             """
@@ -817,6 +820,48 @@ def delete_preset(pid):
 # --------------------------------------------------------------------------- #
 
 
+def safe_filename(name):
+    name = Path(str(name or "archivo")).name
+    name = re.sub(r"[^A-Za-z0-9._ ()\-]", "_", name).strip() or "archivo"
+    return name[:80]
+
+
+def save_attachments(msg_id, attachments):
+    """Guarda los adjuntos de un mensaje en disco y devuelve sus fichas."""
+    FILES_DIR.mkdir(parents=True, exist_ok=True)
+    fichas = []
+    for i, a in enumerate(attachments or []):
+        name = safe_filename(a.get("name"))
+        mime = a.get("mime") or "application/octet-stream"
+        try:
+            raw = base64.b64decode((a.get("data") or "") + "===")
+        except Exception:
+            continue
+        if not raw:
+            continue
+        fname = f"{msg_id}_{i}_{name}"
+        (FILES_DIR / fname).write_bytes(raw)
+        fichas.append({"name": name, "mime": mime, "size": len(raw),
+                       "img": mime.startswith("image/"), "file": fname})
+    return fichas
+
+
+def reload_attachments(fichas):
+    """Reconstruye los adjuntos (base64) desde el disco, p.ej. al regenerar."""
+    out = []
+    for f in fichas or []:
+        target = FILES_DIR / os.path.basename(f.get("file") or "")
+        if not target.is_file():
+            continue
+        out.append({"name": f.get("name") or target.name, "mime": f.get("mime") or "application/octet-stream",
+                    "data": base64.b64encode(target.read_bytes()).decode("ascii")})
+    return out
+
+
+def files_of_message(m):
+    return ((m or {}).get("meta") or {}).get("files") or []
+
+
 def split_attachments(attachments):
     text_blocks, images, total = [], [], 0
     for a in attachments or []:
@@ -1006,11 +1051,14 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
 _PRICING = None
 
 
-def load_pricing():
-    global _PRICING
-    if _PRICING is not None:
-        return _PRICING
-    data = load_json(Path.home() / ".hermes" / "models_dev_cache.json", {})
+PRICING_CACHE = CONFIG_DIR / "pricing.json"
+HERMES_PRICING = Path.home() / ".hermes" / "models_dev_cache.json"
+MODELS_DEV_URL = "https://models.dev/api.json"
+PRICING_LOCK = threading.Lock()
+
+
+def _compact_pricing(data):
+    """De la respuesta de models.dev a una tabla compacta proveedor::modelo -> precios."""
     by_prov, bare = {}, {}
     for prov, pdata in (data or {}).items():
         models = pdata.get("models") if isinstance(pdata, dict) else None
@@ -1025,6 +1073,42 @@ def load_pricing():
                      "cache_read": cost.get("cache_read", 0) or 0}
             by_prov[f"{prov}::{mid}"] = entry
             bare.setdefault(mid, entry)
+    return {"by_prov": by_prov, "bare": bare, "at": time.time(), "source": "models.dev"}
+
+
+def load_pricing():
+    """Precios por millon de tokens, de varias fuentes (la primera manda):
+    1) cache propia en ~/.config/nexus/pricing.json (descargada de models.dev)
+    2) lo que traiga el usuario en su configuracion (providers.<id>.pricing)
+    3) cache de Hermes si existe
+    4) tabla incluida en el repositorio, como ultimo recurso
+    """
+    global _PRICING
+    if _PRICING is not None:
+        return _PRICING
+    by_prov, bare = {}, {}
+
+    def add(src):
+        for k, v in (src.get("by_prov") or {}).items():
+            by_prov.setdefault(k, v)
+        for k, v in (src.get("bare") or {}).items():
+            bare.setdefault(k, v)
+
+    # precios fijados a mano por el usuario en su configuracion
+    manual = {"by_prov": {}, "bare": {}}
+    for pid, spec in (user_config().get("providers") or {}).items():
+        for mid, pr in (spec.get("pricing") or {}).items():
+            if not isinstance(pr, dict):
+                continue
+            entry = {"input": pr.get("input", 0) or 0, "output": pr.get("output", 0) or 0,
+                     "cache_read": pr.get("cache_read", 0) or 0}
+            manual["by_prov"][f"{pid}::{mid}"] = entry
+            manual["bare"].setdefault(mid, entry)
+
+    add(manual)
+    add(load_json(PRICING_CACHE, {}))
+    add(_compact_pricing(load_json(HERMES_PRICING, {})))
+    add(load_json(APP_DIR / "pricing.json", {}))
     _PRICING = {"by_prov": by_prov, "bare": bare}
     return _PRICING
 
@@ -1034,6 +1118,50 @@ def price_for(model, provider=""):
     if provider and f"{provider}::{model}" in p["by_prov"]:
         return p["by_prov"][f"{provider}::{model}"]
     return p["bare"].get(model or "") or {}
+
+
+def refresh_pricing(timeout=90):
+    """Descarga la tabla de precios de models.dev y la guarda en la cache propia."""
+    req = urllib.request.Request(MODELS_DEV_URL, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8", "replace"))
+    compact = _compact_pricing(data)
+    if not compact["by_prov"]:
+        raise RuntimeError("models.dev no devolvio precios")
+    with PRICING_LOCK:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        PRICING_CACHE.write_text(json.dumps(compact, ensure_ascii=False), encoding="utf-8")
+        global _PRICING
+        _PRICING = None
+    load_pricing()
+    return len(compact["by_prov"])
+
+
+def pricing_info():
+    """Estado de la tabla de precios, para mostrarlo en el panel."""
+    propio = load_json(PRICING_CACHE, {})
+    p = load_pricing()
+    return {"models": len(p["by_prov"]) + len(p["bare"]),
+            "at": (propio or {}).get("at") or 0,
+            "source": (propio or {}).get("source", "bundled" if p["bare"] else "none")}
+
+
+def auto_refresh_pricing(max_age=7 * 86400):
+    """En segundo plano: si falta la tabla o es vieja, se trae de models.dev."""
+    propio = load_json(PRICING_CACHE, {})
+    edad = time.time() - (propio.get("at") or 0) if propio else None
+    if edad is not None and edad < max_age:
+        return False
+
+    def _run():
+        try:
+            n = refresh_pricing()
+            print(f"precios actualizados desde models.dev: {n} modelos", flush=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"aviso: no se pudieron actualizar los precios: {exc}", flush=True)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return True
 
 
 def cost_of(tin, tout, cache, price):
@@ -1101,13 +1229,16 @@ def analytics(days=30):
         k = f"{provider}::{model}" if provider else (model or "desconocido")
         e = models.setdefault(k, {"model": model or "?", "provider": provider or "",
                                   "calls": 0, "tokens_in": 0, "tokens_out": 0, "cache_read": 0,
-                                  "cost_usd": 0.0, "cost_api": 0.0, "sources": set()})
+                                  "cost_usd": 0.0, "cost_api": 0.0, "sources": set(), "no_price": False})
         e["calls"] += calls or 0
         e["tokens_in"] += tin or 0
         e["tokens_out"] += tout or 0
         e["cache_read"] += cache or 0
         e["cost_usd"] += cost or 0.0
-        e["cost_api"] += cost_of(tin, tout, cache, price_for(model, provider))
+        precio = price_for(model, provider)
+        if not precio:
+            e["no_price"] = True
+        e["cost_api"] += cost_of(tin, tout, cache, precio)
         e["sources"].add(src)
 
     # --- fuente NEXUS (modo chat; el modo agente lo contabiliza Hermes) ---
@@ -1206,6 +1337,9 @@ def analytics(days=30):
             "sessions": sessions_n, "tool_calls": tool_calls, "models": len(per_model),
         },
         "per_model": per_model, "per_day": series,
+        "pricing": {**pricing_info(),
+                    "no_price": [f'{e["provider"]}::{e["model"]}' if e["provider"] else e["model"]
+                                 for e in per_model if e.get("no_price")]},
         "per_hour": per_hour, "per_weekday": per_weekday,
     }
 
@@ -1549,6 +1683,7 @@ class Handler(BaseHTTPRequestHandler):
                                    "needs_setup": needs_setup(),
                                    "hermes": hermes_status(),
                                    "home": str(Path.home()),
+                                   "pricing": pricing_info(),
                                    "config_path": str(CONFIG_PATH),
                                    "chips": example_chips(),
                                    "presets": list_presets()})
@@ -1597,6 +1732,19 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/project":
             data = list_project(params.get("path", ""))
             return self.send_json(data) if data else self.send_json({"error": "ruta no valida"}, 400)
+        if path.startswith("/api/files/"):
+            nombre = os.path.basename(urllib.parse.unquote(path[len("/api/files/"):]))
+            destino = FILES_DIR / nombre
+            if not destino.is_file():
+                return self.send_json({"error": "archivo no encontrado"}, 404)
+            datos = destino.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", mimetypes.guess_type(nombre)[0] or "application/octet-stream")
+            self.send_header("Content-Length", str(len(datos)))
+            self.send_header("Cache-Control", "private, max-age=86400")
+            self.end_headers()
+            self.wfile.write(datos)
+            return
         if path.startswith("/preview/"):
             return self.serve_project(path)
         return self.serve_static(path)
@@ -1701,6 +1849,12 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:  # noqa: BLE001
                 return self.send_json({"ok": False, "error": str(exc), "models": []})
             return self.send_json({"ok": True, "models": ids})
+        if path == "/api/pricing/refresh":
+            try:
+                cuantos = refresh_pricing()
+                return self.send_json({"ok": True, "models": cuantos, "info": pricing_info()})
+            except Exception as exc:  # noqa: BLE001
+                return self.send_json({"ok": False, "error": str(exc), "info": pricing_info()})
         if path == "/api/prompts/seed":
             n = seed_examples(force=True)
             return self.send_json({"ok": True, "added": n, "presets": list_presets()})
@@ -1795,7 +1949,7 @@ class Handler(BaseHTTPRequestHandler):
             chat["agent"] = int(body["agent"])
         touch_chat(chat_id, provider=chat["provider"], model=chat["model"], agent=chat["agent"])
 
-        user_mid = None
+        user_mid, fichas_iniciales = None, []
         if edit_id:
             delete_from_message(chat_id, edit_id)
             user_mid = add_message(chat_id, "user", content)
@@ -1806,12 +1960,24 @@ class Handler(BaseHTTPRequestHandler):
             if row:
                 delete_message(row["id"])
         else:
+            fichas = save_attachments(uid("m_"), attachments) if attachments else []
+            fichas_iniciales = fichas
             note = ""
-            if attachments:
+            if attachments and not fichas:          # solo si no se pudieron guardar
                 names = ", ".join(a.get("name", "archivo") for a in attachments[:6])
                 note = f"\n\n_Adjuntos: {names}_"
-            user_mid = add_message(chat_id, "user", content + note)
+            user_mid = add_message(chat_id, "user", content + note, chat["provider"], chat["model"],
+                                   {"files": fichas} if fichas else None)
 
+        if regenerate and not attachments:
+            with db() as conn:
+                fila = conn.execute("SELECT meta FROM messages WHERE chat_id=? AND role='user' "
+                                    "ORDER BY created DESC LIMIT 1", (chat_id,)).fetchone()
+            if fila:
+                try:
+                    attachments = reload_attachments(files_of_message({"meta": json.loads(fila["meta"] or "{}")}))
+                except Exception:
+                    attachments = []
         history = get_messages(chat_id)
         if not regenerate and not edit_id and chat["title"] in ("Nuevo chat", "", None) and user_mid:
             title = re.sub(r"\s+", " ", content)[:48] or "Nuevo chat"
@@ -1822,7 +1988,8 @@ class Handler(BaseHTTPRequestHandler):
         self.sse_start()
         self.sse_send("meta", {"chat_id": chat_id, "user_message_id": user_mid,
                                "assistant_message_id": asst_mid, "model": chat["model"],
-                               "provider": chat["provider"], "agent": chat["agent"]})
+                               "provider": chat["provider"], "agent": chat["agent"],
+                               "files": fichas_iniciales})
 
         parts = []
         mode = "agente" if chat["agent"] else "chat"
@@ -1914,6 +2081,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     init_db()
     lan_config()
+    auto_refresh_pricing()          # en segundo plano: no bloquea el arranque
     bind_host = "0.0.0.0" if LAN_ENABLED else HOST
     srv = ThreadingHTTPServer((bind_host, PORT), Handler)
     srv.daemon_threads = True

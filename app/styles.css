@@ -870,3 +870,15 @@ body.rtl .ci-title,body.rtl .pt-title,body.rtl .pt-body{text-align:right}
 .lang-item.sel{color:var(--accent)}
 .lang-item .lc{font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);text-transform:uppercase}
 @media (max-width:820px){ .lang-pill{padding:5px 8px;font-size:11px} .lang-globe{display:none} }
+.pricing-info{font-family:var(--p-mono);font-size:10.5px;color:var(--p-dim);margin-top:6px;text-align:right}
+
+/* adjuntos dentro del mensaje */
+.att-block{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.att-img{display:block;border:1px solid var(--line);border-radius:8px;overflow:hidden;line-height:0;max-width:220px}
+.att-img img{width:100%;height:auto;display:block;max-height:180px;object-fit:cover}
+.att-img:hover{border-color:var(--acc)}
+.att-file{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg2);text-decoration:none;color:var(--fg);font-size:12px;max-width:260px}
+.att-file:hover{border-color:var(--acc)}
+.att-file .af-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att-file .af-size{color:var(--p-dim);font-size:10.5px;font-family:var(--p-mono)}
