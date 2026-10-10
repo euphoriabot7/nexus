@@ -256,7 +256,7 @@ function chatItem(c) {
   el.className = "chat-item" + (c.id === state.activeId ? " active" : "") + (c.pinned ? " pinned" : "");
   el.innerHTML = `
     <div class="ci-body">
-      <div class="ci-title">${highlight(c.title, state.filter)}${c.agent ? '<span class="ci-agent">${t("mode_agent").toUpperCase()}</span>' : ""}</div>
+      <div class="ci-title">${highlight(c.title, state.filter)}${c.agent ? `<span class="ci-agent">${t("mode_agent").toUpperCase()}</span>` : ""}</div>
       <div class="ci-prev">${c.preview ? esc(c.preview) : t("no_messages_yet")} · ${timeLabel(c.updated)}</div>
     </div>
     <div class="ci-actions">
@@ -586,7 +586,7 @@ function msgEl(m) {
   wrap.dataset.id = m.id;
   const isUser = m.role === "user";
   const mdl = m.model ? `<span class="mdl">${esc(m.model)}</span>` : "";
-  const badge = (m.meta && m.meta.agent) ? '<span class="badge-agent">${t("mode_agent").toUpperCase()}</span>' : "";
+  const badge = (m.meta && m.meta.agent) ? `<span class="badge-agent">${t("mode_agent").toUpperCase()}</span>` : "";
   wrap.innerHTML = `
     <div class="avatar">${isUser ? "❯" : "◈"}</div>
     <div class="bubble">
@@ -1077,6 +1077,7 @@ function paletteItems() {
       } },
     { ico: "◫", label: t("palette_split_close"), kind: "acción", run: closeSplit },
     { ico: "⚙", label: t("settings"), kind: "acción", run: openSettings },
+    { ico: "🌐", label: t("language"), kind: "acción", run: openLangPop },
     { ico: "🔑", label: t("palette_providers"), kind: "acción", run: () => openSetup("manage") },
     { ico: "★", label: t("palette_only_favs"), kind: "acción", run: () => { $("#favOnly").checked = true; openModelPop(); } },
     { ico: "⇩", label: t("act_export"), kind: "acción", run: () => moreAction("export") },
@@ -1261,6 +1262,54 @@ async function loadConfigState() {
   return s;
 }
 
+
+/* ------------------------- idioma rapido (barra superior) ---------------- */
+function updateLangPill() {
+  const lbl = $("#langLabel");
+  if (lbl) lbl.textContent = String(I18N.lang || "es").toUpperCase();
+  const pop = $("#langPop");
+  const btn = $("#langBtn");
+  if (pop && !pop.classList.contains("hidden")) renderLangList();
+  if (btn) btn.title = t("language") + " · " + I18N.name(I18N.lang);
+}
+
+function renderLangList() {
+  const wrap = $("#langList");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  (window.NEXUS_LANG_LIST || []).forEach((l) => {
+    const it = document.createElement("div");
+    it.className = "lang-item" + (l.code === I18N.lang ? " sel" : "");
+    it.innerHTML = `<span>${esc(l.name)}</span><span class="lc">${esc(l.code)}${
+      l.code === I18N.lang ? " ✓" : ""}</span>`;
+    it.addEventListener("click", () => {
+      setLang(l.code);
+      $("#langPop").classList.add("hidden");
+      $("#langBtn").classList.remove("on");
+      toast(I18N.name(l.code));
+    });
+    wrap.appendChild(it);
+  });
+}
+
+function openLangPop() {
+  const pop = $("#langPop"), btn = $("#langBtn");
+  if (!pop || !btn) return;
+  const abierto = !pop.classList.contains("hidden");
+  ["#modelPop", "#presetPop", "#morePop"].forEach((sel) => $(sel) && $(sel).classList.add("hidden"));
+  if (abierto) {
+    pop.classList.add("hidden");
+    btn.classList.remove("on");
+    return;
+  }
+  const r = btn.getBoundingClientRect();
+  pop.style.top = r.bottom + 8 + "px";
+  pop.style.left = Math.max(10, Math.min(r.right - 230, window.innerWidth - 250)) + "px";
+  pop.classList.remove("hidden");
+  btn.classList.add("on");
+  renderLangList();
+}
+
 function fillLangSelect() {
   const sel = $("#langSelect");
   if (!sel) return;
@@ -1282,6 +1331,7 @@ function fillLangSelect() {
 window.onLangChange = function () {
   I18N.apply(document);
   fillLangSelect();
+  updateLangPill();
   try {
     renderSidebar();
     updateModelPill();
@@ -1303,6 +1353,7 @@ async function boot() {
   initLang();
   I18N.apply(document);
   fillLangSelect();
+  updateLangPill();
   applyAccent(LS.get("nexus_accent", "cyan"));
   state.favorites = LS.get("nexus_favs", []);
   initDrag();
@@ -1385,6 +1436,7 @@ $$(".accent-swatch").forEach((s) => s.addEventListener("click", () => applyAccen
 $("#scrollBtn").addEventListener("click", () => scrollBottom());
 
 $("#attachBtn").addEventListener("click", () => $("#fileInput").click());
+$("#langBtn").addEventListener("click", (e) => { e.stopPropagation(); openLangPop(); });
 
 /* --- asistente de proveedor --- */
 $("#setupTest").addEventListener("click", testSetup);
@@ -1514,6 +1566,7 @@ document.addEventListener("click", (e) => {
   if (!e.target.closest("#modelPop") && !e.target.closest("#modelBtn")) $("#modelPop").classList.add("hidden");
   if (!e.target.closest("#morePop") && !e.target.closest("#menuMoreBtn")) $("#morePop").classList.add("hidden");
   if (!e.target.closest("#presetPop") && !e.target.closest("#presetBtn")) $("#presetPop").classList.add("hidden");
+  if (!e.target.closest("#langPop") && !e.target.closest("#langBtn")) { $("#langPop").classList.add("hidden"); $("#langBtn").classList.remove("on"); }
 });
 $("#settingsModal").addEventListener("click", (e) => { if (e.target.id === "settingsModal") $("#settingsModal").classList.add("hidden"); });
 

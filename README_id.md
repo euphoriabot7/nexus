@@ -75,7 +75,7 @@ bash stop.sh             # menghentikan backend
 - **Pencarian global** di semua pesan, dengan sorotan dan lompat ke pesan.
 - **Templat prompt**, **palet perintah** (Ctrl+P), dikte suara dan baca nyaring.
 - Statistik per chat, notifikasi dan suara saat selesai, 6 warna aksen, impor/ekspor JSON.
-- **25 prompt siap pakai** (kode, penulisan, data, produktivitas, tugas agen), dikelompokkan per kategori dan bisa dipulihkan dari menu templat.
+- **Antarmuka dalam 7 bahasa** (Inggris, Spanyol, Mandarin, Jepang, Korea, Arab, Indonesia), bisa diganti dari bilah atas; bahasa Arab membalik tata letak.
 
 ## 🖼 Tangkapan layar
 
@@ -192,7 +192,7 @@ Variabel lingkungan: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEX
 - Mode agen menjalankan perintah di folder kerja chat: itu komputer Anda sendiri, gunakan dengan hati-hati.
 - Memerlukan Python 3.9+ dan peramban. Diuji di Linux (Mint/Ubuntu); di macOS dan Windows/WSL sama saja
     (di sana jalankan `python3 server.py` dan buka peramban sendiri).
-- Antarmuka saat ini berbahasa Spanyol; terjemahan antarmuka ada dalam rencana.
+- Antarmuka tersedia dalam **7 bahasa** (Inggris, Spanyol, Mandarin, Jepang, Korea, Arab, dan Indonesia); ubah dari bilah atas atau Pengaturan. Bahasa Arab juga membalik tata letak ke kanan-ke-kiri.
 
 ## 📄 Lisensi
 

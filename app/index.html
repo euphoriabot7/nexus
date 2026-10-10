@@ -78,6 +78,9 @@
         <button id="presetBtn" class="icon-btn" title="Plantillas de prompt">
           <svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 12h7M9 16h7M9 8h3" stroke="currentColor" stroke-width="1.4"/></svg>
         </button>
+        <button id="langBtn" class="lang-pill" title="Cambiar idioma">
+          <span class="lang-globe">🌐</span><span id="langLabel">ES</span>
+        </button>
         <button id="menuMoreBtn" class="icon-btn" title="Más acciones">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg>
         </button>
@@ -156,6 +159,12 @@
     <button id="savePresetBtn" class="mini-btn" data-i18n="save_written">＋ Guardar lo escrito</button>
     <button id="seedPresetBtn" class="mini-btn" title="Vuelve a añadir los prompts de ejemplo que falten" data-i18n="restore_examples">↺ Restaurar ejemplos</button>
   </div>
+</div>
+
+<!-- ░░ POPOVER IDIOMAS ░░ -->
+<div id="langPop" class="pop hidden small">
+  <div class="pop-head"><span class="pop-title" data-i18n="language">Idioma</span></div>
+  <div id="langList" class="pop-list"></div>
 </div>
 
 <!-- ░░ MENU ░░ -->

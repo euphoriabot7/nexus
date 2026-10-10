@@ -856,3 +856,17 @@ body.rtl.split-open #messages,body.rtl.split-open #main>footer{margin-right:0;ma
 body.rtl .sp-head .sp-actions{margin-left:0;margin-right:auto}
 body.rtl #splitGrip{left:auto;right:-3px}
 body.rtl .ci-title,body.rtl .pt-title,body.rtl .pt-body{text-align:right}
+
+/* ============ idioma en la barra superior ============ */
+.lang-pill{display:flex;align-items:center;gap:5px;background:rgba(120,160,255,.08);border:1px solid var(--line);
+  color:var(--txt-dim);border-radius:20px;padding:5px 10px;font-family:var(--mono);font-size:11.5px;
+  cursor:pointer;transition:.16s;letter-spacing:.03em}
+.lang-pill:hover{color:var(--accent);border-color:var(--accent)}
+.lang-pill.on{color:var(--accent);border-color:var(--accent)}
+.lang-globe{font-size:12px;line-height:1}
+.lang-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;
+  font-size:13.5px;cursor:pointer;border-radius:8px}
+.lang-item:hover{background:rgba(120,160,255,.09)}
+.lang-item.sel{color:var(--accent)}
+.lang-item .lc{font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);text-transform:uppercase}
+@media (max-width:820px){ .lang-pill{padding:5px 8px;font-size:11px} .lang-globe{display:none} }

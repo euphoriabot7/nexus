@@ -75,7 +75,7 @@ bash stop.sh             # stops the backend
 - **Global search** across every message, with highlighting and jump-to-message.
 - **Prompt templates**, a **command palette** (Ctrl+P), voice dictation and read-aloud.
 - Per-chat statistics, desktop notification and sound when a reply lands, 6 accent colours, JSON import/export.
-- **25 ready-made prompts** (code, writing, data, productivity, agent tasks), grouped by category and restorable from the templates menu.
+- **Interface in 7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian), switchable from the top bar; Arabic flips the layout to RTL.
 
 ## 🖼 Screenshots
 
@@ -192,7 +192,7 @@ Environment: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0
 - Agent mode runs commands in the chat's working folder: it is your own machine, use it with care.
 - Requires Python 3.9+ and a browser. Tested on Linux (Mint/Ubuntu); on macOS and Windows/WSL it works the same
     (run `python3 server.py` and open the browser yourself there).
-- The UI is currently in Spanish; translations of the interface are on the roadmap.
+- The interface ships in **7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian); switch from the top bar or Settings. Arabic also flips the layout to right-to-left.
 
 ## 📄 License
 

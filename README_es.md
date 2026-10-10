@@ -76,7 +76,7 @@ bash stop.sh             # detiene el backend
 - **Búsqueda global** en todos los mensajes, con resaltado y salto al mensaje.
 - **Plantillas de prompt**, **paleta de comandos** (Ctrl+P), dictado por voz y lectura en alto.
 - Estadísticas por chat, notificación y sonido al terminar, 6 acentos de color e import/export JSON.
-- **25 prompts de ejemplo** listos (programar, escribir, datos, productividad y tareas de agente), agrupados por categoría y restaurables desde el menú de plantillas.
+- **Interfaz en 7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio), se cambia desde la barra superior; el árabe pone la interfaz de derecha a izquierda.
 
 ## 🖼 Capturas
 
@@ -193,7 +193,7 @@ Variables: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0`.
 - El modo agente ejecuta comandos en la carpeta de trabajo del chat: es tu propio equipo, úsalo con cuidado.
 - Requiere Python 3.9+ y un navegador. Probado en Linux (Mint/Ubuntu); en macOS y Windows/WSL funciona igual
     (ahí usa `python3 server.py` y abre el navegador a mano).
-- La interfaz está en español; la traducción de la app a más idiomas está en la lista de pendientes.
+- La interfaz viene en **7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio); se cambia desde la barra superior o en Ajustes. El árabe además pone la interfaz de derecha a izquierda.
 
 ## 📄 Licencia
 
