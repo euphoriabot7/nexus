@@ -75,6 +75,7 @@ bash stop.sh             # menghentikan backend
 - **Pencarian global** di semua pesan, dengan sorotan dan lompat ke pesan.
 - **Templat prompt**, **palet perintah** (Ctrl+P), dikte suara dan baca nyaring.
 - Statistik per chat, notifikasi dan suara saat selesai, 6 warna aksen, impor/ekspor JSON.
+- **25 prompt siap pakai** (kode, penulisan, data, produktivitas, tugas agen), dikelompokkan per kategori dan bisa dipulihkan dari menu templat.
 
 ## 🖼 Tangkapan layar
 
@@ -170,6 +171,7 @@ area aman. Tips: di Chrome, *⋮ → Tambahkan ke layar utama* agar tampil penuh
     nexus/
       server.py            backend (hanya pustaka standar Python)
       providers.json       katalog penyedia contoh
+      prompts.json         pustaka prompt contoh (25)
       app/                 antarmuka (HTML + CSS + JS, tanpa dependensi)
       assets/shots/        tangkapan layar untuk README ini
       run.sh / stop.sh     menjalankan dan menghentikan

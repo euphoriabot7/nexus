@@ -73,6 +73,7 @@ bash stop.sh             # 停止后端
 - **全局搜索**所有消息，带高亮和跳转。
 - **提示词模板**、**命令面板**（Ctrl+P）、语音输入与朗读。
 - 会话统计、完成时的桌面通知与提示音、6 种主题色、JSON 导入导出。
+- **内置 25 个示例提示词**（编程、写作、数据、效率与智能体任务），按类别分组，可在模板菜单中恢复。
 
 ## 🖼 截图
 
@@ -164,6 +165,7 @@ http://你的IP:8765/login?token=你的令牌
     nexus/
       server.py            后端（仅使用 Python 标准库）
       providers.json       示例服务商目录
+      prompts.json         示例提示词库（25 条）
       app/                 前端（HTML + CSS + JS，无依赖）
       assets/shots/        本 README 使用的截图
       run.sh / stop.sh     启动与停止

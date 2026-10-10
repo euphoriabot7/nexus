@@ -533,6 +533,13 @@ def init_db():
                           ("agent_session", "TEXT NOT NULL DEFAULT ''"),
                           ("toolsets", "TEXT NOT NULL DEFAULT ''")):
             ensure_column(conn, "chats", col, decl)
+        ensure_column(conn, "presets", "cat", "TEXT NOT NULL DEFAULT ''")
+    try:
+        puestos = seed_examples()
+        if puestos:
+            log_event("prompts_ejemplo", f"{puestos} prompts de ejemplo cargados")
+    except Exception as exc:  # noqa: BLE001
+        print(f"aviso: no se pudieron cargar los prompts de ejemplo: {exc}")
 
 
 def now():
@@ -735,21 +742,69 @@ def chat_stats(chat_id):
 
 # -------------------------------- plantillas ------------------------------- #
 
+EXAMPLES = load_json(APP_DIR / "prompts.json", {}) or {}
+EXAMPLE_PROMPTS = EXAMPLES.get("prompts", []) or []
+EXAMPLE_CHIPS = EXAMPLES.get("chips", []) or []
+
 
 def list_presets():
     with db() as conn:
         rows = conn.execute("SELECT * FROM presets ORDER BY created ASC").fetchall()
-    return [{"id": r["id"], "title": r["title"], "body": r["body"]} for r in rows]
+    out = []
+    for r in rows:
+        try:
+            cat = r["cat"] or ""
+        except (IndexError, KeyError):
+            cat = ""
+        out.append({"id": r["id"], "title": r["title"], "body": r["body"], "cat": cat})
+    return out
 
 
-def save_preset(pid, title, body):
+def seed_examples(force=False):
+    """Carga los prompts de ejemplo de prompts.json (solo si no hay ninguno)."""
+    with db() as conn:
+        if not force:
+            hay = conn.execute("SELECT COUNT(*) c FROM presets").fetchone()["c"]
+            if hay:
+                return 0
+        puestos = 0
+        for p in EXAMPLE_PROMPTS:
+            pid = str(p.get("id") or uid("ej_"))
+            if force:
+                fila = conn.execute("SELECT id FROM presets WHERE id=?", (pid,)).fetchone()
+                if fila:
+                    continue
+            conn.execute("INSERT INTO presets(id,title,body,cat,created) VALUES(?,?,?,?,?)",
+                         (pid, p.get("title", "Ejemplo"), p.get("body", ""), p.get("cat", ""),
+                          now() + puestos / 1000))
+            puestos += 1
+    return puestos
+
+
+def example_chips():
+    """Sugerencias del chat vacio (ids de prompts.json)."""
+    out = []
+    for pid in EXAMPLE_CHIPS:
+        for p in EXAMPLE_PROMPTS:
+            if str(p.get("id")) == pid:
+                out.append({"title": p.get("title", ""), "body": p.get("body", ""),
+                            "mode": p.get("mode", "ambos")})
+                break
+    if not out:  # sin fichero: al menos las tres primeras
+        out = [{"title": p.get("title", ""), "body": p.get("body", ""), "mode": p.get("mode", "ambos")}
+               for p in EXAMPLE_PROMPTS[:3]]
+    return out
+
+
+def save_preset(pid, title, body, cat=""):
     with db() as conn:
         if pid:
-            conn.execute("UPDATE presets SET title=?, body=? WHERE id=?", (title, body, pid))
+            conn.execute("UPDATE presets SET title=?, body=?, cat=? WHERE id=?", (title, body, cat, pid))
         else:
             pid = uid("p_")
-            conn.execute("INSERT INTO presets(id,title,body,created) VALUES(?,?,?,?)", (pid, title, body, now()))
-    return {"id": pid, "title": title, "body": body}
+            conn.execute("INSERT INTO presets(id,title,body,cat,created) VALUES(?,?,?,?,?)",
+                         (pid, title, body, cat, now()))
+    return {"id": pid, "title": title, "body": body, "cat": cat}
 
 
 def delete_preset(pid):
@@ -1495,6 +1550,7 @@ class Handler(BaseHTTPRequestHandler):
                                    "hermes": hermes_status(),
                                    "home": str(Path.home()),
                                    "config_path": str(CONFIG_PATH),
+                                   "chips": example_chips(),
                                    "presets": list_presets()})
         if path == "/api/chats":
             return self.send_json({"chats": list_chats()})
@@ -1645,6 +1701,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:  # noqa: BLE001
                 return self.send_json({"ok": False, "error": str(exc), "models": []})
             return self.send_json({"ok": True, "models": ids})
+        if path == "/api/prompts/seed":
+            n = seed_examples(force=True)
+            return self.send_json({"ok": True, "added": n, "presets": list_presets()})
         if path == "/api/hermes/install":
             lanzado, mensaje = start_hermes_install()
             return self.send_json({"ok": lanzado, "message": mensaje, "status": hermes_status()})
@@ -1676,7 +1735,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/presets":
             body = self.read_body()
             return self.send_json({"preset": save_preset(body.get("id"), body.get("title", "Plantilla"),
-                                                         body.get("body", ""))})
+                                                         body.get("body", ""), body.get("cat", ""))})
         if path == "/api/import":
             return self.import_data()
         m = re.match(r"^/api/chats/([\w-]+)/clear$", path)

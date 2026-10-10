@@ -76,6 +76,7 @@ bash stop.sh             # detiene el backend
 - **Búsqueda global** en todos los mensajes, con resaltado y salto al mensaje.
 - **Plantillas de prompt**, **paleta de comandos** (Ctrl+P), dictado por voz y lectura en alto.
 - Estadísticas por chat, notificación y sonido al terminar, 6 acentos de color e import/export JSON.
+- **25 prompts de ejemplo** listos (programar, escribir, datos, productividad y tareas de agente), agrupados por categoría y restaurables desde el menú de plantillas.
 
 ## 🖼 Capturas
 
@@ -171,6 +172,7 @@ segura. Consejo: en Chrome, *⋮ → Añadir a pantalla de inicio* para tenerla 
     nexus/
       server.py            backend (solo biblioteca estándar de Python)
       providers.json       catálogo de proveedores de ejemplo
+      prompts.json         biblioteca de prompts de ejemplo (25)
       app/                 interfaz (HTML + CSS + JS, sin dependencias)
       assets/shots/        capturas usadas en este README
       run.sh / stop.sh     arranque y parada

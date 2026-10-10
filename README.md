@@ -75,6 +75,7 @@ bash stop.sh             # stops the backend
 - **Global search** across every message, with highlighting and jump-to-message.
 - **Prompt templates**, a **command palette** (Ctrl+P), voice dictation and read-aloud.
 - Per-chat statistics, desktop notification and sound when a reply lands, 6 accent colours, JSON import/export.
+- **25 ready-made prompts** (code, writing, data, productivity, agent tasks), grouped by category and restorable from the templates menu.
 
 ## 🖼 Screenshots
 
@@ -170,6 +171,7 @@ padding. Tip: in Chrome, *⋮ → Add to home screen* to get it full screen.
     nexus/
       server.py            backend (Python standard library only)
       providers.json       example provider catalogue
+      prompts.json         example prompt library (25 prompts)
       app/                 UI (HTML + CSS + JS, no dependencies)
       assets/shots/        screenshots used in this README
       run.sh / stop.sh     start and stop

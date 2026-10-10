@@ -1,0 +1,188 @@
+{
+  "_comment": "Prompts de ejemplo que NEXUS carga la primera vez (y puede restaurar desde Plantillas -> Restaurar ejemplos). 'mode' sugiere el modo: chat, agente o ambos. Edita este fichero libremente.",
+  "chips": [
+    "ej-explicame",
+    "ej-resumir",
+    "ej-codigo-refactor",
+    "ej-agente-proyecto",
+    "ej-ideas",
+    "ej-explicar-error"
+  ],
+  "prompts": [
+    {
+      "id": "ej-explicame",
+      "cat": "Primeros pasos",
+      "title": "¿Qué puedes hacer por mí?",
+      "mode": "ambos",
+      "body": "Explícame qué puedes hacer y cómo me ayudas en el día a día. Sé concreto y dame tres ejemplos de tareas que podamos hacer juntos ahora mismo."
+    },
+    {
+      "id": "ej-resumir",
+      "cat": "Escribir",
+      "title": "Resumir un texto largo",
+      "mode": "chat",
+      "body": "Resume el texto que te pego abajo en cinco puntos, sin perder los datos concretos (cifras, fechas, nombres). Después dame una sola frase con la idea principal.\n\n---\n\n[pega aquí el texto]"
+    },
+    {
+      "id": "ej-reescribir",
+      "cat": "Escribir",
+      "title": "Reescribir con otro tono",
+      "mode": "chat",
+      "body": "Reescribe este texto en un tono claro y directo, sin relleno y sin sonar a robot. Mantén el significado y la longitud parecida.\n\n---\n\n[pega aquí el texto]"
+    },
+    {
+      "id": "ej-email",
+      "cat": "Escribir",
+      "title": "Redactar un correo difícil",
+      "mode": "chat",
+      "body": "Ayúdame a escribir un correo para este caso: [explica la situación]. Quiero que suene profesional pero cercano, breve, y que quede claro qué necesito de la otra parte y para cuándo."
+    },
+    {
+      "id": "ej-ideas",
+      "cat": "Escribir",
+      "title": "Lluvia de ideas",
+      "mode": "chat",
+      "body": "Dame 10 ideas para [tema]. Mezcla ideas obvias y arriesgadas, una línea cada una, y al final dime cuál elegirías tú y por qué."
+    },
+    {
+      "id": "ej-doc",
+      "cat": "Escribir",
+      "title": "Documentar lo que acabo de hacer",
+      "mode": "chat",
+      "body": "Conviértelo en documentación breve: qué hace, cómo se usa (con un ejemplo), y qué límites o cuidados tiene.\n\n---\n\n[pega aquí el código, la configuración o los pasos]"
+    },
+    {
+      "id": "ej-codigo-refactor",
+      "cat": "Programar",
+      "title": "Refactorizar código",
+      "mode": "chat",
+      "body": "Refactoriza este código buscando claridad, no ingenio: nombres mejores, funciones más cortas, menos duplicación. Explícame los cambios en una lista corta y dame el resultado completo.\n\n```\n[pega aquí el código]\n```"
+    },
+    {
+      "id": "ej-codigo-tests",
+      "cat": "Programar",
+      "title": "Escribir tests",
+      "mode": "chat",
+      "body": "Escribe tests para este código. Cubre el camino normal y los casos raros (vacíos, límites, errores). Dime qué framework usas y por qué, y qué parte sigue sin cubrir.\n\n```\n[pega aquí el código]\n```"
+    },
+    {
+      "id": "ej-codigo-review",
+      "cat": "Programar",
+      "title": "Revisión crítica de código",
+      "mode": "chat",
+      "body": "Revisa este código como si fueras a aprobarlo para producción. Busca errores reales, casos no contemplados y problemas de seguridad. Ordena los hallazgos por gravedad y, si algo está bien, dilo también.\n\n```\n[pega aquí el código]\n```"
+    },
+    {
+      "id": "ej-explicar-error",
+      "cat": "Programar",
+      "title": "Explicar un error",
+      "mode": "chat",
+      "body": "Explícame este error paso a paso: qué significa, por qué ocurre y cómo arreglarlo. Dame primero la causa más probable, luego alternativas, y al final el cambio mínimo que lo resuelve.\n\n```\n[pega aquí el error y el código que lo lanza]\n```"
+    },
+    {
+      "id": "ej-sql",
+      "cat": "Programar",
+      "title": "Consultas SQL",
+      "mode": "chat",
+      "body": "Escríbeme la consulta SQL para [lo que quieres obtener]. Te paso el esquema abajo. Prioriza que se entienda y que no destroce el rendimiento en tablas grandes; avísame si necesito un índice.\n\n```\n[pega aquí las tablas]\n```"
+    },
+    {
+      "id": "ej-regex",
+      "cat": "Programar",
+      "title": "Expresión regular explicada",
+      "mode": "chat",
+      "body": "Necesito una expresión regular que [qué debe capturar] y que NO capture [qué debe ignorar]. Explícame la expresión pieza a pieza y pásame 8 ejemplos de prueba: 4 que deben coincidir y 4 que no."
+    },
+    {
+      "id": "ej-shell",
+      "cat": "Programar",
+      "title": "Comando de terminal",
+      "mode": "chat",
+      "body": "Dame el comando (bash) para [lo que quieres hacer]. Explícame qué hace cada parte, avísame de qué puede salir mal y dime cómo deshacerlo si me arrepiento."
+    },
+    {
+      "id": "ej-git",
+      "cat": "Programar",
+      "title": "Ayuda con Git",
+      "mode": "chat",
+      "body": "Estoy en este estado de git: [pega git status / git log]. Quiero [objetivo]. Dime los comandos exactos, con la alternativa segura si algo puede provocar pérdida de trabajo."
+    },
+    {
+      "id": "ej-agente-proyecto",
+      "cat": "Agente",
+      "title": "Crear un mini proyecto",
+      "mode": "agente",
+      "body": "Crea en la carpeta de trabajo un proyecto mínimo: [qué es]. Estructura de archivos clara, un README con cómo arrancarlo y el código funcionando. Al terminar dime qué archivos has escrito y cómo probarlo."
+    },
+    {
+      "id": "ej-agente-revisar",
+      "cat": "Agente",
+      "title": "Revisar una carpeta",
+      "mode": "agente",
+      "body": "Explora la carpeta de trabajo y hazme un informe: qué contiene, qué está a medias, qué falta (README, tests, licencia, configuración) y qué arreglarías primero. No cambies nada todavía: solo el informe."
+    },
+    {
+      "id": "ej-agente-arreglar",
+      "cat": "Agente",
+      "title": "Arreglar algo roto",
+      "mode": "agente",
+      "body": "Algo va mal: [qué pasa y cómo reproducirlo]. Investiga en la carpeta de trabajo, encuentra la causa real (no la de superficie), arréglala y demuéstrame que funciona. Si algo no lo puedes comprobar, dímelo."
+    },
+    {
+      "id": "ej-agente-buscar",
+      "cat": "Agente",
+      "title": "Buscar en mis archivos",
+      "mode": "agente",
+      "body": "Busca en la carpeta de trabajo todo lo relacionado con [tema] y resume dónde aparece y con qué sentido. Inclúyeme las rutas y las líneas exactas."
+    },
+    {
+      "id": "ej-agente-script",
+      "cat": "Agente",
+      "title": "Automatizar una tarea repetitiva",
+      "mode": "agente",
+      "body": "Automatiza esto que hago a mano cada semana: [descripción]. Escríbeme el script, pruébalo con datos de ejemplo y déjame claro cómo cambiar los parámetros y cómo deshacerlo."
+    },
+    {
+      "id": "ej-datos-csv",
+      "cat": "Datos",
+      "title": "Entender un CSV",
+      "mode": "chat",
+      "body": "Te adjunto un CSV. Dime qué contiene, qué columnas se pueden usar para qué, qué datos faltan o parecen raros, y proponme tres análisis útiles que podría hacer con él."
+    },
+    {
+      "id": "ej-datos-comparar",
+      "cat": "Datos",
+      "title": "Comparar opciones",
+      "mode": "chat",
+      "body": "Compara estas opciones: [opción A] vs [opción B] (y [opción C] si aplica). Dame una tabla con criterios, un apartado de pros y contras, y tu recomendación razonada para mi caso: [tu situación]."
+    },
+    {
+      "id": "ej-productividad-dia",
+      "cat": "Productividad",
+      "title": "Organizar mi día",
+      "mode": "chat",
+      "body": "Ayúdame a organizar el día. Estas son mis tareas y el tiempo disponible: [pega la lista]. Prioriza por impacto y urgencia, dime qué debería dejar para mañana y avísame si estoy intentando abarcar demasiado."
+    },
+    {
+      "id": "ej-productividad-checklist",
+      "cat": "Productividad",
+      "title": "Convertir notas en plan",
+      "mode": "chat",
+      "body": "Convierte estas notas desordenadas en un plan con pasos numerados, cada uno con su resultado esperado y su tiempo estimado. Marca lo que depende de otras personas.\n\n---\n\n[pega aquí las notas]"
+    },
+    {
+      "id": "ej-aprender",
+      "cat": "Aprender",
+      "title": "Explícame un tema complejo",
+      "mode": "chat",
+      "body": "Explícame [tema] como si tuviera 15 años y luego, en un segundo apartado, al nivel de un profesional. Termina con tres preguntas para saber si lo he entendido de verdad."
+    },
+    {
+      "id": "ej-vision",
+      "cat": "Aprender",
+      "title": "Analizar lo que se ve",
+      "mode": "chat",
+      "body": "Mira la imagen que te adjunto y dime qué ves: elementos importantes, texto que aparezca, y cualquier problema o detalle raro que deba saber. Si algo no se distingue, dilo en vez de suponerlo."
+    }
+  ]
+}

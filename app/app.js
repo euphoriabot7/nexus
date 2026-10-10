@@ -336,6 +336,18 @@ async function openChat(id) {
   if (isMobile()) $("#sidebar").classList.add("collapsed");
 }
 
+function chipsHtml() {
+  const chips = (state.chips && state.chips.length) ? state.chips : [
+    { title: "¿Qué puedes hacer?", body: "Explícame qué puedes hacer y cómo me ayudas en el día a día.", mode: "ambos" },
+    { title: "Organizar mi día", body: "Ayúdame a organizar mi día y priorizar tareas.", mode: "ambos" },
+    { title: "Escribir un script", body: "Escribe un script de bash para copia de seguridad de una carpeta.", mode: "ambos" },
+  ];
+  return chips.map((c) => {
+    const marca = c.mode === "agente" ? '<span class="chip-mode" title="Necesita modo agente">◆</span>' : "";
+    return `<button class="chip" data-q="${esc(c.body)}" data-mode="${esc(c.mode || "ambos")}">${marca}${esc(c.title)}</button>`;
+  }).join("");
+}
+
 function renderEmpty() {
   $("#chatTitle").value = "NEXUS";
   $("#msgCount").textContent = "0";
@@ -350,15 +362,16 @@ function renderEmpty() {
         <div class="mode-card"><b>◆ Modo Chat</b>Respuesta directa del modelo, rápida y ligera.</div>
         <div class="mode-card"><b>◆ Modo Agente</b>Hermes con herramientas: lee archivos, ejecuta comandos, navega.</div>
       </div>
-      <div class="chips">
-        <button class="chip" data-q="Explícame qué puedes hacer y cómo me ayudas en el día a día.">¿Qué puedes hacer?</button>
-        <button class="chip" data-q="Ayúdame a organizar mi día y priorizar tareas.">Organizar mi día</button>
-        <button class="chip" data-q="Escribe un script de bash para hacer copia de seguridad de una carpeta.">Escribir un script</button>
-        <button class="chip" data-q="Dame ideas creativas para un proyecto nuevo.">Lluvia de ideas</button>
-      </div>
+      <div class="chips">${chipsHtml()}</div>
     </div>`;
   m.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
-    $("#input").value = c.dataset.q; autoGrow(); startTurn({ content: c.dataset.q });
+    const body = c.dataset.q || "";
+    const modo = c.dataset.mode || "ambos";
+    if (modo === "agente" && state.chat && !state.chat.agent) {
+      toggleAgent();
+      toast("He activado el modo agente para esta tarea");
+    }
+    $("#input").value = body; autoGrow(); startTurn({ content: body });
   }));
   updateModelPill();
   updateAgentBtn();
@@ -894,8 +907,24 @@ function openPresetPop() {
 function renderPresets() {
   const wrap = $("#presetList");
   wrap.innerHTML = "";
-  if (!state.presets.length) { wrap.innerHTML = `<div class="pop-group">sin plantillas</div>`; return; }
+  if (!state.presets.length) {
+    wrap.innerHTML = `<div class="pop-group">sin plantillas</div>` +
+      `<div class="pop-foot"><button class="mini-btn" id="seedPresets">Cargar los prompts de ejemplo</button></div>`;
+    const b = wrap.querySelector("#seedPresets");
+    if (b) b.addEventListener("click", () => restoreExamplePrompts());
+    return;
+  }
+  let catActual = null;
   state.presets.forEach((p) => {
+    if ((p.cat || "") !== catActual) {
+      catActual = p.cat || "";
+      if (catActual) {
+        const g = document.createElement("div");
+        g.className = "pop-group";
+        g.textContent = catActual;
+        wrap.appendChild(g);
+      }
+    }
     const it = document.createElement("div");
     it.className = "preset-item";
     it.innerHTML = `<span class="pt-del" title="Borrar">✕</span><div class="pt-title">${esc(p.title)}</div><div class="pt-body">${esc(p.body)}</div>`;
@@ -907,6 +936,15 @@ function renderPresets() {
     });
     wrap.appendChild(it);
   });
+}
+
+async function restoreExamplePrompts() {
+  try {
+    const r = await api("/api/prompts/seed", { method: "POST" });
+    await loadPresets();
+    renderPresets();
+    toast(r.added ? `${r.added} prompts de ejemplo añadidos` : "Ya tenías todos los ejemplos");
+  } catch (e) { toast("No se pudieron cargar: " + e.message); }
 }
 
 async function savePreset() {
@@ -1208,6 +1246,7 @@ async function loadConfigState() {
   state.chats = s.chats || [];
   state.providers = s.providers || {};
   state.presets = s.presets || [];
+  state.chips = s.chips || [];
   state.defaults = LS.get("nexus_default", s.default || {});
   state.needsSetup = !!s.needs_setup;
   state.hermesInfo = s.hermes || {};
@@ -1279,6 +1318,7 @@ $("#helpModal").addEventListener("click", (e) => { if (e.target.id === "helpModa
 $("#agentBtn").addEventListener("click", toggleAgent);
 $("#presetBtn").addEventListener("click", (e) => { e.stopPropagation(); openPresetPop(); });
 $("#savePresetBtn").addEventListener("click", savePreset);
+$("#seedPresetBtn").addEventListener("click", restoreExamplePrompts);
 $("#modelBtn").addEventListener("click", (e) => { e.stopPropagation(); const p = $("#modelPop"); p.classList.contains("hidden") ? openModelPop() : p.classList.add("hidden"); });
 $("#modelSearch").addEventListener("input", (e) => renderModelList(e.target.value));
 $("#favOnly").addEventListener("change", () => renderModelList($("#modelSearch").value));
