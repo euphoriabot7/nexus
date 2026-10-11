@@ -193,6 +193,36 @@ perintah, dan sangat sedikit model kecil yang bisa. Kartu yang ditandai *dengan 
 **Qwen3 1.7B/4B**, **Spark X2.5 4B**) yang layak dicoba; sisanya untuk mengobrol, menulis, meringkas
 dan menerjemahkan. Itu juga berjalan di CPU Anda, jadi lambat: untuk pekerjaan agen serius, lebih baik penyedia via API.
 
+## ✨ Specialists (ready-made assistants)
+
+You do not have to explain anything twice. NEXUS ships with **13 specialists**: ready-made assistants that
+bring their own instructions, the tools they need, their recommended models and their starter prompts.
+
+| Specialist | What it is for | Works as agent |
+|---|---|---|
+| 🗂️ **Butler of the machine** | Explores, finds, reads and sorts files on your computer | yes |
+| 🧑‍💻 **Programmer** | Reads your project, changes it, runs the tests and tells you what it touched | yes |
+| 📊 **Data analyst** | Turns your CSV and spreadsheets into decisions and charts | yes |
+| 🧾 **Bookkeeper** | Orders invoices and expenses, works out margins and taxes | yes |
+| 🔍 **SEO specialist** | Search intent, keywords, titles and structure, with the reason behind each one | no |
+| ✍️ **Sales copywriter** | Ads, product pages and emails with conversion structure | no |
+| 📣 **Social media** | A whole month of posts planned in one session | no |
+| 📜 **Contract reviewer** | Explains in plain words what you are signing, and what to ask before signing | no |
+| 🎓 **Tutor** | Teaches you from your own notes and checks that you understood | no |
+| 🎧 **Customer support** | Short, human replies to complaints and returns | no |
+| 🌍 **Translator** | Translates and adapts the tone to each market | no |
+| 🧭 **Business consultant** | Three options with cost, risk and what he would do with his own money | no |
+| 🏠 **Everyday helper** | Errands, lists, emails and plans, without lectures | no |
+
+Open the **✨** button in the top bar. Each card has **Start** (it opens a chat already set up), **Edit** and
+**Delete**, and you can create your own specialist with the form at the bottom: name, hook, instructions, tools,
+local and cloud model, and its starter prompts. The starter prompts show up as buttons above the text box, so
+you never stare at an empty screen.
+
+**First contact, in one click.** The first card offers *Set up and start*: NEXUS installs Ollama if you do not
+have it, downloads the lightest uncensored model that also knows how to use tools, leaves the provider
+configured and opens the chat with the butler. Nothing to configure by hand and no API key.
+
 ## 🤖 Mode agen (opsional)
 
 Dalam **mode agen** NEXUS menjalankan [Hermes](https://hermes-agent.nousresearch.com) dengan alat sungguhan: membaca dan menulis

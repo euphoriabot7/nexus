@@ -333,6 +333,7 @@ async function openChat(id) {
   updateAgentBtn();
   renderMessages();
   renderSidebar();
+  pintarSugerencias();
   if (isMobile()) $("#sidebar").classList.add("collapsed");
 }
 
@@ -393,10 +394,14 @@ function renderMessages() {
   updateStatsInline();
 }
 
+const ART_KINDS = {};
+
 function artifactsBarHtml(paths) {
   if (!paths || !paths.length) return "";
   const files = paths.map((p) => `<button class="ma-file" data-artifact="${esc(p)}" title="${esc(p)}">${esc(String(p).split("/").pop())}</button>`).join("");
-  return `<div class="msg-artifacts"><span class="ma-tag">✎ tocado por el agente</span>${files}</div>`;
+  const extra = paths.filter((p) => ART_KINDS[p] === "agente")
+    .map((p) => `<button class="ma-add-agent" data-addagent="${esc(p)}">✨ ${esc(t("agents_add_file"))}</button>`).join("");
+  return `<div class="msg-artifacts"><span class="ma-tag">✎ tocado por el agente</span>${files}${extra}</div>`;
 }
 
 function updateArtifactsBar(el, paths) {
@@ -876,7 +881,7 @@ async function streamRequest(body, signal, cb) {
       if (ev === "meta") cb.onMeta(obj);
       else if (ev === "delta") cb.onDelta(obj.text);
       else if (ev === "session") { if (cb.onSession) cb.onSession(obj); }
-      else if (ev === "artifact") { if (cb.onArtifact) cb.onArtifact(obj); }
+      else if (ev === "artifact") { if (obj && obj.path && obj.kind) ART_KINDS[obj.path] = obj.kind; if (cb.onArtifact) cb.onArtifact(obj); }
       else if (ev === "notice") { if (cb.onNotice) cb.onNotice(obj); }
       else if (ev === "done") cb.onDone(obj);
       else if (ev === "error") cb.onError(obj.message);
@@ -1622,7 +1627,16 @@ $("#paletteInput").addEventListener("keydown", (e) => {
 });
 $("#palette").addEventListener("click", (e) => { if (e.target.id === "palette") $("#palette").classList.add("hidden"); });
 
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
+  const ba = e.target.closest("[data-addagent]");
+  if (ba) {
+    try {
+      const r = await api("/api/agents/import", { method: "POST", body: { path: ba.dataset.addagent } });
+      await cargarEspecialistas();
+      toast(r.count > 1 ? `${r.count} ${t("agents_added")}` : t("agents_added"));
+    } catch (err) { toast(t("agents_add_fail") + " " + err.message); }
+    return;
+  }
   if (!e.target.closest("#modelPop") && !e.target.closest("#modelBtn")) $("#modelPop").classList.add("hidden");
   if (!e.target.closest("#morePop") && !e.target.closest("#menuMoreBtn")) $("#morePop").classList.add("hidden");
   if (!e.target.closest("#presetPop") && !e.target.closest("#presetBtn")) $("#presetPop").classList.add("hidden");
@@ -1669,6 +1683,11 @@ function pesoMb(mb) {
   return n >= 1024 ? (n / 1024).toFixed(1).replace(".", ",") + " GB" : Math.round(n) + " MB";
 }
 
+/* marca los modelos que vienen de Hugging Face (id hf.co/...) o de LM Studio (repo) */
+function esHF(m) {
+  return !!(m && (m.hf || m.repo || String(m.id || "").startsWith("hf.co/")));
+}
+
 function etiquetaModelo(m) {
   const p = [];
   p.push(m.params);
@@ -1676,7 +1695,7 @@ function etiquetaModelo(m) {
   if (m.sin_censura) p.push(t("local_uncensored"));
   p.push(m.herramientas ? t("local_tools_yes") : t("local_tools_no"));
   if (m.multilingue) p.push(t("local_multilang"));
-  if (m.hf) p.push("Hugging Face");
+  if (esHF(m)) p.push("Hugging Face");
   return p.join(" · ");
 }
 
@@ -1800,7 +1819,7 @@ function renderLocal() {
         ${m.sin_censura ? `<span class="lc-tag sin">${t("local_uncensored")}</span>` : ""}
         ${m.herramientas ? `<span class="lc-tag herr">${t("local_tools_yes")}</span>` : ""}
         ${m.herramientas ? `<span class="lc-tag agente">${t("local_agent_ready")}</span>` : ""}
-        ${m.hf ? `<span class="lc-tag hf">HF</span>` : ""}
+        ${esHF(m) ? `<span class="lc-tag hf">HF</span>` : ""}
         ${m.instalado ? `<span class="lc-tag ok">${t("local_installed")}</span>` : ""}
       </div>
       <div class="lc-meta">${esc(etiquetaModelo(m))}</div>
@@ -1828,7 +1847,7 @@ function renderLocal() {
       b.disabled = !!pull.running || !ollamaListo;
       if (!ollamaListo) b.title = t("local_need_ollama");
       acc.appendChild(b);
-      if (m.hf) acc.appendChild(mk("Hugging Face", () => abrirLocal("ollama_docs")));
+      if (esHF(m)) acc.appendChild(mk("Hugging Face", () => abrirLocal("ollama_docs")));
     }
     if (LOCAL.probando === m.id) {
       const r = document.createElement("div");
@@ -2304,6 +2323,13 @@ async function startHermesInstall() {
 $("#localBtn").addEventListener("click", () => openLocal());
 $("#quickKey").addEventListener("click", () => openSetup("manage"));
 $("#setupLocalBtn").addEventListener("click", () => { $("#setupModal").classList.add("hidden"); openLocal(); });
+$("#agentsBtn").addEventListener("click", () => abrirAgentes());
+$("#agentsClose").addEventListener("click", () => cerrarAgentes());
+$("#agentsModal").addEventListener("click", (e) => { if (e.target.id === "agentsModal") cerrarAgentes(); });
+$("#agentsBuscar").addEventListener("input", () => { AG.buscar = $("#agentsBuscar").value; renderEspecialistas(); });
+$("#agGuardar").addEventListener("click", () => guardarEspecialista());
+$("#agLimpiar").addEventListener("click", () => limpiarEspecialista());
+$("#agentsFirstGo").addEventListener("click", () => prepararPrimerContacto());
 $("#localClose").addEventListener("click", () => { $("#localModal").classList.add("hidden"); if (LOCAL.poll) { clearInterval(LOCAL.poll); LOCAL.poll = null; } });
 $("#localModal").addEventListener("click", (e) => { if (e.target.id === "localModal") { $("#localModal").classList.add("hidden"); } });
 $("#localRefresh").addEventListener("click", () => loadLocal());
@@ -2321,3 +2347,214 @@ $("#spModelsLoad").addEventListener("click", () => loadSetupModels());
 $("#spBuscar").addEventListener("input", renderSetupModels);
 $("#spKey").addEventListener("change", () => { if (($("#spKey").value || "").trim()) loadSetupModels(); });
 window.openLocal = openLocal;
+
+/* ------------------------------ especialistas --------------------------- */
+const AG = { lista: [], cats: [], cat: "", buscar: "" };
+
+async function cargarEspecialistas() {
+  try {
+    const r = await api("/api/agents");
+    AG.lista = r.agents || [];
+    AG.cats = r.categorias || [];
+  } catch (e) { AG.lista = []; AG.cats = []; }
+  renderEspecialistas();
+  pintarSugerencias();
+}
+
+async function abrirAgentes() {
+  $("#agentsModal").classList.remove("hidden");
+  if (!AG.lista.length) await cargarEspecialistas(); else renderEspecialistas();
+  const est = $("#agentsFirstEstado");
+  if (est) est.textContent = "";
+}
+
+function cerrarAgentes() { $("#agentsModal").classList.add("hidden"); }
+
+function renderCategorias() {
+  const caja = $("#agentsCategorias");
+  if (!caja) return;
+  const cats = AG.cats.length ? AG.cats : Array.from(new Set(AG.lista.map((a) => a.categoria).filter(Boolean)));
+  caja.innerHTML = "";
+  const mk = (txt, val) => {
+    const b = document.createElement("button");
+    b.className = "ag-chip" + (AG.cat === val ? " sel" : "");
+    b.textContent = txt;
+    b.addEventListener("click", () => { AG.cat = val; renderEspecialistas(); });
+    caja.appendChild(b);
+  };
+  mk(t("agents_all"), "");
+  cats.forEach((c) => mk(c, c));
+}
+
+function renderEspecialistas() {
+  renderCategorias();
+  const grid = $("#agentsGrid");
+  if (!grid) return;
+  const q = AG.buscar.trim().toLowerCase();
+  const lista = AG.lista.filter((a) => (!AG.cat || a.categoria === AG.cat) &&
+    (!q || `${a.nombre} ${a.gancho} ${a.descripcion} ${a.categoria}`.toLowerCase().includes(q)));
+  grid.innerHTML = "";
+  if (!lista.length) {
+    grid.innerHTML = `<div class="ml-hint">${t("agents_none")}</div>`;
+    return;
+  }
+  const mk = (texto, fn, clase) => {
+    const b = document.createElement("button");
+    b.className = clase ? "mini-btn " + clase : "mini-btn";
+    b.textContent = texto;
+    b.addEventListener("click", fn);
+    return b;
+  };
+  lista.forEach((a) => {
+    const card = document.createElement("div");
+    card.className = "ag-card";
+    card.innerHTML = `
+      <div class="ac-head">
+        <span class="ac-emoji">${esc(a.emoji || "🤖")}</span>
+        <span class="ac-nombre">${esc(a.nombre)}</span>
+        ${a.categoria ? `<span class="ac-cat">${esc(a.categoria)}</span>` : ""}
+      </div>
+      <div class="ac-gancho">${esc(a.gancho || "")}</div>
+      ${a.descripcion ? `<div class="ac-desc">${esc(a.descripcion)}</div>` : ""}
+      <div class="ac-pie">
+        ${a.agente ? `<span class="ac-tag ag">${t("local_agent_ready")}</span>` : `<span class="ac-tag">${t("agents_chat_only")}</span>`}
+        ${a.catalogo ? `<span class="ac-tag">${t("agents_builtin")}</span>` : ""}
+      </div>`;
+    const pie = card.querySelector(".ac-pie");
+    pie.appendChild(mk(t("agents_start"), () => empezarEspecialista(a), "primary"));
+    pie.appendChild(mk(t("agents_edit"), () => editarEspecialista(a)));
+    if (!a.catalogo) pie.appendChild(mk(t("agents_delete"), () => borrarEspecialista(a.id)));
+    grid.appendChild(card);
+  });
+}
+
+function editarEspecialista(a) {
+  const box = $("#agentsEditorBox");
+  if (box) box.open = true;
+  AG.sel = a ? a.id : null;
+  $("#agNombre").value = a ? a.nombre : "";
+  $("#agEmoji").value = a ? a.emoji : "";
+  $("#agCategoria").value = a ? a.categoria : "";
+  $("#agGancho").value = a ? a.gancho : "";
+  $("#agDescripcion").value = a ? a.descripcion : "";
+  $("#agSistema").value = a ? a.sistema : "";
+  $("#agHerramientas").value = a ? (a.herramientas || "") : "";
+  $("#agAgente").value = a && a.agente ? "1" : "0";
+  $("#agModelo").value = a ? (a.modelo_local || "") : "";
+  $("#agMinimo").value = a ? (a.modelo_minimo || "") : "";
+  $("#agNube").value = a ? (a.nube || "") : "";
+  $("#agSugerencias").value = a ? (a.sugerencias || []).join("\n") : "";
+  $("#agEstado").textContent = a ? `${t("agents_editing")}: ${a.nombre}` : "";
+  if (box && box.scrollIntoView) box.scrollIntoView({ block: "nearest" });
+}
+
+function limpiarEspecialista() { editarEspecialista(null); $("#agentsEditorBox").open = true; }
+
+async function guardarEspecialista() {
+  const body = {
+    id: AG.sel || undefined,
+    nombre: $("#agNombre").value.trim(),
+    emoji: $("#agEmoji").value.trim(),
+    categoria: $("#agCategoria").value.trim(),
+    gancho: $("#agGancho").value.trim(),
+    descripcion: $("#agDescripcion").value.trim(),
+    sistema: $("#agSistema").value.trim(),
+    herramientas: $("#agHerramientas").value,
+    agente: $("#agAgente").value === "1",
+    modelo_local: $("#agModelo").value.trim(),
+    modelo_minimo: $("#agMinimo").value.trim(),
+    nube: $("#agNube").value.trim(),
+    sugerencias: $("#agSugerencias").value.split("\n").map((x) => x.trim()).filter(Boolean),
+  };
+  if (!body.nombre) return ($("#agEstado").textContent = t("agents_need_name"));
+  try {
+    const r = await api("/api/agents", { method: "POST", body });
+    AG.sel = r.agent.id;
+    $("#agEstado").textContent = t("agents_saved");
+    await cargarEspecialistas();
+  } catch (e) {
+    $("#agEstado").textContent = t("agents_save_fail") + " " + e.message;
+  }
+}
+
+async function borrarEspecialista(id) {
+  try {
+    await api(`/api/agents/${id}`, { method: "DELETE" });
+    await cargarEspecialistas();
+  } catch (e) { toast(t("agents_del_fail")); }
+}
+
+async function empezarEspecialista(a) {
+  try {
+    const r = await api(`/api/agents/${a.id}/chat`, { method: "POST", body: {} });
+    cerrarAgentes();
+    await refreshChats();
+    await openChat(r.chat.id);
+    pintarSugerencias();
+    toast(`${a.emoji || "🤖"} ${a.nombre}`);
+  } catch (e) {
+    toast(t("agents_start_fail") + " " + e.message);
+  }
+}
+
+/* sugerencias del especialista encima del cuadro de escritura */
+function pintarSugerencias() {
+  const barra = $("#suggBar");
+  if (!barra) return;
+  barra.innerHTML = "";
+  const ag = AG.lista.find((x) => x.id === (state.chat && state.chat.esp));
+  const lista = ag && ag.sugerencias && ag.sugerencias.length ? ag.sugerencias : [];
+  if (!lista.length) return;
+  lista.forEach((txt) => {
+    const b = document.createElement("button");
+    b.className = "sg-chip";
+    b.textContent = txt;
+    b.title = t("agents_sugg_title");
+    b.addEventListener("click", () => {
+      const inp = $("#input");
+      inp.value = txt;
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+      inp.focus();
+    });
+    barra.appendChild(b);
+  });
+}
+
+/* primer contacto: instala el modelo mas ligero con herramientas y abre el chat */
+async function prepararPrimerContacto() {
+  const est = $("#agentsFirstEstado");
+  const boton = $("#agentsFirstGo");
+  const mini = AG.lista.find((a) => a.id === "mayordomo") || AG.lista[0];
+  const modelo = (mini && (mini.modelo_minimo || mini.modelo_local)) || "huihui_ai/qwen2.5-abliterate:0.5b";
+  if (est) est.textContent = t("agents_first_working");
+  if (boton) boton.disabled = true;
+  try {
+    const loc = await api("/api/local");
+    if (!loc.ollama_bin) {
+      if (est) est.textContent = t("agents_first_installing");
+      await api("/api/local/install", { method: "POST", body: { backend: "ollama" }, timeout: 900000 });
+    } else if (!loc.ollama_running) {
+      await api("/api/local/start", { method: "POST", body: { backend: "ollama" } });
+    }
+    const tiene = (loc.instalados || []).some((m) => m.name === modelo);
+    if (!tiene) {
+      if (est) est.textContent = `${t("agents_first_downloading")} ${modelo}`;
+      await api("/api/local/pull", { method: "POST", body: { model: modelo } });
+      for (let i = 0; i < 900; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const l = await api("/api/local");
+        if ((l.instalados || []).some((m) => m.name === modelo)) break;
+        const pr = (l.pull && l.pull.model === modelo) ? (l.pull.percent || 0) : 0;
+        if (est) est.textContent = `${t("agents_first_downloading")} ${modelo} · ${pr}%`;
+      }
+    }
+    await api("/api/local/use", { method: "POST", body: { model: modelo, backend: "ollama" } });
+    if (mini) await empezarEspecialista(mini);
+    if (est) est.textContent = t("agents_first_done");
+  } catch (e) {
+    if (est) est.textContent = t("agents_first_fail") + " " + e.message;
+  } finally {
+    if (boton) boton.disabled = false;
+  }
+}
+

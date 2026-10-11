@@ -348,11 +348,17 @@ def spec_with_inline(pid, inline=None):
     return spec
 
 
+def url_es_local(base):
+    """Una URL de 127.0.0.1/localhost no necesita clave de API."""
+    b = (base or "").lower()
+    return any(h in b for h in ("127.0.0.1", "localhost", "[::1]", "0.0.0.0"))
+
+
 def fetch_models_spec(spec):
     base, key = provider_credentials(spec)
     if not base:
         raise RuntimeError("Este proveedor no tiene URL configurada.")
-    if spec.get("requires_key") is not False and not key:
+    if spec.get("requires_key") is not False and not key and not url_es_local(base):
         raise RuntimeError("Falta la clave de API.")
     req = urllib.request.Request(base + "/models", headers=provider_headers(spec, key))
     with urllib.request.urlopen(req, timeout=25) as resp:
@@ -561,6 +567,23 @@ def init_db():
                 created REAL NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_msg_chat ON messages(chat_id, created);
+            CREATE TABLE IF NOT EXISTS agents (
+                id TEXT PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                emoji TEXT NOT NULL DEFAULT '',
+                categoria TEXT NOT NULL DEFAULT '',
+                gancho TEXT NOT NULL DEFAULT '',
+                descripcion TEXT NOT NULL DEFAULT '',
+                sistema TEXT NOT NULL DEFAULT '',
+                herramientas TEXT NOT NULL DEFAULT '',
+                agente INTEGER NOT NULL DEFAULT 0,
+                modelo_local TEXT NOT NULL DEFAULT '',
+                modelo_minimo TEXT NOT NULL DEFAULT '',
+                nube TEXT NOT NULL DEFAULT '',
+                sugerencias TEXT NOT NULL DEFAULT '[]',
+                catalogo INTEGER NOT NULL DEFAULT 0,
+                created REAL NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS presets (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
@@ -601,9 +624,16 @@ def init_db():
         for col, decl in (("agent", "INTEGER NOT NULL DEFAULT 0"),
                           ("workdir", "TEXT NOT NULL DEFAULT ''"),
                           ("agent_session", "TEXT NOT NULL DEFAULT ''"),
-                          ("toolsets", "TEXT NOT NULL DEFAULT ''")):
+                          ("toolsets", "TEXT NOT NULL DEFAULT ''"),
+                          ("esp", "TEXT NOT NULL DEFAULT ''")):
             ensure_column(conn, "chats", col, decl)
         ensure_column(conn, "presets", "cat", "TEXT NOT NULL DEFAULT ''")
+    try:
+        cuantos_ag = seed_agents()
+        if cuantos_ag:
+            log_event("especialistas", f"{cuantos_ag} especialistas instalados")
+    except Exception as exc:  # noqa: BLE001
+        print(f"aviso: no se pudieron cargar los especialistas: {exc}")
     try:
         puestos = seed_examples()
         if puestos:
@@ -627,6 +657,7 @@ def chat_row_to_dict(row, preview=None):
         "created": row["created"], "updated": row["updated"],
         "agent": row["agent"], "workdir": row["workdir"],
         "agent_session": row["agent_session"], "toolsets": row["toolsets"],
+        "esp": (row["esp"] if "esp" in row.keys() else ""),
         "preview": preview or "",
     }
 
@@ -817,6 +848,115 @@ EXAMPLE_PROMPTS = EXAMPLES.get("prompts", []) or []
 EXAMPLE_CHIPS = EXAMPLES.get("chips", []) or []
 
 
+CATALOGO_AGENTES = APP_DIR / "agentes" / "especialistas.json"
+
+
+def catalogo_especialistas():
+    """Lee el catalogo de especialistas que viene con la aplicacion."""
+    try:
+        d = json.loads(CATALOGO_AGENTES.read_text(encoding="utf-8"))
+        return d.get("especialistas") or []
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def seed_agents():
+    """Carga en la base los especialistas del catalogo que falten (sin pisar los del usuario)."""
+    cuantos = 0
+    for esp in catalogo_especialistas():
+        with db() as conn:
+            hay = conn.execute("SELECT id FROM agents WHERE id=?", (esp.get("id"),)).fetchone()
+        if hay:
+            continue
+        with db() as conn:
+            conn.execute(
+                "INSERT INTO agents(id,nombre,emoji,categoria,gancho,descripcion,sistema,herramientas,"
+                "agente,modelo_local,modelo_minimo,nube,sugerencias,catalogo,created) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)",
+                (esp.get("id"), esp.get("nombre", ""), esp.get("emoji", ""), esp.get("categoria", ""),
+                 esp.get("gancho", ""), esp.get("descripcion", ""), esp.get("sistema", ""),
+                 esp.get("herramientas", ""), 1 if esp.get("agente") else 0,
+                 esp.get("modelo_local_bueno", ""), esp.get("modelo_local_minimo", ""),
+                 esp.get("nube", ""), json.dumps(esp.get("sugerencias") or [], ensure_ascii=False), now()))
+        cuantos += 1
+    return cuantos
+
+
+def fila_agente(r):
+    d = dict(r)
+    try:
+        d["sugerencias"] = json.loads(d.get("sugerencias") or "[]")
+    except Exception:  # noqa: BLE001
+        d["sugerencias"] = []
+    d["agente"] = bool(d.get("agente"))
+    d["catalogo"] = bool(d.get("catalogo"))
+    return d
+
+
+def list_agents():
+    with db() as conn:
+        return [fila_agente(r) for r in
+                conn.execute("SELECT * FROM agents ORDER BY catalogo DESC, categoria ASC, nombre ASC").fetchall()]
+
+
+def get_agent(pid):
+    with db() as conn:
+        r = conn.execute("SELECT * FROM agents WHERE id=?", (pid,)).fetchone()
+    return fila_agente(r) if r else None
+
+
+def save_agent(body):
+    pid = (body.get("id") or "").strip() or uid("a_")
+    campos = {"nombre": (body.get("nombre") or "").strip() or "Especialista",
+              "emoji": (body.get("emoji") or "🤖").strip()[:8],
+              "categoria": (body.get("categoria") or "").strip(),
+              "gancho": (body.get("gancho") or "").strip(),
+              "descripcion": (body.get("descripcion") or "").strip(),
+              "sistema": (body.get("sistema") or "").strip(),
+              "herramientas": (body.get("herramientas") or "").strip(),
+              "agente": 1 if body.get("agente") else 0,
+              "modelo_local": (body.get("modelo_local") or "").strip(),
+              "modelo_minimo": (body.get("modelo_minimo") or "").strip(),
+              "nube": (body.get("nube") or "").strip(),
+              "sugerencias": json.dumps(body.get("sugerencias") or [], ensure_ascii=False)}
+    with db() as conn:
+        hay = conn.execute("SELECT id FROM agents WHERE id=?", (pid,)).fetchone()
+        if hay:
+            cols = ",".join(f"{k}=?" for k in campos)
+            conn.execute(f"UPDATE agents SET {cols} WHERE id=?", (*campos.values(), pid))
+        else:
+            campos["id"] = pid
+            cols = ",".join(campos)
+            marcas = ",".join("?" * len(campos))
+            conn.execute(f"INSERT INTO agents({cols},created) VALUES({marcas},?)", (*campos.values(), now()))
+    return get_agent(pid)
+
+
+def delete_agent(pid):
+    with db() as conn:
+        conn.execute("DELETE FROM agents WHERE id=?", (pid,))
+
+
+def chat_from_agent(pid, provider=None, model=None):
+    """Crea un chat con el especialista ya configurado (instruccion, herramientas y sugerencias)."""
+    ag = get_agent(pid)
+    if not ag:
+        return None
+    prov = (provider or "").strip() or None
+    mod = (model or "").strip() or None
+    if not prov or not mod:
+        p, m = default_provider_model()
+        prov = prov or p
+        mod = mod or m
+    cid = uid("c_")
+    with db() as conn:
+        conn.execute("INSERT INTO chats(id,title,provider,model,system,pinned,created,updated,agent,workdir,"
+                     "agent_session,toolsets,esp) VALUES(?,?,?,?,?,0,?,?,?,?,?,?,?)",
+                     (cid, f"{ag['emoji']} {ag['nombre']}".strip(), prov, mod, ag["sistema"], now(), now(),
+                      1 if ag["agente"] else 0, "", "", ag["herramientas"], ag["id"]))
+    return get_chat(cid)
+
+
 def list_presets():
     with db() as conn:
         rows = conn.execute("SELECT * FROM presets ORDER BY created ASC").fetchall()
@@ -975,7 +1115,7 @@ def stream_completion(chat, history, on_delta, attachments=None):
     base, key = provider_credentials(spec)
     if not base:
         raise RuntimeError(f"El proveedor '{pid}' no tiene URL configurada. Abre Ajustes -> Proveedores.")
-    if spec.get("requires_key") is not False and not key:
+    if spec.get("requires_key") is not False and not key and not url_es_local(base):
         raise RuntimeError(f"Falta la clave de API de '{spec.get('label', pid)}'. "
                            "Anadela en Ajustes -> Proveedores y claves.")
 
@@ -1018,6 +1158,18 @@ def stream_completion(chat, history, on_delta, attachments=None):
 
 WRITE_TOOLS = re.compile(r"write|edit|patch|create|append|replace|save|mkdir|move|copy", re.I)
 PATH_KEYS = ("path", "file_path", "filepath", "target_file", "target", "filename", "file")
+
+
+def clase_artefacto(path):
+    """Marca los archivos que son un especialista listo para importar."""
+    p = str(path or "")
+    bajo = p.lower()
+    if not bajo.endswith(".json"):
+        return ""
+    if ("especialista" in bajo or "/agentes/" in bajo or "agente" in os.path.basename(bajo)
+            or "agent-" in bajo):
+        return "agente"
+    return ""
 
 
 def tool_artifact(name, args, cwd):
@@ -1856,7 +2008,8 @@ class Handler(BaseHTTPRequestHandler):
                                    "pricing": pricing_info(),
                                    "config_path": str(CONFIG_PATH),
                                    "chips": example_chips(),
-                                   "presets": list_presets()})
+                                   "presets": list_presets(),
+                                   "agents": list_agents()})
         if path == "/api/chats":
             return self.send_json({"chats": list_chats()})
         if path == "/api/search":
@@ -1893,6 +2046,19 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 limit = 200
             return self.send_json({"events": recent_events(limit, params.get("kind", ""))})
+        m = re.match(r"^/api/agents/([\w-]+)/export$", path)
+        if m:
+            ag = get_agent(m.group(1))
+            if not ag:
+                return self.send_json({"error": "no existe"}, 404)
+            return self.send_json({k: v for k, v in ag.items()
+                                   if k in ("id", "nombre", "emoji", "categoria", "gancho", "descripcion",
+                                            "sistema", "herramientas", "agente", "modelo_local",
+                                            "modelo_minimo", "nube", "sugerencias")})
+        if path == "/api/agents":
+            return self.send_json({"agents": list_agents(),
+                                   "categorias": (json.loads(CATALOGO_AGENTES.read_text(encoding="utf-8")).get("categorias")
+                                                  if CATALOGO_AGENTES.exists() else [])})
         if path == "/api/tasks":
             return self.send_json({"tasks": list_tasks()})
         m = re.match(r"^/api/tasks/([\w-]+)$", path)
@@ -1954,6 +2120,10 @@ class Handler(BaseHTTPRequestHandler):
         m = re.match(r"^/api/presets/([\w-]+)$", path)
         if m:
             delete_preset(m.group(1))
+            return self.send_json({"ok": True})
+        m = re.match(r"^/api/agents/([\w-]+)$", path)
+        if m:
+            delete_agent(m.group(1))
             return self.send_json({"ok": True})
         m = re.match(r"^/api/tasks/([\w-]+)$", path)
         if m:
@@ -2041,6 +2211,35 @@ class Handler(BaseHTTPRequestHandler):
                     error = error or str(exc)
             return self.send_json({"ok": bool(ids) and not error, "models": ids, "error": error,
                                    "source": fuente, "count": len(ids)})
+        if path == "/api/agents/import":
+            body = self.read_body()
+            ruta = (body.get("path") or "").strip()
+            try:
+                datos = json.loads(Path(os.path.expanduser(ruta)).read_text(encoding="utf-8"))
+                if isinstance(datos, dict) and isinstance(datos.get("especialistas"), list):
+                    creados = [save_agent(x) for x in datos["especialistas"]]
+                    return self.send_json({"ok": True, "agents": creados, "count": len(creados)})
+                ag = save_agent(datos if isinstance(datos, dict) else {})
+                return self.send_json({"ok": True, "agent": ag, "count": 1})
+            except Exception as exc:  # noqa: BLE001
+                return self.send_json({"ok": False, "error": str(exc)}, 400)
+        if path == "/api/agents":
+            body = self.read_body()
+            try:
+                ag = save_agent(body)
+                return self.send_json({"ok": True, "agent": ag})
+            except Exception as exc:  # noqa: BLE001
+                return self.send_json({"ok": False, "error": str(exc)}, 400)
+        m = re.match(r"^/api/agents/([\w-]+)/chat$", path)
+        if m:
+            body = self.read_body()
+            try:
+                chat = chat_from_agent(m.group(1), body.get("provider"), body.get("model"))
+            except Exception as exc:  # noqa: BLE001
+                return self.send_json({"ok": False, "error": str(exc)}, 400)
+            if not chat:
+                return self.send_json({"ok": False, "error": "no existe ese especialista"}, 404)
+            return self.send_json({"ok": True, "chat": chat})
         if path == "/api/pricing/refresh":
             try:
                 cuantos = refresh_pricing()
@@ -2249,7 +2448,7 @@ class Handler(BaseHTTPRequestHandler):
                 def on_artifact(path, tool, content=None, final=False):
                     if path not in artifacts:
                         artifacts.append(path)
-                    self._safe_sse("artifact", {"path": path, "tool": tool,
+                    self._safe_sse("artifact", {"path": path, "tool": tool, "kind": clase_artefacto(path),
                                                 "content": content, "final": bool(final)})
 
                 if local_endpoint(chat.get("provider") or ""):

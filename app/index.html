@@ -67,7 +67,8 @@
         <input id="chatTitle" class="chat-title" value="NEXUS" spellcheck="false">
         <div class="subtitle"><span id="msgCount">0</span> mensajes · <span id="statsInline">—</span></div>
       </div>
-      <div class="top-actions">
+      <div class="msg-sugg" id="suggBar"></div>
+  <div class="top-actions">
         <button id="agentBtn" class="agent-pill" title="Modo agente: usa herramientas reales de Hermes (archivos, shell, web)">
           <span class="agent-ico">◆</span><span id="agentLabel">Chat</span>
         </button>
@@ -78,7 +79,8 @@
         <button id="presetBtn" class="icon-btn" title="Plantillas de prompt">
           <svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 12h7M9 16h7M9 8h3" stroke="currentColor" stroke-width="1.4"/></svg>
         </button>
-        <button id="localBtn" class="icon-btn" title="Modelos locales (Ollama / LM Studio)" data-i18n-title="local_btn_title">
+        <button class="icon-btn" id="agentsBtn" title="Especialistas" data-i18n-title="agents_btn">✨</button>
+      <button id="localBtn" class="icon-btn" title="Modelos locales (Ollama / LM Studio)" data-i18n-title="local_btn_title">
           <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3" stroke="currentColor" stroke-width="1.6"/></svg>
         </button>
         <button id="quickKey" class="icon-btn" title="Proveedores y claves" data-i18n-title="providers_btn">
@@ -143,7 +145,69 @@
       </div>
       <div id="spBody" class="sp-body"></div>
     </aside>
-  </main>
+    <div class="modal hidden" id="agentsModal">
+    <div class="modal-box wide">
+      <header class="modal-head">
+        <h2><span data-i18n="agents_title">Especialistas</span></h2>
+        <button class="icon-btn" id="agentsClose" title="Cerrar" data-i18n-title="close">✕</button>
+      </header>
+      <p class="modal-sub" data-i18n="agents_sub">Un especialista es un asistente ya preparado para una tarea concreta: trae sus instrucciones, las herramientas que necesita y sus modelos recomendados. Eliges uno, y ese chat ya trabaja como un profesional de ese oficio.</p>
+
+      <div class="ag-primer" id="agentsPrimer">
+        <div class="ap-txt">
+          <strong data-i18n="agents_first_t">Empieza por aquí</strong>
+          <span data-i18n="agents_first_d">El especialista más ligero que además sabe usar herramientas. Si tu ordenador es modesto, este es el que funciona: descarga un modelo pequeño sin censura, lo deja listo y abre el chat contigo.</span>
+        </div>
+        <div class="ap-acciones">
+          <button class="mini-btn primary" id="agentsFirstGo" data-i18n="agents_first_go">Preparar y empezar</button>
+          <span class="ap-estado" id="agentsFirstEstado"></span>
+        </div>
+      </div>
+
+      <div class="ag-filtros">
+        <input id="agentsBuscar" class="inp" placeholder="Buscar especialista…" data-i18n-ph="agents_search" />
+        <div class="ag-chips" id="agentsCategorias"></div>
+      </div>
+
+      <div class="ag-grid" id="agentsGrid"></div>
+
+      <details class="ag-editor" id="agentsEditorBox">
+        <summary data-i18n="agents_new">Crear o editar un especialista</summary>
+        <div class="ag-form">
+          <label><span data-i18n="agents_f_name">Nombre</span><input id="agNombre" class="inp" /></label>
+          <label><span data-i18n="agents_f_emoji">Icono</span><input id="agEmoji" class="inp" maxlength="4" placeholder="🤖" /></label>
+          <label><span data-i18n="agents_f_cat">Categoría</span><input id="agCategoria" class="inp" /></label>
+          <label class="ancho"><span data-i18n="agents_f_hook">Gancho (una línea, para qué sirve)</span><input id="agGancho" class="inp" /></label>
+          <label class="ancho"><span data-i18n="agents_f_desc">Descripción</span><textarea id="agDescripcion" class="inp" rows="2"></textarea></label>
+          <label class="ancho"><span data-i18n="agents_f_sys">Instrucciones del especialista</span><textarea id="agSistema" class="inp" rows="4"></textarea></label>
+          <label><span data-i18n="agents_f_tools">Herramientas</span>
+            <select id="agHerramientas" class="inp">
+              <option value="">Solo charla</option>
+              <option value="files">Lectura de archivos</option>
+              <option value="files,shell">Archivos y comandos (agente)</option>
+            </select>
+          </label>
+          <label><span data-i18n="agents_f_agent">¿Trabaja como agente?</span>
+            <select id="agAgente" class="inp">
+              <option value="0">No, solo conversa</option>
+              <option value="1">Sí, toma el control del ordenador</option>
+            </select>
+          </label>
+          <label><span data-i18n="agents_f_local">Modelo local recomendado</span><input id="agModelo" class="inp" placeholder="qwen3:4b" /></label>
+          <label><span data-i18n="agents_f_min">Modelo local mínimo</span><input id="agMinimo" class="inp" placeholder="huihui_ai/qwen2.5-abliterate:0.5b" /></label>
+          <label><span data-i18n="agents_f_cloud">Modelo en la nube</span><input id="agNube" class="inp" placeholder="openai/gpt-6-astra" /></label>
+          <label class="ancho"><span data-i18n="agents_f_sugg">Prompts de arranque (uno por línea)</span><textarea id="agSugerencias" class="inp" rows="3"></textarea></label>
+        </div>
+        <div class="ag-acciones-fila">
+          <button class="mini-btn primary" id="agGuardar" data-i18n="agents_save">Guardar especialista</button>
+          <button class="mini-btn" id="agLimpiar" data-i18n="agents_clear">Empezar de cero</button>
+          <span class="ap-estado" id="agEstado"></span>
+        </div>
+      </details>
+    </div>
+  </div>
+
+</main>
 </div>
 
 <button id="expandTab" title="Mostrar historial (Ctrl+B)" data-i18n-title="expand_sidebar">›</button>

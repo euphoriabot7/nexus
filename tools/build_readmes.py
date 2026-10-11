@@ -24,6 +24,37 @@ LANGS = [
 T = {}
 
 T["en"] = dict(
+    agentes_h="Specialists (ready-made assistants)",
+    agentes=[
+        "You do not have to explain anything twice. NEXUS ships with **13 specialists**: ready-made assistants that",
+        "bring their own instructions, the tools they need, their recommended models and their starter prompts.",
+        "",
+        "| Specialist | What it is for | Works as agent |",
+        "|---|---|---|",
+        "| 🗂️ **Butler of the machine** | Explores, finds, reads and sorts files on your computer | yes |",
+        "| 🧑‍💻 **Programmer** | Reads your project, changes it, runs the tests and tells you what it touched | yes |",
+        "| 📊 **Data analyst** | Turns your CSV and spreadsheets into decisions and charts | yes |",
+        "| 🧾 **Bookkeeper** | Orders invoices and expenses, works out margins and taxes | yes |",
+        "| 🔍 **SEO specialist** | Search intent, keywords, titles and structure, with the reason behind each one | no |",
+        "| ✍️ **Sales copywriter** | Ads, product pages and emails with conversion structure | no |",
+        "| 📣 **Social media** | A whole month of posts planned in one session | no |",
+        "| 📜 **Contract reviewer** | Explains in plain words what you are signing, and what to ask before signing | no |",
+        "| 🎓 **Tutor** | Teaches you from your own notes and checks that you understood | no |",
+        "| 🎧 **Customer support** | Short, human replies to complaints and returns | no |",
+        "| 🌍 **Translator** | Translates and adapts the tone to each market | no |",
+        "| 🧭 **Business consultant** | Three options with cost, risk and what he would do with his own money | no |",
+        "| 🏠 **Everyday helper** | Errands, lists, emails and plans, without lectures | no |",
+        "",
+        "Open the **✨** button in the top bar. Each card has **Start** (it opens a chat already set up), **Edit** and",
+        "**Delete**, and you can create your own specialist with the form at the bottom: name, hook, instructions, tools,",
+        "local and cloud model, and its starter prompts. The starter prompts show up as buttons above the text box, so",
+        "you never stare at an empty screen.",
+        "",
+        "**First contact, in one click.** The first card offers *Set up and start*: NEXUS installs Ollama if you do not",
+        "have it, downloads the lightest uncensored model that also knows how to use tools, leaves the provider",
+        "configured and opens the chat with the butler. Nothing to configure by hand and no API key.",
+    ],
+
     subtitle="A self-hosted desktop AI chat console. **No dependencies**, any OpenAI-compatible provider, everything stays on your machine.",
     nav=["Quick start", "Features", "Screenshots", "Control panel", "Providers", "Local models", "Agent mode", "LAN", "Shortcuts", "Structure", "License"],
     intro=[
@@ -240,6 +271,37 @@ T["en"] = dict(
 )
 
 T["es"] = dict(
+    agentes_h="Especialistas (asistentes ya preparados)",
+    agentes=[
+        "No tienes que explicarle nada dos veces. NEXUS viene con **13 especialistas**: asistentes ya preparados que",
+        "traen sus propias instrucciones, las herramientas que necesitan, sus modelos recomendados y sus prompts de arranque.",
+        "",
+        "| Especialista | Para qué sirve | Trabaja como agente |",
+        "|---|---|---|",
+        "| 🗂️ **Mayordomo del equipo** | Explora, encuentra, lee y ordena los archivos de tu ordenador | sí |",
+        "| 🧑‍💻 **Programador** | Lee tu proyecto, lo cambia, ejecuta las pruebas y te dice qué ha tocado | sí |",
+        "| 📊 **Analista de datos** | Convierte tus CSV y hojas en decisiones y gráficos | sí |",
+        "| 🧾 **Contable** | Ordena facturas y gastos, calcula márgenes e impuestos | sí |",
+        "| 🔍 **Especialista SEO** | Intención de búsqueda, palabras clave, títulos y estructura, con el motivo de cada cosa | no |",
+        "| ✍️ **Redactor de ventas** | Anuncios, fichas y correos con estructura de conversión | no |",
+        "| 📣 **Redes sociales** | Un mes entero de publicaciones planificado en una sesión | no |",
+        "| 📜 **Revisor de contratos** | Te explica en palabras normales qué firmas y qué preguntar antes | no |",
+        "| 🎓 **Profesor particular** | Te enseña con tus propios apuntes y comprueba que lo entiendes | no |",
+        "| 🎧 **Atención al cliente** | Respuestas cortas y humanas a quejas y devoluciones | no |",
+        "| 🌍 **Traductor** | Traduce y adapta el tono a cada mercado | no |",
+        "| 🧭 **Consultor de negocio** | Tres opciones con coste, riesgo y qué haría él con su dinero | no |",
+        "| 🏠 **Ayudante del día a día** | Encargos, listas, correos y planes, sin sermones | no |",
+        "",
+        "Abre el botón **✨** de la barra de arriba. Cada tarjeta tiene **Empezar** (te abre un chat ya configurado),",
+        "**Editar** y **Borrar**, y puedes crear tu propio especialista con el formulario de abajo: nombre, gancho,",
+        "instrucciones, herramientas, modelo local y en la nube, y sus prompts de arranque. Los prompts aparecen como",
+        "botones encima de la caja de escritura, para que nunca te quedes mirando una pantalla vacía.",
+        "",
+        "**Primera toma de contacto, en un clic.** La primera tarjeta ofrece *Preparar y empezar*: NEXUS instala Ollama",
+        "si no lo tienes, descarga el modelo sin censura más ligero que además sabe usar herramientas, deja el proveedor",
+        "configurado y abre el chat con el mayordomo. Sin configurar nada a mano y sin clave de API.",
+    ],
+
     subtitle="Consola de chat de IA de escritorio, autoalojada. **Sin dependencias**, cualquier proveedor compatible con OpenAI y todo se queda en tu equipo.",
     nav=["Inicio rápido", "Qué trae", "Capturas", "Panel", "Proveedores", "本地模型", "Modo agente", "Red local", "Atajos", "Estructura", "Licencia"],
     intro=[
@@ -1441,6 +1503,10 @@ TEMPLATE = """{langbar}
 
 {local}
 
+## ✨ {agentes_h}
+
+{agentes}
+
 ## 🤖 {agent_h}
 
 {agent}
@@ -1533,6 +1599,7 @@ def build(code):
         panel_h=t["panel_h"], panel_intro=t["panel_intro"], panel=bullets(t["panel"]),
         prov_h=t["prov_h"], prov="\n".join(t["prov"]),
         local_h=t["local_h"], local="\n".join(t["local"]),
+        agentes_h=t["agentes_h"], agentes="\n".join(t["agentes"]),
         agent_h=t["agent_h"], agent="\n".join(t["agent"]),
         lan_h=t["lan_h"], lan="\n".join(t["lan"]),
         short_h=t["short_h"], short="\n".join(t["short"]),

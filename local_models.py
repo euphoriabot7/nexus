@@ -465,7 +465,7 @@ def pull(model, backend="ollama"):
         cmd = [b, "pull", model]
     with LOCK:
         PULL.update(running=True, model=model, backend=backend, line="descargando...", percent=0,
-                    done=False, error="", started=time.time(), proc=None)
+                    done=False, error="", started=time.time(), proc=None, _ultimo=time.time())
     env = CTX["env"]() if CTX["env"] else dict(os.environ)
 
     def _run():
@@ -473,6 +473,26 @@ def pull(model, backend="ollama"):
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                     bufsize=1, env=env)
             PULL["proc"] = proc
+            # vigilante: si la descarga deja de dar senales, se corta y se avisa en vez de quedarse colgada
+            def _vigila():
+                visto = (-1, "")
+                while PULL["running"] and not PULL["done"]:
+                    time.sleep(5)
+                    actual = (PULL["percent"], PULL["line"])
+                    if actual != visto:
+                        visto = actual
+                        PULL["_ultimo"] = time.time()
+                    elif time.time() - PULL.get("_ultimo", time.time()) > 120:
+                        try:
+                            proc.kill()
+                        except Exception:  # noqa: BLE001
+                            pass
+                        PULL.update(done=True, running=False,
+                                    error="la descarga se ha quedado parada: el servidor de modelos no responde "
+                                          "o tu conexion ha fallado. Comprueba la red y vuelve a intentarlo.")
+                        return
+            threading.Thread(target=_vigila, daemon=True).start()
+
             for linea in proc.stdout or []:
                 linea = linea.rstrip()
                 if not linea:
@@ -509,11 +529,25 @@ def remove(model, backend="ollama"):
         b = lms_bin()
         if not b:
             return False, "LM Studio no esta instalado."
+        # descargarlo de memoria antes de borrarlo
+        try:
+            subprocess.run([b, "unload", model], capture_output=True, text=True, timeout=30,
+                           env=(CTX["env"]() if CTX["env"] else None))
+        except Exception:  # noqa: BLE001
+            pass
         cmd = [b, "rm", model]
     else:
         b = ollama_bin()
         if not b:
             return False, "Ollama no esta instalado."
+        # Si el modelo esta cargado en memoria, Ollama puede quedarse colgado ("Stopping...")
+        # al borrarlo: primero se descarga y se le da un momento para soltarlo.
+        try:
+            subprocess.run([b, "stop", model], capture_output=True, text=True, timeout=45,
+                           env=(CTX["env"]() if CTX["env"] else None))
+            time.sleep(1.5)
+        except Exception:  # noqa: BLE001
+            pass
         cmd = [b, "rm", model]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=90,

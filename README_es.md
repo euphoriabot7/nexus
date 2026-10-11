@@ -200,6 +200,36 @@ tarda — con poca RAM libre no cabe.
 **Qwen3 1.7B/4B**, **Spark X2.5 4B**) son las que merece la pena probar; el resto son para conversar, redactar, resumir
 y traducir. Además corre en tu CPU, así que es lento: para trabajo de agente serio, mejor un proveedor por API.
 
+## ✨ Especialistas (asistentes ya preparados)
+
+No tienes que explicarle nada dos veces. NEXUS viene con **13 especialistas**: asistentes ya preparados que
+traen sus propias instrucciones, las herramientas que necesitan, sus modelos recomendados y sus prompts de arranque.
+
+| Especialista | Para qué sirve | Trabaja como agente |
+|---|---|---|
+| 🗂️ **Mayordomo del equipo** | Explora, encuentra, lee y ordena los archivos de tu ordenador | sí |
+| 🧑‍💻 **Programador** | Lee tu proyecto, lo cambia, ejecuta las pruebas y te dice qué ha tocado | sí |
+| 📊 **Analista de datos** | Convierte tus CSV y hojas en decisiones y gráficos | sí |
+| 🧾 **Contable** | Ordena facturas y gastos, calcula márgenes e impuestos | sí |
+| 🔍 **Especialista SEO** | Intención de búsqueda, palabras clave, títulos y estructura, con el motivo de cada cosa | no |
+| ✍️ **Redactor de ventas** | Anuncios, fichas y correos con estructura de conversión | no |
+| 📣 **Redes sociales** | Un mes entero de publicaciones planificado en una sesión | no |
+| 📜 **Revisor de contratos** | Te explica en palabras normales qué firmas y qué preguntar antes | no |
+| 🎓 **Profesor particular** | Te enseña con tus propios apuntes y comprueba que lo entiendes | no |
+| 🎧 **Atención al cliente** | Respuestas cortas y humanas a quejas y devoluciones | no |
+| 🌍 **Traductor** | Traduce y adapta el tono a cada mercado | no |
+| 🧭 **Consultor de negocio** | Tres opciones con coste, riesgo y qué haría él con su dinero | no |
+| 🏠 **Ayudante del día a día** | Encargos, listas, correos y planes, sin sermones | no |
+
+Abre el botón **✨** de la barra de arriba. Cada tarjeta tiene **Empezar** (te abre un chat ya configurado),
+**Editar** y **Borrar**, y puedes crear tu propio especialista con el formulario de abajo: nombre, gancho,
+instrucciones, herramientas, modelo local y en la nube, y sus prompts de arranque. Los prompts aparecen como
+botones encima de la caja de escritura, para que nunca te quedes mirando una pantalla vacía.
+
+**Primera toma de contacto, en un clic.** La primera tarjeta ofrece *Preparar y empezar*: NEXUS instala Ollama
+si no lo tienes, descarga el modelo sin censura más ligero que además sabe usar herramientas, deja el proveedor
+configurado y abre el chat con el mayordomo. Sin configurar nada a mano y sin clave de API.
+
 ## 🤖 Modo agente (opcional)
 
 En **modo agente** NEXUS ejecuta [Hermes](https://hermes-agent.nousresearch.com) con herramientas reales: lee y escribe
