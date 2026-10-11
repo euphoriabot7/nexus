@@ -181,9 +181,28 @@ def lmstudio_models():
 
 
 def models_dir():
-    """Carpeta donde Ollama guarda los modelos."""
-    base = Path(os.environ.get("OLLAMA_MODELS") or (Path.home() / ".ollama" / "models"))
-    return str(base)
+    """Carpeta donde Ollama guarda de verdad los modelos.
+
+    No siempre es ~/.ollama/models: en Linux, el instalador oficial deja Ollama como
+    servicio del sistema y guarda todo en /usr/share/ollama/.ollama/models. Si se
+    informa la carpeta equivocada, el boton de abrirla falla y el usuario no
+    encuentra donde estan sus modelos.
+    """
+    if os.environ.get("OLLAMA_MODELS"):
+        return str(Path(os.environ["OLLAMA_MODELS"]))
+    candidatas = []
+    if IS_WIN:
+        candidatas.append(Path(os.environ.get("USERPROFILE", str(Path.home()))) / ".ollama" / "models")
+    else:
+        candidatas.append(Path("/usr/share/ollama/.ollama/models"))
+    candidatas.append(Path.home() / ".ollama" / "models")
+    for c in candidatas:
+        try:
+            if c.is_dir() and any(c.iterdir()):
+                return str(c)
+        except Exception:  # noqa: BLE001
+            continue
+    return str(candidatas[0])
 
 
 def status():

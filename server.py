@@ -2716,7 +2716,18 @@ def main():
     lan_config()
     auto_refresh_pricing()          # en segundo plano: no bloquea el arranque
     bind_host = "0.0.0.0" if LAN_ENABLED else HOST
-    srv = ThreadingHTTPServer((bind_host, PORT), Handler)
+    try:
+        srv = ThreadingHTTPServer((bind_host, PORT), Handler)
+    except OSError as exc:
+        # lo mas habitual: ya hay otro NEXUS en marcha (o el puerto esta pillado)
+        if getattr(exc, "errno", None) == 98 or "Address already in use" in str(exc) or getattr(exc, "errno", None) == 10048:
+            print(f"NEXUS ya esta en marcha: el puerto {PORT} esta ocupado. "
+                  f"Abre http://{HOST}:{PORT} o para el otro proceso (stop.sh / stop.bat).", flush=True)
+        else:
+            print(f"No se pudo abrir el puerto {PORT}: {exc}", flush=True)
+        return 1
+    finally:
+        pass
     srv.daemon_threads = True
     print(f"NEXUS listo en http://{HOST}:{PORT}  (datos: {DB_PATH})", flush=True)
     if LAN_ENABLED:
@@ -2738,4 +2749,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
