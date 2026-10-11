@@ -473,16 +473,20 @@ def pull(model, backend="ollama"):
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                     bufsize=1, env=env)
             PULL["proc"] = proc
-            # vigilante: si la descarga deja de dar senales, se corta y se avisa en vez de quedarse colgada
+            # vigilante: si la descarga deja de dar senales, se corta y se avisa en vez de quedarse colgada.
+            # Ojo: NO vale mirar la linea, porque el hilillo giratorio ("pulling manifest") cambia
+            # cada tick y pareceria que avanza. Solo cuenta el porcentaje real subiendo.
             def _vigila():
-                visto = (-1, "")
+                visto = -1
                 while PULL["running"] and not PULL["done"]:
                     time.sleep(5)
-                    actual = (PULL["percent"], PULL["line"])
-                    if actual != visto:
-                        visto = actual
+                    pct = PULL.get("percent") or 0
+                    linea = (PULL.get("line") or "").lower()
+                    avanza = pct > visto or any(x in linea for x in ("success", "verifying", "writing manifest"))
+                    if avanza:
+                        visto = max(visto, pct)
                         PULL["_ultimo"] = time.time()
-                    elif time.time() - PULL.get("_ultimo", time.time()) > 120:
+                    elif time.time() - PULL.get("_ultimo", time.time()) > 150:
                         try:
                             proc.kill()
                         except Exception:  # noqa: BLE001
@@ -505,7 +509,10 @@ def pull(model, backend="ollama"):
             if code == 0:
                 PULL.update(done=True, percent=100, line="descarga completada", running=False)
             else:
-                PULL.update(done=True, running=False, error=f"la descarga termino con codigo {code}")
+                # si el vigilante ya explico el motivo, no se pisa con el codigo a secas
+                if not PULL.get("error"):
+                    PULL.update(error=f"la descarga termino con codigo {code}")
+                PULL.update(done=True, running=False)
         except Exception as exc:  # noqa: BLE001
             PULL.update(done=True, running=False, error=str(exc))
     threading.Thread(target=_run, daemon=True).start()
