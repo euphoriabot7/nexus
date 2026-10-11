@@ -289,6 +289,7 @@ Variables: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0`.
 
 ## 📝 Notas
 
+- **Trae sus propias pruebas**: `python3 tools/pruebas/auditoria_servidor.py` lanza mas de 40 comprobaciones contra el servidor en marcha (entradas raras, flujos completos, adjuntos, exportar/importar, especialistas, proveedores, tareas) y te dice que falla. `repaso_funcional.py` prueba conversaciones y especialistas con tu modelo local.
 - **Funciona en Windows, macOS y Linux** con solo Python 3.9 o superior: en Windows `run.bat` abre la app en su propia ventana e `install-windows.bat` crea el acceso directo en el escritorio. Las actualizaciones vienen integradas (*Ajustes → Actualizaciones*, o `update.bat` / `update.sh`): trae la última versión de GitHub y nunca toca tus chats ni tus claves.
 - Las claves **no** están en el repositorio: viven en tu equipo (`~/.config/nexus/config.json`, permisos 0600) o en variables de entorno.
 - El modo agente ejecuta comandos en la carpeta de trabajo del chat: es tu propio equipo, úsalo con cuidado.

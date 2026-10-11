@@ -290,6 +290,7 @@ Environment: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0
 
 ## 📝 Notes
 
+- **Self-test included**: `python3 tools/pruebas/auditoria_servidor.py` runs 40+ checks against a running server (odd inputs, full flows, attachments, import/export, specialists, providers, tasks) and tells you what fails. `repaso_funcional.py` exercises chats and specialists with your local model.
 - **Runs on Windows, macOS and Linux** with just Python 3.9+: on Windows `run.bat` opens the app in its own window, and `install-windows.bat` puts a shortcut on the desktop. Updates are built in (*Settings → Updates*, or `update.bat` / `update.sh`): it pulls the latest version from GitHub and never touches your chats or keys.
 - Keys are **not** in the repository: they live on your machine (`~/.config/nexus/config.json`, mode 0600) or in env vars.
 - Agent mode runs commands in the chat's working folder: it is your own machine, use it with care.

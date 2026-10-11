@@ -261,7 +261,10 @@ T["en"] = dict(
             "",
             "Environment: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0`."],
     notes_h="Notes",
-    notes=["**Runs on Windows, macOS and Linux** with just Python 3.9+: on Windows `run.bat` opens the app in its own window, "
+    notes=["**Self-test included**: `python3 tools/pruebas/auditoria_servidor.py` runs 40+ checks against a running "
+           "server (odd inputs, full flows, attachments, import/export, specialists, providers, tasks) and tells you "
+           "what fails. `repaso_funcional.py` exercises chats and specialists with your local model.",
+           "**Runs on Windows, macOS and Linux** with just Python 3.9+: on Windows `run.bat` opens the app in its own window, "
            "and `install-windows.bat` puts a shortcut on the desktop. Updates are built in (*Settings → Updates*, or "
            "`update.bat` / `update.sh`): it pulls the latest version from GitHub and never touches your chats or keys.",
            "Keys are **not** in the repository: they live on your machine (`~/.config/nexus/config.json`, mode 0600) or in env vars.",
@@ -510,7 +513,11 @@ T["es"] = dict(
             "",
             "Variables: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0`."],
     notes_h="Notas",
-    notes=["**Funciona en Windows, macOS y Linux** con solo Python 3.9 o superior: en Windows `run.bat` abre la app en su "
+    notes=["**Trae sus propias pruebas**: `python3 tools/pruebas/auditoria_servidor.py` lanza mas de 40 "
+           "comprobaciones contra el servidor en marcha (entradas raras, flujos completos, adjuntos, exportar/importar, "
+           "especialistas, proveedores, tareas) y te dice que falla. `repaso_funcional.py` prueba conversaciones y "
+           "especialistas con tu modelo local.",
+           "**Funciona en Windows, macOS y Linux** con solo Python 3.9 o superior: en Windows `run.bat` abre la app en su "
            "propia ventana e `install-windows.bat` crea el acceso directo en el escritorio. Las actualizaciones vienen "
            "integradas (*Ajustes → Actualizaciones*, o `update.bat` / `update.sh`): trae la última versión de GitHub y nunca "
            "toca tus chats ni tus claves.",
