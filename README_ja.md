@@ -130,67 +130,67 @@ bash stop.sh             # バックエンドを停止
 サンプルカタログは `providers.json`。アプリから任意のサービスを base URL 付きで追加できます
 （LiteLLM、vLLM、自前のゲートウェイ、Ollama の `http://127.0.0.1:11434/v1` など）。
 
-## 🧩 Local models (no API key)
+## 🧩 ローカルモデル（API キー不要）
 
-No API key? NEXUS can run a **local model** on your own machine: no account, no cost, and nothing leaves the
-computer once the model is downloaded. It handles the whole thing for you: it detects and installs
-**[Ollama](https://ollama.com)** (or **[LM Studio](https://lmstudio.ai)**), downloads the model with a progress
-bar and leaves the provider configured so you can chat right away.
+API キーがありませんか？NEXUS はお使いのマシンで**ローカルモデル**を実行できます：アカウント不要、コストゼロ、そして
+一度ダウンロードすれば何も外部に出ません。すべてを自動で処理します：**[Ollama](https://ollama.com)** を
+検出・インストールし（または **[LM Studio](https://lmstudio.ai)**）、進行状況バー付きでモデルをダウンロードし、
+プロバイダーを設定済みの状態にして、すぐに会話できるようにします。
 
-Open 🧩 in the top bar, or *Settings → Local models*.
+上部バーの 🧩 を開くか、*設定 → ローカルモデル* を選びます。
 
-**Two ways in:**
+**2 つの方法：**
 
-- **Ollama** (recommended): NEXUS installs it (Linux: official script with your password; **Windows**: it downloads
-  and runs `OllamaSetup.exe`; macOS: the official download), then pulls the model you pick.
-- **LM Studio**: NEXUS detects it, starts its local server and can download models with the `lms` command. Each card
-  tells you the Hugging Face repo to use.
+- **Ollama**（推奨）：NEXUS がインストールします（Linux：パスワードを使う公式スクリプト、**Windows**：ダウンロードして実行
+  する `OllamaSetup.exe`、macOS：公式ダウンロード）。その後、選んだモデルを取得します。
+- **LM Studio**：NEXUS が検出し、ローカルサーバーを起動して、`lms` コマンドでモデルをダウンロードできます。各カードには
+  使用する Hugging Face リポジトリが表示されます。
 
-**The catalogue** (29 models, all 3 GB or less, sizes checked against the real Ollama registry and the Hugging Face
-files) is aimed at light machines and has a strong focus on **uncensored** models (Dolphin and *abliterated* ones),
-with an honest note on every card about what it can and cannot do:
+**カタログ**（35 モデル、すべて 3 GB 以下、サイズは Ollama の実際のレジストリと Hugging Face の
+ファイルで照合済み）は、軽量なマシン向けで、**無検閲**モデル（Dolphin と
+*abliterated*）に重点を置いています。各カードには、できることとできないことの正直な注記があります：
 
-| Model | Size | Uncensored | Tools |
+| モデル | サイズ | 無検閲 | ツール |
 |---|---|---|---|
-| Qwen2.5 0.5B abliterated | 379 MB | yes | no |
-| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | yes | no |
-| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | yes | no |
-| Llama 3.2 1B abliterated | 911 MB | yes | no |
-| Qwen2.5 1.5B abliterated | 940 MB | yes | no |
-| Qwen3 1.7B abliterated | 1.06 GB | yes | no |
-| Qwen2.5 Coder 1.5B abliterated | 1.07 GB | yes | no |
-| Dolphin Phi 2.7B (Q2/Q4) | 1.12 / 1.53 GB | yes | no |
-| StableLM Zephyr 3B | 1.53 GB | permissive | no |
-| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1.61 GB | yes | no |
-| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1.84 GB | yes | no |
-| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1.84 / 2.12 GB | yes | no |
-| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1.93 / 2.22 GB | yes | no |
-| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1.93 GB | permissive | **yes** |
-| Llama 3.2 3B abliterated | 2.14 GB | yes | no |
-| Qwen3 4B · Qwen3 1.7B | 2.38 / 1.30 GB | no | **yes** |
-| Spark X2.5 4B heretic | 2.48 GB | yes | yes |
-| MiniCPM5 2B heretic | 2.56 GB | yes | no |
-| Wizard Vicuna 7B uncensored (Q2) | 2.69 GB | yes | no |
-| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2.94 GB | yes / permissive | no |
+| Qwen2.5 0.5B abliterated | 379 MB | はい | いいえ |
+| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | はい | いいえ |
+| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | はい | いいえ |
+| Llama 3.2 1B abliterated | 911 MB | はい | いいえ |
+| Qwen2.5 1.5B abliterated | 940 MB | はい | いいえ |
+| Qwen3 1.7B abliterated | 1.06 GB | はい | いいえ |
+| Qwen2.5 Coder 1.5B abliterated | 1.07 GB | はい | いいえ |
+| Dolphin Phi 2.7B (Q2/Q4) | 1.12 / 1.53 GB | はい | いいえ |
+| StableLM Zephyr 3B | 1.53 GB | 寛容 | いいえ |
+| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1.61 GB | はい | いいえ |
+| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1.84 GB | はい | いいえ |
+| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1.84 / 2.12 GB | はい | いいえ |
+| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1.93 / 2.22 GB | はい | いいえ |
+| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1.93 GB | 寛容 | **はい** |
+| Llama 3.2 3B abliterated | 2.14 GB | はい | いいえ |
+| Qwen3 4B · Qwen3 1.7B | 2.38 / 1.30 GB | いいえ | **はい** |
+| Spark X2.5 4B heretic | 2.48 GB | はい | はい |
+| MiniCPM5 2B heretic | 2.56 GB | はい | いいえ |
+| Wizard Vicuna 7B 無検閲 (Q2) | 2.69 GB | はい | いいえ |
+| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2.94 GB | はい / 寛容 | いいえ |
 
-ᴴᶠ = not in the Ollama library: it is pulled from Hugging Face (`ollama pull hf.co/user/repo:Q4_K_M`), which the
-Download button does for you.
+ᴴᶠ = Ollama ライブラリに存在しません：Hugging Face からダウンロードします（`ollama pull hf.co/user/repo:Q4_K_M`）。
+これは「ダウンロード」ボタンがあなたの代わりに行うことです。
 
 
-**Local models in agent mode.** NEXUS prepares Hermes for you the first time you use a local model in agent
-mode: it registers the provider endpoint (`hermes config set providers.ollama.base_url …`), asks Ollama for a
-64k window (`model.ollama_num_ctx`, Hermes' minimum) and turns off streaming for that provider, because Hermes
-hangs with Ollama when streaming tool calls. Then it drops the whole thing on the model: **agent mode needs a
-model that declares tool calling**, and you can check it yourself with `ollama show <model>` (look for `tools` in
-*Capabilities*). `qwen3:1.7b` (1.3 GB), `qwen3:4b`, `hermes3:3b` and the `huihui_ai` *abliterated* family do;
-**models pulled from Hugging Face (`hf.co/…`) do not** (they only declare `completion`, and Ollama answers
-*HTTP 400: does not support tools*), so those are for chat only. Two warnings: a small model may declare tools and
-still use them badly, and a local agent turn runs on your CPU, so it takes a while — with little free RAM it will
-not fit at all.
-**Only for agent mode**: a local model needs to understand *tool calling* to touch files or run commands. Very few
-small models do. The cards marked *tool calling* (**Hermes 3 3B**, **Qwen3 1.7B/4B**, **Spark X2.5 4B**) are the ones
-worth trying; anything else is for chatting, writing, summarising and translating. It also runs on your CPU, so it is
-slow — for real agent work you are better off with an API provider.
+**エージェントモードでのローカルモデル。** ローカルモデルをエージェントモードで初めて使うとき、NEXUS は Hermes を準備します：
+プロバイダーのエンドポイントを登録し（`hermes config set providers.ollama.base_url …`）、Ollama に 64k の
+コンテキストウィンドウ（`model.ollama_num_ctx`、Hermes の最小値）を要求し、そのプロバイダーのストリーミングを無効にします。
+Ollama でツール呼び出しをストリーミングすると Hermes がハングするためです。あとはすべてモデル次第です：
+**エージェントモードにはツール呼び出しを宣言するモデルが必要**で、`ollama show <model>` を使えば自分で
+確認できます（*Capabilities* の `tools` を確認）。`qwen3:1.7b`（1.3 GB）、`qwen3:4b`、`hermes3:3b`、および
+`huihui_ai` の *abliterated* 系は対応していますが、**Hugging Face から取得したモデル（`hf.co/…`）は非対応**です
+（宣言するのは `completion` のみで、Ollama は *HTTP 400: does not support tools* と応答します）、そのためこれらは
+チャット専用です。注意が 2 点：小さなモデルはツールを宣言しても誤用する可能性があり、ローカルのエージェントの
+ターンはあなたの CPU で動くので時間がかかります — 空き RAM が少ないとまったく収まりません。
+**エージェントモード限定**：ローカルモデルがファイルを操作したりコマンドを実行したりするには *ツール呼び出し* を理解する必要があり、
+それをできる小さなモデルはごくわずかです。*ツールあり* と表示されるカード（**Hermes 3 3B**、
+**Qwen3 1.7B/4B**、**Spark X2.5 4B**）が試す価値のあるものです。それ以外は会話、文章作成、要約、
+翻訳向けです。しかもあなたの CPU で動くため遅いです：本格的なエージェント作業には、API プロバイダーのほうが適しています。
 
 ## 🤖 エージェントモード（任意）
 

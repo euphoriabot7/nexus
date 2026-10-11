@@ -83,7 +83,7 @@ en el escritorio y en el menú Inicio, y `stop.bat` detiene el backend. También
 - **Plantillas de prompt**, **paleta de comandos** (Ctrl+P), dictado por voz y lectura en alto.
 - Estadísticas por chat, notificación y sonido al terminar, 6 acentos de color e import/export JSON.
 - **Interfaz en 7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio), se cambia desde la barra superior; el árabe pone la interfaz de derecha a izquierda.
-- **Modelos locales sin clave de API**: NEXUS instala Ollama o LM Studio, descarga el modelo que elijas (29 modelos pequeños, sin censura incluidos) y lo deja listo para chatear.
+- **Modelos locales sin clave de API**: NEXUS instala Ollama o LM Studio, descarga el modelo que elijas (35 modelos pequeños, sin censura incluidos) y lo deja listo para chatear.
 - **Adjuntos que se quedan** — envía imágenes o documentos y se guardan con la conversación (miniatura o ficha del archivo, pulsa para abrir o descargar); siguen ahí al recargar y se reenvían al regenerar.
 
 ## 🖼 Capturas
@@ -154,7 +154,7 @@ Abre 🧩 en la barra superior, o *Ajustes → Modelos locales*.
 - **LM Studio**: NEXUS lo detecta, arranca su servidor local y puede descargar modelos con el comando `lms`. Cada ficha
   te dice el repositorio de Hugging Face que usa.
 
-**El catálogo** (29 modelos, todos de 3 GB o menos, con tamaños comprobados contra el registro real de Ollama y los
+**El catálogo** (35 modelos, todos de 3 GB o menos, con tamaños comprobados contra el registro real de Ollama y los
 ficheros de Hugging Face) está pensado para equipos ligeros y con acento en los modelos **sin censura** (Dolphin y
 los *abliterated*), con una nota honesta en cada ficha de lo que sabe y lo que no:
 

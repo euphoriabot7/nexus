@@ -81,7 +81,7 @@ menu, and `stop.bat` stops the backend. You can also keep using the website at <
 - **Prompt templates**, a **command palette** (Ctrl+P), voice dictation and read-aloud.
 - Per-chat statistics, desktop notification and sound when a reply lands, 6 accent colours, JSON import/export.
 - **Interface in 7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian), switchable from the top bar; Arabic flips the layout to RTL.
-- **Local models without an API key**: NEXUS installs Ollama or LM Studio, downloads the model you pick (29 small models, uncensored ones included) and leaves it ready to chat.
+- **Local models without an API key**: NEXUS installs Ollama or LM Studio, downloads the model you pick (35 small models, uncensored ones included) and leaves it ready to chat.
 - **Attachments that stay** — send images or documents and they are saved with the conversation (thumbnail or file chip, click to open or download); they survive reloads and are resent when you regenerate.
 
 ## 🖼 Screenshots
@@ -152,7 +152,7 @@ Open 🧩 in the top bar, or *Settings → Local models*.
 - **LM Studio**: NEXUS detects it, starts its local server and can download models with the `lms` command. Each card
   tells you the Hugging Face repo to use.
 
-**The catalogue** (29 models, all 3 GB or less, sizes checked against the real Ollama registry and the Hugging Face
+**The catalogue** (35 models, all 3 GB or less, sizes checked against the real Ollama registry and the Hugging Face
 files) is aimed at light machines and has a strong focus on **uncensored** models (Dolphin and *abliterated* ones),
 with an honest note on every card about what it can and cannot do:
 

@@ -131,67 +131,67 @@ Variabel lingkungan biasa juga berlaku (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`, 
 Katalog contoh ada di `providers.json`; Anda bisa menambahkan layanan lain dengan base URL-nya
 (LiteLLM, vLLM, gerbang sendiri, `http://127.0.0.1:11434/v1` untuk Ollama…).
 
-## 🧩 Local models (no API key)
+## 🧩 Model lokal (tanpa kunci API)
 
-No API key? NEXUS can run a **local model** on your own machine: no account, no cost, and nothing leaves the
-computer once the model is downloaded. It handles the whole thing for you: it detects and installs
-**[Ollama](https://ollama.com)** (or **[LM Studio](https://lmstudio.ai)**), downloads the model with a progress
-bar and leaves the provider configured so you can chat right away.
+Tanpa kunci API? NEXUS dapat menjalankan **model lokal** di komputer Anda sendiri: tanpa akun, tanpa biaya, dan tanpa
+ada yang keluar dari komputer setelah diunduh. Ia mengurus semuanya: mendeteksi dan memasang **[Ollama](https://ollama.com)**
+(atau **[LM Studio](https://lmstudio.ai)**), mengunduh model dengan bilah progres, dan menyiapkan penyedia
+agar Anda bisa langsung mengobrol dengannya.
 
-Open 🧩 in the top bar, or *Settings → Local models*.
+Buka 🧩 di bilah atas, atau *Pengaturan → Model lokal*.
 
-**Two ways in:**
+**Dua jalur:**
 
-- **Ollama** (recommended): NEXUS installs it (Linux: official script with your password; **Windows**: it downloads
-  and runs `OllamaSetup.exe`; macOS: the official download), then pulls the model you pick.
-- **LM Studio**: NEXUS detects it, starts its local server and can download models with the `lms` command. Each card
-  tells you the Hugging Face repo to use.
+- **Ollama** (disarankan): NEXUS memasangnya (Linux: skrip resmi dengan kata sandi Anda; **Windows**: mengunduh dan menjalankan
+  `OllamaSetup.exe`; macOS: unduhan resmi) lalu mengambil model yang Anda pilih.
+- **LM Studio**: NEXUS mendeteksinya, menjalankan server lokalnya, dan dapat mengunduh model dengan perintah `lms`. Setiap kartu
+  memberi tahu repositori Hugging Face yang digunakannya.
 
-**The catalogue** (29 models, all 3 GB or less, sizes checked against the real Ollama registry and the Hugging Face
-files) is aimed at light machines and has a strong focus on **uncensored** models (Dolphin and *abliterated* ones),
-with an honest note on every card about what it can and cannot do:
+**Katalognya** (35 model, semuanya 3 GB atau kurang, dengan ukuran yang diverifikasi terhadap registri Ollama yang sebenarnya dan
+berkas Hugging Face) dirancang untuk komputer ringan dan menekankan model **tanpa sensor** (Dolphin dan
+yang *abliterated*), dengan catatan jujur di setiap kartu tentang apa yang bisa dan tidak bisa dilakukannya:
 
-| Model | Size | Uncensored | Tools |
+| Model | Ukuran | Tanpa sensor | Alat |
 |---|---|---|---|
-| Qwen2.5 0.5B abliterated | 379 MB | yes | no |
-| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | yes | no |
-| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | yes | no |
-| Llama 3.2 1B abliterated | 911 MB | yes | no |
-| Qwen2.5 1.5B abliterated | 940 MB | yes | no |
-| Qwen3 1.7B abliterated | 1.06 GB | yes | no |
-| Qwen2.5 Coder 1.5B abliterated | 1.07 GB | yes | no |
-| Dolphin Phi 2.7B (Q2/Q4) | 1.12 / 1.53 GB | yes | no |
-| StableLM Zephyr 3B | 1.53 GB | permissive | no |
-| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1.61 GB | yes | no |
-| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1.84 GB | yes | no |
-| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1.84 / 2.12 GB | yes | no |
-| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1.93 / 2.22 GB | yes | no |
-| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1.93 GB | permissive | **yes** |
-| Llama 3.2 3B abliterated | 2.14 GB | yes | no |
-| Qwen3 4B · Qwen3 1.7B | 2.38 / 1.30 GB | no | **yes** |
-| Spark X2.5 4B heretic | 2.48 GB | yes | yes |
-| MiniCPM5 2B heretic | 2.56 GB | yes | no |
-| Wizard Vicuna 7B uncensored (Q2) | 2.69 GB | yes | no |
-| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2.94 GB | yes / permissive | no |
+| Qwen2.5 0.5B abliterated | 379 MB | ya | tidak |
+| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | ya | tidak |
+| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | ya | tidak |
+| Llama 3.2 1B abliterated | 911 MB | ya | tidak |
+| Qwen2.5 1.5B abliterated | 940 MB | ya | tidak |
+| Qwen3 1.7B abliterated | 1,06 GB | ya | tidak |
+| Qwen2.5 Coder 1.5B abliterated | 1,07 GB | ya | tidak |
+| Dolphin Phi 2.7B (Q2/Q4) | 1,12 / 1,53 GB | ya | tidak |
+| StableLM Zephyr 3B | 1,53 GB | permisif | tidak |
+| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1,61 GB | ya | tidak |
+| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1,84 GB | ya | tidak |
+| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1,84 / 2,12 GB | ya | tidak |
+| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1,93 / 2,22 GB | ya | tidak |
+| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1,93 GB | permisif | **ya** |
+| Llama 3.2 3B abliterated | 2,14 GB | ya | tidak |
+| Qwen3 4B · Qwen3 1.7B | 2,38 / 1,30 GB | tidak | **ya** |
+| Spark X2.5 4B heretic | 2,48 GB | ya | ya |
+| MiniCPM5 2B heretic | 2,56 GB | ya | tidak |
+| Wizard Vicuna 7B tanpa sensor (Q2) | 2,69 GB | ya | tidak |
+| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2,94 GB | ya / permisif | tidak |
 
-ᴴᶠ = not in the Ollama library: it is pulled from Hugging Face (`ollama pull hf.co/user/repo:Q4_K_M`), which the
-Download button does for you.
+ᴴᶠ = tidak ada di pustaka Ollama: diunduh dari Hugging Face (`ollama pull hf.co/pengguna/repo:Q4_K_M`), yang
+dilakukan tombol Unduh untuk Anda.
 
 
-**Local models in agent mode.** NEXUS prepares Hermes for you the first time you use a local model in agent
-mode: it registers the provider endpoint (`hermes config set providers.ollama.base_url …`), asks Ollama for a
-64k window (`model.ollama_num_ctx`, Hermes' minimum) and turns off streaming for that provider, because Hermes
-hangs with Ollama when streaming tool calls. Then it drops the whole thing on the model: **agent mode needs a
-model that declares tool calling**, and you can check it yourself with `ollama show <model>` (look for `tools` in
-*Capabilities*). `qwen3:1.7b` (1.3 GB), `qwen3:4b`, `hermes3:3b` and the `huihui_ai` *abliterated* family do;
-**models pulled from Hugging Face (`hf.co/…`) do not** (they only declare `completion`, and Ollama answers
-*HTTP 400: does not support tools*), so those are for chat only. Two warnings: a small model may declare tools and
-still use them badly, and a local agent turn runs on your CPU, so it takes a while — with little free RAM it will
-not fit at all.
-**Only for agent mode**: a local model needs to understand *tool calling* to touch files or run commands. Very few
-small models do. The cards marked *tool calling* (**Hermes 3 3B**, **Qwen3 1.7B/4B**, **Spark X2.5 4B**) are the ones
-worth trying; anything else is for chatting, writing, summarising and translating. It also runs on your CPU, so it is
-slow — for real agent work you are better off with an API provider.
+**Model lokal dalam mode agen.** NEXUS menyiapkan Hermes saat pertama kali Anda memakai model lokal dalam mode
+agen: mendaftarkan endpoint penyedia (`hermes config set providers.ollama.base_url …`), meminta Ollama
+jendela 64k (`model.ollama_num_ctx`, minimum Hermes), dan menonaktifkan streaming untuk penyedia itu,
+karena Hermes macet dengan Ollama saat mengalirkan panggilan alat. Setelah itu semuanya bergantung pada
+model: **mode agen memerlukan model yang mendeklarasikan pemanggilan fungsi**, dan Anda bisa memeriksanya sendiri dengan
+`ollama show <model>` (lihat `tools` di *Capabilities*). `qwen3:1.7b` (1,3 GB), `qwen3:4b`, `hermes3:3b` dan
+keluarga *abliterated* dari `huihui_ai` ya; **yang diambil dari Hugging Face (`hf.co/…`) tidak** (hanya mendeklarasikan
+`completion` dan Ollama menjawab *HTTP 400: does not support tools*), jadi itu hanya untuk chat. Dua peringatan:
+model kecil bisa mendeklarasikan alat dan memakainya dengan buruk, dan satu giliran agen lokal berjalan di CPU Anda, jadi
+lambat — dengan RAM bebas sedikit tidak cukup.
+**Hanya untuk mode agen**: model lokal perlu memahami *pemanggilan fungsi* untuk menyentuh berkas atau menjalankan
+perintah, dan sangat sedikit model kecil yang bisa. Kartu yang ditandai *dengan alat* (**Hermes 3 3B**,
+**Qwen3 1.7B/4B**, **Spark X2.5 4B**) yang layak dicoba; sisanya untuk mengobrol, menulis, meringkas
+dan menerjemahkan. Itu juga berjalan di CPU Anda, jadi lambat: untuk pekerjaan agen serius, lebih baik penyedia via API.
 
 ## 🤖 Mode agen (opsional)
 

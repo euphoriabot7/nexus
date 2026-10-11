@@ -432,7 +432,7 @@ def agent_variant(model, min_ctx=64000):
     instalados = {m["name"] for m in ollama_models()}
     if variante in instalados:
         return variante, f"reutilizo la variante {variante}", objetivo
-    trabajo = pathlib.Path(CTX["data_dir"]) / "modelfiles"
+    trabajo = Path(CTX["data_dir"]) / "modelfiles"
     trabajo.mkdir(parents=True, exist_ok=True)
     archivo = trabajo / (variante.replace("/", "_").replace(":", "_") + ".Modelfile")
     archivo.write_text(f"FROM {model}\nPARAMETER num_ctx {objetivo}\nPARAMETER temperature 0.7\n", encoding="utf-8")
