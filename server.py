@@ -48,11 +48,18 @@ PLATFORM = "windows" if IS_WIN else ("macos" if IS_MAC else "linux")
 EXE = ".exe" if IS_WIN else ""
 
 
-def _appdata(nombre_local, nombre_roaming=None):
-    """Carpeta de datos del usuario segun el sistema."""
+def _appdata(_local=None, cual="Local"):
+    """Carpeta de datos del usuario segun el sistema.
+
+    En Windows se leen las variables de verdad (LOCALAPPDATA / APPDATA): mirar una
+    variable llamada 'Local' solo funcionaba por casualidad y falla cuando el perfil
+    esta redirigido (OneDrive, AppData en otra unidad).
+    """
     if IS_WIN:
-        base = Path(os.environ.get(nombre_roaming) or (Path.home() / "AppData" / nombre_roaming))
-        return base / "NEXUS"
+        var = "LOCALAPPDATA" if cual == "Local" else "APPDATA"
+        base = os.environ.get(var) or os.environ.get(var + "PATH")
+        raiz = Path(base) if base else (Path.home() / "AppData" / cual)
+        return raiz / "NEXUS"
     if IS_MAC:
         return Path.home() / "Library" / "Application Support" / "NEXUS"
     return Path.home() / ".local" / "share" / "nexus"
@@ -65,7 +72,7 @@ def _data_dir():
     if env:
         return Path(env)
     if IS_WIN:
-        return _appdata(None, "Local")
+        return _appdata(cual="Local")
     if IS_MAC:
         return _appdata(None)
     nuevo = Path.home() / ".local" / "share" / "nexus"
@@ -80,7 +87,7 @@ def _config_dir():
     if env:
         return Path(env)
     if IS_WIN:
-        return _appdata(None, "Roaming")
+        return _appdata(cual="Roaming")
     if IS_MAC:
         return _appdata(None)
     return Path.home() / ".config" / "nexus"
@@ -1235,6 +1242,15 @@ def notas_ultimos_cambios(cuantos=4):
         return ""
 
 
+def _tupla_version(v):
+    """Convierte '1.2.3' en (1,2,3) para comparar versiones como es debido."""
+    partes = []
+    for trozo in re.split(r"[.\-+]", str(v or "").strip()):
+        m = re.match(r"^(\d+)", trozo)
+        partes.append(int(m.group(1)) if m else 0)
+    return tuple(partes) or (0,)
+
+
 def comprobar_actualizacion(guardar=True, con_notas=True):
     """Comprueba si hay una version mas nueva publicada en GitHub."""
     info = {"revisado": time.time(), "local": version_local(), "remoto": "", "hay": False,
@@ -1244,7 +1260,8 @@ def comprobar_actualizacion(guardar=True, con_notas=True):
         info["remoto"] = remoto
         if not remoto:
             raise RuntimeError("el repositorio no publica ninguna version")
-        info["hay"] = remoto != info["local"]
+        # solo hay actualizacion si la publicada es MAS NUEVA (comparando numeros, no texto)
+        info["hay"] = _tupla_version(remoto) > _tupla_version(info["local"])
         if info["hay"] and con_notas:
             info["notas"] = notas_ultimos_cambios()
     except Exception as exc:  # noqa: BLE001
