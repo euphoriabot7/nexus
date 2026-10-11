@@ -1199,6 +1199,10 @@ function applyAccent(name) {
 
 function openSettings() {
   $("#settingsModal").classList.remove("hidden");
+  if ($("#updBox")) {
+    try { $("#updAuto").checked = (state.update_auto !== false) && localStorage.getItem("nexus_updAuto") !== "0"; } catch (e) { $("#updAuto").checked = true; }
+    pintaUpdate(UPD.info || (state.update || {})); if (!UPD.info) buscarActualizacion(false);
+  }
   $$(".accent-swatch").forEach((s) => s.classList.toggle("sel", s.dataset.accent === LS.get("nexus_accent", "cyan")));
   $("#systemPrompt").value = state.chat ? (state.chat.system || "") : "";
   $("#workdirInput").value = state.chat ? (state.chat.workdir || "") : "";
@@ -1430,6 +1434,7 @@ async function boot() {
     $("#providerStatus").className = "status " + (sinProveedor ? "err" : "ok");
     $("#providerStatus").querySelector("span").textContent = sinProveedor ? t("status_no_provider") : t("status_online");
     renderSidebar(); updateModelPill();
+    avisoActualizacion();
     if (sinProveedor) openSetup("first");
     else if (state.chats.length) openChat(state.chats[0].id);
     else newChat(state.defaults.provider, state.defaults.model);
@@ -1489,6 +1494,12 @@ $("#menuMoreBtn").addEventListener("click", (e) => { e.stopPropagation(); openMo
 $$("#morePop button").forEach((b) => b.addEventListener("click", () => moreAction(b.dataset.act)));
 $("#settingsBtn").addEventListener("click", openSettings);
 $("#panelBtn").addEventListener("click", () => openPanel("resumen"));
+$("#updBuscar").addEventListener("click", () => buscarActualizacion(true));
+$("#updAuto").addEventListener("change", () => {
+  try { localStorage.setItem("nexus_updAuto", $("#updAuto").checked ? "1" : "0"); } catch (e) {}
+  api("/api/config", { method: "POST", body: { update_auto: $("#updAuto").checked } }).catch(() => {});
+});
+$("#updAplicar").addEventListener("click", () => aplicarActualizacion());
 $("#closeSettings").addEventListener("click", () => $("#settingsModal").classList.add("hidden"));
 $("#saveSettings").addEventListener("click", async () => {
   if ($("#notifyChk").checked && window.Notification && Notification.permission === "default") { try { await Notification.requestPermission(); } catch {} }
@@ -2498,6 +2509,13 @@ async function empezarEspecialista(a) {
 }
 
 /* sugerencias del especialista encima del cuadro de escritura */
+function avisoActualizacion() {
+  api("/api/update").then((r) => {
+    pintaUpdate(r.update);
+    if (r.update && r.update.hay) toast(`${t("upd_available")}: ${r.local} → ${r.update.remoto}`, 6000);
+  }).catch(() => {});
+}
+
 function pintarSugerencias() {
   const barra = $("#suggBar");
   if (!barra) return;
@@ -2555,6 +2573,64 @@ async function prepararPrimerContacto() {
     if (est) est.textContent = t("agents_first_fail") + " " + e.message;
   } finally {
     if (boton) boton.disabled = false;
+  }
+}
+
+/* ---------------------------- actualizaciones --------------------------- */
+let UPD = { info: null, revisando: false };
+
+function pintaUpdate(info) {
+  UPD.info = info || {};
+  const i = UPD.info;
+  if ($("#updLocal")) $("#updLocal").textContent = `${t("upd_installed")} ${i.local || "—"}`;
+  const hay = !!i.hay;
+  if ($("#updFlecha")) $("#updFlecha").classList.toggle("hidden", !hay);
+  if ($("#updRemoto")) $("#updRemoto").textContent = hay ? `${i.remoto}` : "";
+  if ($("#updAplicar")) $("#updAplicar").classList.toggle("hidden", !hay);
+  if ($("#updNotas")) {
+    $("#updNotas").classList.toggle("hidden", !(hay && i.notas));
+    $("#updNotas").textContent = i.notas || "";
+  }
+  if ($("#updEstado")) {
+    let txt = "";
+    if (UPD.revisando) txt = t("upd_checking");
+    else if (i.error) txt = t("upd_error") + " " + i.error;
+    else if (hay) txt = `${t("upd_available")} (${i.metodo === "git" ? t("upd_via_git") : t("upd_via_zip")})`;
+    else txt = t("upd_uptodate");
+    $("#updEstado").textContent = txt;
+  }
+}
+
+async function buscarActualizacion(forzar = true) {
+  UPD.revisando = true;
+  pintaUpdate(UPD.info || {});
+  try {
+    const r = await api(`/api/update${forzar ? "?force=1" : ""}`, { timeout: 30000 });
+    UPD.revisando = false;
+    pintaUpdate(r.update);
+  } catch (e) {
+    UPD.revisando = false;
+    pintaUpdate({ error: e.message });
+  }
+}
+
+async function aplicarActualizacion() {
+  const b = $("#updAplicar");
+  if (b) b.disabled = true;
+  if ($("#updEstado")) $("#updEstado").textContent = t("upd_applying");
+  try {
+    const r = await api("/api/update/apply", { method: "POST", body: {}, timeout: 300000 });
+    pintaUpdate(r.update);
+    if (r.ok) {
+      toast(t("upd_done"));
+      if ($("#updEstado")) $("#updEstado").textContent = t("upd_restart");
+    } else if ($("#updEstado")) {
+      $("#updEstado").textContent = t("upd_fail") + " " + (r.message || "");
+    }
+  } catch (e) {
+    if ($("#updEstado")) $("#updEstado").textContent = t("upd_fail") + " " + e.message;
+  } finally {
+    if (b) b.disabled = false;
   }
 }
 

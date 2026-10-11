@@ -263,6 +263,26 @@
   <div class="modal-card">
     <h2 data-i18n="settings">Ajustes</h2>
 
+    <div class="upd-box" id="updBox">
+      <div class="upd-fila">
+        <div>
+          <strong data-i18n="upd_title">Actualizaciones</strong>
+          <div class="upd-version"><span id="updLocal">—</span> <span id="updFlecha" class="hidden">→</span> <span id="updRemoto" class="upd-nueva"></span></div>
+        </div>
+        <div class="upd-botones">
+          <button class="mini-btn" id="updBuscar" data-i18n="upd_check">Buscar actualización</button>
+          <button class="mini-btn primary hidden" id="updAplicar" data-i18n="upd_apply">Actualizar ahora</button>
+        </div>
+      </div>
+      <div class="upd-estado" id="updEstado"></div>
+      <div class="upd-notas hidden" id="updNotas"></div>
+      <label class="upd-auto">
+        <input type="checkbox" id="updAuto" />
+        <span data-i18n="upd_auto">Comprobar al arrancar y, si es una copia de git, actualizar sola a la última versión</span>
+      </label>
+      <div class="upd-pie" data-i18n="upd_footer">Se descarga de github.com/euphoriabot7/nexus. Tus chats, tus claves y tus ajustes no se tocan: viven fuera de la aplicación.</div>
+    </div>
+
     <label data-i18n="accent_color">Color de acento</label>
     <div class="accents">
       <button class="accent-swatch" data-accent="cyan"    style="--c:#38f5ff"></button>

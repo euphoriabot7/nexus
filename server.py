@@ -17,6 +17,7 @@ Las claves y los proveedores viven en ~/.config/nexus/config.json (se configuran
 
 import base64
 import hmac
+import atexit
 import json
 import mimetypes
 import os
@@ -1172,6 +1173,152 @@ def clase_artefacto(path):
     return ""
 
 
+VERSION_FILE = APP_DIR / "VERSION"
+REPO_GITHUB = "euphoriabot7/nexus"
+UPDATE_INFO = {"revisado": 0, "local": "", "remoto": "", "hay": False, "notas": "", "metodo": "",
+               "error": "", "descargando": False}
+
+
+PID_FILE = DATA_DIR / "server.pid"
+
+
+def escribir_pid():
+    """Deja el pid del servidor en un fichero para poder pararlo desde los scripts."""
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def borrar_pid():
+    try:
+        if PID_FILE.exists() and PID_FILE.read_text(encoding="utf-8").strip() == str(os.getpid()):
+            PID_FILE.unlink()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def version_local():
+    try:
+        return VERSION_FILE.read_text(encoding="utf-8").strip() or "0.0.0"
+    except Exception:  # noqa: BLE001
+        return "0.0.0"
+
+
+def tiene_git():
+    """Si la app se clono con git, se actualiza con 'git pull' (mas rapido y seguro)."""
+    return (APP_DIR / ".git").exists() and bool(shutil.which("git"))
+
+
+def _descarga(url, timeout=20):
+    req = urllib.request.Request(url, headers={"User-Agent": "NEXUS"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read()
+
+
+def _json_github(url, timeout=20):
+    return json.loads(_descarga(url, timeout).decode("utf-8", "replace"))
+
+
+def notas_ultimos_cambios(cuantos=4):
+    """Resumen de los ultimos commits publicados (si la API responde)."""
+    try:
+        datos = _json_github(f"https://api.github.com/repos/{REPO_GITHUB}/commits?per_page={cuantos}")
+        lineas = []
+        for c in datos:
+            msg = ((c.get("commit") or {}).get("message") or "").split("\n")[0].strip()
+            if msg:
+                lineas.append(msg)
+        return " · ".join(lineas[:cuantos])[:400]
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def comprobar_actualizacion(guardar=True, con_notas=True):
+    """Comprueba si hay una version mas nueva publicada en GitHub."""
+    info = {"revisado": time.time(), "local": version_local(), "remoto": "", "hay": False,
+            "notas": "", "metodo": ("git" if tiene_git() else "zip"), "error": "", "descargando": False}
+    try:
+        remoto = _descarga(f"https://raw.githubusercontent.com/{REPO_GITHUB}/main/VERSION").decode("utf-8", "replace").strip()
+        info["remoto"] = remoto
+        if not remoto:
+            raise RuntimeError("el repositorio no publica ninguna version")
+        info["hay"] = remoto != info["local"]
+        if info["hay"] and con_notas:
+            info["notas"] = notas_ultimos_cambios()
+    except Exception as exc:  # noqa: BLE001
+        info["error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
+    if guardar:
+        UPDATE_INFO.update(info)
+    return info
+
+
+def _copia_arbol(origen, destino):
+    """Copia los archivos de la nueva version encima de la instalacion actual."""
+    copiados = 0
+    for raiz, dirs, ficheros in os.walk(origen):
+        dirs[:] = [d for d in dirs if d not in (".git", "__pycache__", ".venv", "venv", "node_modules")]
+        rel = Path(raiz).relative_to(origen)
+        if str(rel).startswith(".git"):
+            continue
+        (destino / rel).mkdir(parents=True, exist_ok=True)
+        for f in ficheros:
+            if f.endswith((".pyc", ".log")):
+                continue
+            try:
+                shutil.copy2(Path(raiz) / f, destino / rel / f)
+                copiados += 1
+            except Exception:  # noqa: BLE001
+                pass
+    return copiados
+
+
+def aplicar_actualizacion():
+    """Trae la ultima version de GitHub. No toca la configuracion ni los datos del usuario."""
+    UPDATE_INFO["descargando"] = True
+    try:
+        if tiene_git():
+            r = subprocess.run(["git", "pull", "--ff-only"], cwd=str(APP_DIR), capture_output=True,
+                               text=True, timeout=240)
+            salida = ((r.stdout or "") + (r.stderr or "")).strip()[-400:]
+            return r.returncode == 0, salida or "ya estaba al dia"
+        # instalacion sin git: se baja el paquete y se copia encima
+        import tarfile
+        import tempfile
+        datos = _descarga(f"https://github.com/{REPO_GITHUB}/archive/refs/heads/main.tar.gz", timeout=180)
+        with tempfile.TemporaryDirectory() as tmp:
+            paquete = Path(tmp) / "nexus.tar.gz"
+            paquete.write_bytes(datos)
+            with tarfile.open(paquete) as tf:
+                tf.extractall(tmp)
+            raices = [p for p in Path(tmp).iterdir() if p.is_dir()]
+            if not raices:
+                return False, "el paquete descargado no tiene la forma esperada"
+            copiados = _copia_arbol(raices[0], APP_DIR)
+            return True, f"{copiados} archivos actualizados desde GitHub"
+    except Exception as exc:  # noqa: BLE001
+        return False, f"{type(exc).__name__}: {str(exc)[:200]}"
+    finally:
+        UPDATE_INFO["descargando"] = False
+
+
+def auto_actualizar_al_arrancar():
+    """Si la instalacion viene de git y hay version nueva, se actualiza sola al arrancar."""
+    try:
+        cfg = user_config()
+        if not (cfg.get("update") or {}).get("auto", True):
+            return
+        info = comprobar_actualizacion(con_notas=False)
+        if info.get("hay") and info.get("metodo") == "git":
+            ok, salida = aplicar_actualizacion()
+            log_event("actualizacion", f"auto {'ok' if ok else 'fallo'}: {salida[:120]}")
+            if ok:
+                comprobar_actualizacion(con_notas=False)
+    except Exception as exc:  # noqa: BLE001
+        log_event("actualizacion", f"auto error: {exc}")
+
+
 def tool_artifact(name, args, cwd):
     """Devuelve la ruta absoluta si la herramienta escribio en un archivo, o None."""
     if not name or not isinstance(args, dict) or not WRITE_TOOLS.search(name):
@@ -2009,7 +2156,9 @@ class Handler(BaseHTTPRequestHandler):
                                    "config_path": str(CONFIG_PATH),
                                    "chips": example_chips(),
                                    "presets": list_presets(),
-                                   "agents": list_agents()})
+                                   "agents": list_agents(),
+                                   "version": version_local(),
+                                   "update": UPDATE_INFO})
         if path == "/api/chats":
             return self.send_json({"chats": list_chats()})
         if path == "/api/search":
@@ -2055,6 +2204,13 @@ class Handler(BaseHTTPRequestHandler):
                                    if k in ("id", "nombre", "emoji", "categoria", "gancho", "descripcion",
                                             "sistema", "herramientas", "agente", "modelo_local",
                                             "modelo_minimo", "nube", "sugerencias")})
+        if path == "/api/update":
+            forzar = params.get("force") in ("1", "true", "si", "sí")
+            if forzar or not UPDATE_INFO.get("revisado") or time.time() - UPDATE_INFO["revisado"] > 900:
+                info = comprobar_actualizacion()
+            else:
+                info = dict(UPDATE_INFO)
+            return self.send_json({"update": info, "version": version_local()})
         if path == "/api/agents":
             return self.send_json({"agents": list_agents(),
                                    "categorias": (json.loads(CATALOGO_AGENTES.read_text(encoding="utf-8")).get("categorias")
@@ -2140,6 +2296,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/config":
             body = self.read_body()
             cfg = user_config()
+            if "update_auto" in body:
+                cfg["update"] = {"auto": bool(body.get("update_auto"))}
+                save_user_config(cfg)
+                return self.send_json({"ok": True, "update_auto": bool(body.get("update_auto"))})
             if body.get("delete"):
                 pid = str(body["delete"])
                 cfg.get("providers", {}).pop(pid, None)
@@ -2211,6 +2371,11 @@ class Handler(BaseHTTPRequestHandler):
                     error = error or str(exc)
             return self.send_json({"ok": bool(ids) and not error, "models": ids, "error": error,
                                    "source": fuente, "count": len(ids)})
+        if path == "/api/update/apply":
+            ok, salida = aplicar_actualizacion()
+            info = comprobar_actualizacion()
+            return self.send_json({"ok": ok, "message": salida, "update": info,
+                                   "reiniciar": ok, "version": version_local()})
         if path == "/api/agents/import":
             body = self.read_body()
             ruta = (body.get("path") or "").strip()
@@ -2540,10 +2705,19 @@ def main():
     if LAN_ENABLED:
         for ip in lan_addresses():
             print(f"NEXUS en la red local: http://{ip}:{PORT}", flush=True)
+    escribir_pid()
+    atexit.register(borrar_pid)
+    # al arrancar se mira si hay version nueva (y, si la instalacion es un clon de git, se actualiza sola)
+    try:
+        threading.Thread(target=auto_actualizar_al_arrancar, daemon=True).start()
+    except Exception as exc:  # noqa: BLE001
+        print(f"aviso: no se pudo lanzar la comprobacion de actualizaciones: {exc}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        borrar_pid()
 
 
 if __name__ == "__main__":

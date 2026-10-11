@@ -40,7 +40,8 @@ rem ---------- 2) arranca el backend si no responde ----------
 %PY% -c "import urllib.request as u,sys;sys.exit(0 if u.urlopen('%URL%/api/health',timeout=2).status==200 else 1)" >nul 2>nul
 if errorlevel 1 (
   echo   Arrancando NEXUS...
-  start "NEXUS backend" /b %PYW% "%APP_DIR%server.py" >>"%LOG%" 2>&1
+  rem sin /b: el proceso sobrevive al cierre de esta ventana (pythonw no abre consola)
+  start "NEXUS" %PYW% "%APP_DIR%server.py" >>"%LOG%" 2>&1
   set "LISTO="
   for /l %%i in (1,1,60) do (
     if not defined LISTO (
