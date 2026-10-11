@@ -1,5 +1,5 @@
 {
-  "nota": "Modelos locales de hasta 3 GB para equipos ligeros. Los 'sin censura' estan afinados para no rechazar peticiones (Dolphin, abliterated, heretic). Tamanos comprobados contra el registro de Ollama y los ficheros GGUF de Hugging Face. MODO AGENTE: ademas de entender la llamada a funciones, el modelo debe llegar a 64k de ventana (minimo de Hermes). Comprobado: los modelos descargados de Hugging Face (hf.co/...) NO soportan herramientas en Ollama; los que si lo hacen son qwen3:1.7b y qwen3:4b (los mas ligeros) y hermes3:3b / qwen3-abliterated. En los demas, modo chat.",
+  "nota": "Modelos locales de hasta 3 GB para equipos ligeros. 'Sin censura' = afinados para no rechazar peticiones (Dolphin, abliterated, heretic). Tamanos y capacidades comprobados contra el registro de Ollama y con `ollama show` (que dice si el modelo declara 'tools'). MODO AGENTE: hacen falta dos cosas, que el modelo declare herramientas y que quepa en memoria; Hermes exige ademas una ventana de 64k. Los GGUF traidos de Hugging Face (hf.co/...) NO declaran herramientas en Ollama. Si el equipo anda justo de RAM, el modo agente local no es buena idea: usa un proveedor por API.",
   "revisado": "2026-10-11",
   "modelos": [
     {
@@ -12,7 +12,7 @@
       "sin_censura": true,
       "multilingue": true,
       "contexto": 32768,
-      "herramientas": false,
+      "herramientas": true,
       "resumen": "El más pequeño de la lista. Aligerado de rechazos, va justo para charlar y respuestas cortas en equipos muy limitados.",
       "sabe": [
         "charlar",
@@ -24,7 +24,8 @@
         "código",
         "llamar a herramientas"
       ],
-      "recomendado": "Probar la app en un PC viejo o con poca RAM (2 GB de RAM libre basta)."
+      "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. Probar la app en un PC viejo o con poca RAM (2 GB de RAM libre basta).",
+      "herramientas_nota": true
     },
     {
       "id": "tinydolphin:1.1b-v2.8-q4_K_M",
@@ -84,7 +85,7 @@
       "familia": "Qwen2.5 abliterado",
       "multilingue": true,
       "contexto": 32768,
-      "herramientas": false,
+      "herramientas": true,
       "resumen": "Sin rechazos y multilingüe de verdad (español incluido). Para su tamaño entiende bastante bien las instrucciones.",
       "sabe": [
         "charlar",
@@ -98,9 +99,10 @@
         "herramientas",
         "razonamiento largo"
       ],
-      "recomendado": "El mejor equilibrio tamaño/uso para uso diario ligero.",
+      "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. El mejor equilibrio tamaño/uso para uso diario ligero.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "herramientas_nota": true
     },
     {
       "id": "huihui_ai/llama3.2-abliterate:1b",
@@ -136,7 +138,7 @@
       "familia": "Qwen3 abliterado (con modo razonamiento)",
       "multilingue": true,
       "contexto": 32768,
-      "herramientas": false,
+      "herramientas": true,
       "resumen": "Qwen3 abliterado: puede 'pensar' antes de responder (razonamiento), sin rechazos y en español decente.",
       "sabe": [
         "charlar",
@@ -148,9 +150,10 @@
         "herramientas",
         "código complejo"
       ],
-      "recomendado": "El más listo por debajo de 1,1 GB.",
+      "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. El más listo por debajo de 1,1 GB.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "herramientas_nota": true
     },
     {
       "id": "huihui_ai/qwen2.5-coder-abliterate:1.5b",
@@ -262,7 +265,7 @@
       "familia": "Qwen2.5 abliterado",
       "multilingue": true,
       "contexto": 32768,
-      "herramientas": false,
+      "herramientas": true,
       "resumen": "El tope de calidad de la lista sin pasar de 2 GB: sin rechazos, multilingüe y con cabeza para 3B.",
       "sabe": [
         "charlar",
@@ -278,7 +281,8 @@
       ],
       "recomendado": "La mejor opción si el equipo aguanta ~4 GB de RAM libre.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "herramientas_nota": true
     },
     {
       "id": "huihui_ai/qwen2.5-coder-abliterate:3b",
@@ -487,7 +491,7 @@
     },
     {
       "backend": "ollama",
-      "herramientas": false,
+      "herramientas": true,
       "sin_censura": true,
       "multilingue": true,
       "id": "huihui_ai/qwen3-abliterated:4b",
@@ -508,7 +512,8 @@
         "herramientas",
         "contextos enormes"
       ],
-      "recomendado": "La mejor calidad 'sin censura' si tienes 6 GB de RAM."
+      "recomendado": "La mejor calidad 'sin censura' si tienes 6 GB de RAM.",
+      "herramientas_nota": true
     },
     {
       "backend": "ollama",
@@ -640,7 +645,7 @@
       "params": "4B",
       "mb": 2382,
       "familia": "Qwen3 4B (Alibaba)",
-      "contexto": 32768,
+      "contexto": 40960,
       "resumen": "No es 'sin censura', pero es el 4B que mejor llama a funciones: la opción realista para el modo agente en local.",
       "sabe": [
         "herramientas (modo agente)",
@@ -651,7 +656,8 @@
       "no_sabe": [
         "nada grave para su tamaño"
       ],
-      "recomendado": "Para el modo agente local con un modelo moderno."
+      "recomendado": "Para el modo agente local con un modelo moderno.",
+      "herramientas_nota": true
     },
     {
       "backend": "ollama",
@@ -663,7 +669,7 @@
       "params": "1.7B",
       "mb": 1296,
       "familia": "Qwen3 1.7B (Alibaba)",
-      "contexto": 32768,
+      "contexto": 40960,
       "resumen": "El modelo más pequeño del catálogo que sabe llamar a funciones: útil para probar el modo agente sin gastar RAM.",
       "sabe": [
         "herramientas (modo agente)",
@@ -673,7 +679,8 @@
       "no_sabe": [
         "tareas complejas"
       ],
-      "recomendado": "Prueba rápida del modo agente en un equipo justo."
+      "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. Prueba rápida del modo agente en un equipo justo.",
+      "herramientas_nota": true
     },
     {
       "backend": "ollama",

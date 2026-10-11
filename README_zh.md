@@ -178,9 +178,12 @@ Download button does for you.
 mode: it registers the provider endpoint (`hermes config set providers.ollama.base_url …`), asks Ollama for a
 64k window (`model.ollama_num_ctx`, Hermes' minimum) and turns off streaming for that provider, because Hermes
 hangs with Ollama when streaming tool calls. Then it drops the whole thing on the model: **agent mode needs a
-model that supports tool calling**. Checked against Ollama itself: `qwen3:1.7b` (1.3 GB), `qwen3:4b` (2.4 GB) and
-`hermes3:3b` (1.9 GB) do; **models pulled from Hugging Face (`hf.co/…`) do not** (Ollama answers *HTTP 400: does
-not support tools*), so those are for chat only. And it runs on your CPU: a local agent turn takes a while.
+model that declares tool calling**, and you can check it yourself with `ollama show <model>` (look for `tools` in
+*Capabilities*). `qwen3:1.7b` (1.3 GB), `qwen3:4b`, `hermes3:3b` and the `huihui_ai` *abliterated* family do;
+**models pulled from Hugging Face (`hf.co/…`) do not** (they only declare `completion`, and Ollama answers
+*HTTP 400: does not support tools*), so those are for chat only. Two warnings: a small model may declare tools and
+still use them badly, and a local agent turn runs on your CPU, so it takes a while — with little free RAM it will
+not fit at all.
 **Only for agent mode**: a local model needs to understand *tool calling* to touch files or run commands. Very few
 small models do. The cards marked *tool calling* (**Hermes 3 3B**, **Qwen3 1.7B/4B**, **Spark X2.5 4B**) are the ones
 worth trying; anything else is for chatting, writing, summarising and translating. It also runs on your CPU, so it is
