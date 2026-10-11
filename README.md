@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/dependencies-none-3fb950?style=flat" alt="No dependencies">
   <img src="https://img.shields.io/badge/providers-any%20OpenAI--compatible-7a8dff?style=flat" alt="OpenAI compatible">
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20WSL-8b97b8?style=flat" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macOS-8b97b8?style=flat" alt="Platform">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=flat" alt="License"></a>
 </p>
 
@@ -26,6 +26,7 @@
   <a href="#-screenshots">Screenshots</a> &nbsp;&middot;&nbsp;
   <a href="#-control-panel">Control panel</a> &nbsp;&middot;&nbsp;
   <a href="#-providers">Providers</a> &nbsp;&middot;&nbsp;
+  <a href="#-local-models">Local models</a> &nbsp;&middot;&nbsp;
   <a href="#-agent-mode">Agent mode</a> &nbsp;&middot;&nbsp;
   <a href="#-lan">LAN</a> &nbsp;&middot;&nbsp;
   <a href="#-shortcuts">Shortcuts</a> &nbsp;&middot;&nbsp;
@@ -62,6 +63,10 @@ bash install-desktop.sh  # adds a launcher to the app menu and desktop
 bash stop.sh             # stops the backend
 ```
 
+**On Windows** (no need for WSL): double-click `run.bat`. It looks for Python 3.9+, starts the backend and opens the
+app window with Edge or Chrome in *app mode*. `install-windows.bat` adds the shortcut to the desktop and the Start
+menu, and `stop.bat` stops the backend. You can also keep using the website at <http://127.0.0.1:8765> from any browser.
+
 ## ⚡ Features
 
 - Multiple chats: search, pin, rename, duplicate, clear, delete, export.
@@ -76,6 +81,7 @@ bash stop.sh             # stops the backend
 - **Prompt templates**, a **command palette** (Ctrl+P), voice dictation and read-aloud.
 - Per-chat statistics, desktop notification and sound when a reply lands, 6 accent colours, JSON import/export.
 - **Interface in 7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian), switchable from the top bar; Arabic flips the layout to RTL.
+- **Local models without an API key**: NEXUS installs Ollama or LM Studio, downloads the model you pick (29 small models, uncensored ones included) and leaves it ready to chat.
 - **Attachments that stay** — send images or documents and they are saved with the conversation (thumbnail or file chip, click to open or download); they survive reloads and are resent when you regenerate.
 
 ## 🖼 Screenshots
@@ -130,6 +136,57 @@ The usual environment variables work too (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`
 The example catalogue lives in `providers.json`; you can add any other service with its base URL (LiteLLM, vLLM, a
 self-hosted gateway, `http://127.0.0.1:11434/v1` for Ollama…).
 
+## 🧩 Local models (no API key)
+
+No API key? NEXUS can run a **local model** on your own machine: no account, no cost, and nothing leaves the
+computer once the model is downloaded. It handles the whole thing for you: it detects and installs
+**[Ollama](https://ollama.com)** (or **[LM Studio](https://lmstudio.ai)**), downloads the model with a progress
+bar and leaves the provider configured so you can chat right away.
+
+Open 🧩 in the top bar, or *Settings → Local models*.
+
+**Two ways in:**
+
+- **Ollama** (recommended): NEXUS installs it (Linux: official script with your password; **Windows**: it downloads
+  and runs `OllamaSetup.exe`; macOS: the official download), then pulls the model you pick.
+- **LM Studio**: NEXUS detects it, starts its local server and can download models with the `lms` command. Each card
+  tells you the Hugging Face repo to use.
+
+**The catalogue** (29 models, all 3 GB or less, sizes checked against the real Ollama registry and the Hugging Face
+files) is aimed at light machines and has a strong focus on **uncensored** models (Dolphin and *abliterated* ones),
+with an honest note on every card about what it can and cannot do:
+
+| Model | Size | Uncensored | Tools |
+|---|---|---|---|
+| Qwen2.5 0.5B abliterated | 379 MB | yes | no |
+| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | yes | no |
+| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | yes | no |
+| Llama 3.2 1B abliterated | 911 MB | yes | no |
+| Qwen2.5 1.5B abliterated | 940 MB | yes | no |
+| Qwen3 1.7B abliterated | 1.06 GB | yes | no |
+| Qwen2.5 Coder 1.5B abliterated | 1.07 GB | yes | no |
+| Dolphin Phi 2.7B (Q2/Q4) | 1.12 / 1.53 GB | yes | no |
+| StableLM Zephyr 3B | 1.53 GB | permissive | no |
+| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1.61 GB | yes | no |
+| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1.84 GB | yes | no |
+| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1.84 / 2.12 GB | yes | no |
+| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1.93 / 2.22 GB | yes | no |
+| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1.93 GB | permissive | **yes** |
+| Llama 3.2 3B abliterated | 2.14 GB | yes | no |
+| Qwen3 4B · Qwen3 1.7B | 2.38 / 1.30 GB | no | **yes** |
+| Spark X2.5 4B heretic | 2.48 GB | yes | yes |
+| MiniCPM5 2B heretic | 2.56 GB | yes | no |
+| Wizard Vicuna 7B uncensored (Q2) | 2.69 GB | yes | no |
+| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2.94 GB | yes / permissive | no |
+
+ᴴᶠ = not in the Ollama library: it is pulled from Hugging Face (`ollama pull hf.co/user/repo:Q4_K_M`), which the
+Download button does for you.
+
+**Only for agent mode**: a local model needs to understand *tool calling* to touch files or run commands. Very few
+small models do. The cards marked *tool calling* (**Hermes 3 3B**, **Qwen3 1.7B/4B**, **Spark X2.5 4B**) are the ones
+worth trying; anything else is for chatting, writing, summarising and translating. It also runs on your CPU, so it is
+slow — for real agent work you are better off with an API provider.
+
 ## 🤖 Agent mode (optional)
 
 In **agent mode** NEXUS runs [Hermes](https://hermes-agent.nousresearch.com) with real tools: it reads and writes files,
@@ -172,10 +229,13 @@ padding. Tip: in Chrome, *⋮ → Add to home screen* to get it full screen.
     nexus/
       server.py            backend (Python standard library only)
       providers.json       example provider catalogue
+      local_models.json    catalogue of small local models (Ollama / LM Studio)
+      local_models.py      local model helpers (install, download, configure)
       prompts.json         example prompt library (25 prompts)
       app/                 UI (HTML + CSS + JS, no dependencies)
       assets/shots/        screenshots used in this README
-      run.sh / stop.sh     start and stop
+      run.sh / stop.sh     start and stop (Linux, macOS)
+      run.bat / stop.bat   start and stop (Windows; install-windows.bat makes shortcuts)
       install-desktop.sh   menu and desktop launchers
       lan-allow.sh         opens the port in ufw (optional)
 
@@ -191,8 +251,8 @@ Environment: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0
 
 - Keys are **not** in the repository: they live on your machine (`~/.config/nexus/config.json`, mode 0600) or in env vars.
 - Agent mode runs commands in the chat's working folder: it is your own machine, use it with care.
-- Requires Python 3.9+ and a browser. Tested on Linux (Mint/Ubuntu); on macOS and Windows/WSL it works the same
-    (run `python3 server.py` and open the browser yourself there).
+- Requires Python 3.9+ and a browser. Runs on **Windows, Linux and macOS**: on Windows double-click `run.bat`
+    (Edge or Chrome opens in app mode), on Linux/macOS use `run.sh`.
 - The interface ships in **7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian); switch from the top bar or Settings. Arabic also flips the layout to right-to-left.
 
 ## 📄 License

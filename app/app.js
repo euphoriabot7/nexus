@@ -1128,6 +1128,7 @@ function paletteItems() {
     { ico: "⚙", label: t("settings"), kind: "acción", run: openSettings },
     { ico: "🌐", label: t("language"), kind: "acción", run: openLangPop },
     { ico: "🔑", label: t("palette_providers"), kind: "acción", run: () => openSetup("manage") },
+    { ico: "🧩", label: t("local_title"), kind: "acción", run: () => openLocal() },
     { ico: "★", label: t("palette_only_favs"), kind: "acción", run: () => { $("#favOnly").checked = true; openModelPop(); } },
     { ico: "⇩", label: t("act_export"), kind: "acción", run: () => moreAction("export") },
     { ico: "⇪", label: t("palette_export_all"), kind: "acción", run: exportAll },
@@ -1394,6 +1395,7 @@ window.onLangChange = function () {
     }
     if ($("#presetPop") && !$("#presetPop").classList.contains("hidden")) renderPresets();
     if ($("#setupModal") && !$("#setupModal").classList.contains("hidden")) renderSetupList();
+    if ($("#localModal") && !$("#localModal").classList.contains("hidden")) renderLocal();
     renderHermes();
   } catch (e) {}
 };
@@ -1647,6 +1649,312 @@ boot();
 /* ============ asistente de proveedor (primera vez) y gestion ============ */
 const SETUP = { mode: "first", sel: "", info: null, hermes: null, poll: null, models: [] };
 
+
+/* ======================= MODELOS LOCALES (Ollama / LM Studio) ============== */
+
+const LOCAL = { info: null, poll: null, filtro: "", ligero: false, instalados: false, probando: "" };
+
+function pesoMb(mb) {
+  const n = Number(mb) || 0;
+  return n >= 1024 ? (n / 1024).toFixed(1).replace(".", ",") + " GB" : Math.round(n) + " MB";
+}
+
+function etiquetaModelo(m) {
+  const p = [];
+  p.push(m.params);
+  p.push(pesoMb(m.mb));
+  if (m.sin_censura) p.push(t("local_uncensored"));
+  p.push(m.herramientas ? t("local_tools_yes") : t("local_tools_no"));
+  if (m.multilingue) p.push(t("local_multilang"));
+  if (m.hf) p.push("Hugging Face");
+  return p.join(" · ");
+}
+
+async function openLocal() {
+  const modal = $("#localModal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  await loadLocal();
+  if (LOCAL.poll) clearInterval(LOCAL.poll);
+  LOCAL.poll = setInterval(() => {
+    if (modal.classList.contains("hidden")) { clearInterval(LOCAL.poll); LOCAL.poll = null; return; }
+    loadLocal(true);
+  }, 2500);
+}
+
+async function loadLocal(silencioso) {
+  try {
+    LOCAL.info = await api("/api/local");
+  } catch (e) {
+    if (!silencioso) toast(t("backend_down") + ": " + e.message);
+    return;
+  }
+  renderLocal();
+}
+
+function renderLocal() {
+  const d = LOCAL.info || {};
+  if (document.querySelector("#localModal").classList.contains("hidden")) return;
+  const ollamaListo = d.ollama_bin && d.ollama_running;
+  const estado = $("#localEstado");
+  estado.innerHTML = "";
+  const tarjeta = (titulo, sub, acciones) => {
+    const div = document.createElement("div");
+    div.className = "le-card";
+    div.innerHTML = `<div class="le-tit">${titulo}</div><div class="le-sub">${sub}</div>`;
+    const caja = document.createElement("div");
+    caja.className = "le-acc";
+    (acciones || []).forEach((a) => caja.appendChild(a));
+    div.appendChild(caja);
+    return div;
+  };
+  const boton = (texto, fn, clase) => {
+    const b = document.createElement("button");
+    b.className = clase || "mini-btn";
+    b.textContent = texto;
+    b.addEventListener("click", fn);
+    return b;
+  };
+
+  // --- Ollama ---
+  const accionesO = [];
+  if (!d.ollama_bin) {
+    accionesO.push(boton(d.instalando && d.instalacion === "ollama" ? t("local_installing") : t("local_install_ollama"),
+                         () => instalarOllama(), "primary"));
+    accionesO.push(boton(t("local_ollama_web"), () => abrirLocal("ollama_download")));
+  } else {
+    if (!d.ollama_running) accionesO.push(boton(t("local_start"), () => arrancarOllama(), "primary"));
+    accionesO.push(boton(t("local_folder"), () => abrirLocal("modelos")));
+  }
+  const subO = d.ollama_bin
+    ? `${d.ollama_version || "Ollama"} · ${d.ollama_running ? t("local_running") : t("local_stopped")} · ` +
+      t("local_installed_n", { n: (d.ollama_instalados || []).length })
+    : `${t("local_not_installed")} · ${t("local_free", { g: d.espacio_libre || "?" })}`;
+  estado.appendChild(tarjeta("Ollama", subO, accionesO));
+
+  // --- LM Studio ---
+  const accionesL = [];
+  if (!d.lmstudio_instalado) {
+    accionesL.push(boton(t("local_lm_download"), () => abrirLocal("lmstudio_download"), "primary"));
+  } else {
+    if (!d.lmstudio_running) accionesL.push(boton(t("local_start"), () => arrancarLmStudio()));
+    accionesL.push(boton(t("local_lm_docs"), () => abrirLocal("lmstudio_docs")));
+  }
+  const subL = d.lmstudio_instalado
+    ? `${d.lms_bin ? "lms" : "LM Studio"} · ${d.lmstudio_running ? t("local_running") : t("local_stopped")} · ` +
+      t("local_installed_n", { n: (d.lmstudio_modelos || []).length })
+    : t("local_not_installed");
+  estado.appendChild(tarjeta("LM Studio", subL, accionesL));
+
+  // --- progreso de descarga ---
+  const pull = d.pull || {};
+  const caja = $("#localProgreso");
+  if (pull.running || (pull.model && (pull.done || pull.error))) {
+    caja.classList.remove("hidden");
+    $("#lpModelo").textContent = pull.model || "—";
+    $("#lpPct").textContent = (pull.percent || 0) + "%";
+    $("#lpRelleno").style.width = (pull.percent || 0) + "%";
+    $("#lpLinea").textContent = pull.error ? "✕ " + pull.error : (pull.line || "");
+    $("#localCancelar").classList.toggle("hidden", !pull.running);
+  } else {
+    caja.classList.add("hidden");
+  }
+
+  // --- catalogo ---
+  const lista = $("#localLista");
+  const filtro = (LOCAL.filtro || "").trim().toLowerCase();
+  const modelos = (d.catalogo || []).filter((m) => {
+    if (LOCAL.ligero && m.mb > 1024) return false;
+    if (LOCAL.instalados && !m.instalado) return false;
+    if (!filtro) return true;
+    return (m.id + " " + m.nombre + " " + (m.familia || "") + " " + (m.resumen || "")).toLowerCase().includes(filtro);
+  });
+  $("#localCuenta").textContent = t("local_count", { n: modelos.length, total: (d.catalogo || []).length });
+  lista.innerHTML = "";
+  if (!modelos.length) {
+    lista.innerHTML = `<p class="modal-note">${t("setup_models_empty")}</p>`;
+  }
+  modelos.forEach((m) => {
+    const card = document.createElement("div");
+    card.className = "lm-card" + (m.instalado ? " instalado" : "");
+    card.innerHTML = `
+      <div class="lc-cabeza">
+        <b>${esc(m.nombre)}</b>
+        ${m.sin_censura ? `<span class="lc-tag sin">${t("local_uncensored")}</span>` : ""}
+        ${m.herramientas ? `<span class="lc-tag herr">${t("local_tools_yes")}</span>` : ""}
+        ${m.hf ? `<span class="lc-tag hf">HF</span>` : ""}
+        ${m.instalado ? `<span class="lc-tag ok">${t("local_installed")}</span>` : ""}
+      </div>
+      <div class="lc-meta">${esc(etiquetaModelo(m))}</div>
+      <div class="lc-desc">${esc(m.resumen || "")}</div>
+      <div class="lc-detalle"><b>${t("local_can")}:</b> ${esc((m.sabe || []).join(", "))}
+        · <b>${t("local_cant")}:</b> ${esc((m.no_sabe || []).join(", "))}</div>
+      ${m.recomendado ? `<div class="lc-uso">▸ ${esc(m.recomendado)}</div>` : ""}
+      <div class="lc-acc"></div>`;
+    const acc = card.querySelector(".lc-acc");
+    const mk = (texto, fn, clase) => {
+      const b = document.createElement("button");
+      b.className = clase || "mini-btn";
+      b.textContent = texto;
+      b.addEventListener("click", fn);
+      return b;
+    };
+    if (m.instalado) {
+      acc.appendChild(mk(t("local_use"), () => usarLocal(m), "primary"));
+      acc.appendChild(mk(t("local_probar"), () => probarLocal(m)));
+      acc.appendChild(mk(t("local_remove"), () => borrarLocal(m)));
+    } else {
+      const descargando = pull.running && pull.model === m.id;
+      const b = mk(descargando ? t("local_downloading") : t("local_download"), () => descargarLocal(m), "primary");
+      b.disabled = !!pull.running || !ollamaListo;
+      if (!ollamaListo) b.title = t("local_need_ollama");
+      acc.appendChild(b);
+      if (m.hf) acc.appendChild(mk("Hugging Face", () => abrirLocal("ollama_docs")));
+    }
+    if (LOCAL.probando === m.id) {
+      const r = document.createElement("div");
+      r.className = "lc-resultado";
+      r.textContent = t("local_probing");
+      card.appendChild(r);
+    }
+    lista.appendChild(card);
+  });
+
+  // --- LM Studio: catalogo ---
+  const lmInfo = $("#localLmEstado");
+  if (lmInfo) {
+    lmInfo.textContent = d.lmstudio_instalado
+      ? (d.lmstudio_running ? t("local_running") : t("local_stopped")) + " · " + (d.lms_bin || "lms")
+      : t("local_lm_missing");
+  }
+  const lmLista = $("#localLmLista");
+  if (lmLista) {
+    lmLista.innerHTML = "";
+    (d.lmstudio_catalogo || []).forEach((m) => {
+      const card = document.createElement("div");
+      card.className = "lm-card";
+      card.innerHTML = `<div class="lc-cabeza"><b>${esc(m.nombre)}</b>
+        ${m.sin_censura ? `<span class="lc-tag sin">${t("local_uncensored")}</span>` : ""}
+        ${m.herramientas ? `<span class="lc-tag herr">${t("local_tools_yes")}</span>` : ""}</div>
+        <div class="lc-meta">${esc(m.params)} · ${pesoMb(m.mb)} · ${esc(m.quant || "Q4_K_M")} · ${esc(m.repo)}</div>
+        <div class="lc-desc">${esc(m.resumen || "")}</div>`;
+      const acc = document.createElement("div");
+      acc.className = "lc-acc";
+      const b = document.createElement("button");
+      b.className = "mini-btn";
+      b.textContent = d.lms_bin ? t("local_download") : t("local_lm_download");
+      b.disabled = !d.lms_bin;
+      b.addEventListener("click", () => (d.lms_bin ? descargarLocal(m, "lmstudio") : abrirLocal("lmstudio_download")));
+      acc.appendChild(b);
+      card.appendChild(acc);
+      lmLista.appendChild(card);
+    });
+  }
+}
+
+async function instalarOllama() {
+  if (!confirm(t("local_confirm_install"))) return;
+  try {
+    const r = await api("/api/local/install", { method: "POST", body: { backend: "ollama" } });
+    toast(r.message || (r.ok ? t("local_install_ok") : t("local_install_fail")));
+    LOCAL.info = r.status || LOCAL.info;
+    renderLocal();
+    const log = $("#localLog");
+    log.classList.remove("hidden");
+    log.textContent = t("local_installing") + "...";
+    const ver = setInterval(async () => {
+      try {
+        const l = await api("/api/local/log");
+        $("#localLog").textContent = l.log || "";
+        $("#localLog").scrollTop = $("#localLog").scrollHeight;
+        await loadLocal(true);
+        if (!l.running && l.code !== null && l.code !== undefined) {
+          clearInterval(ver);
+          toast(l.code === 0 ? t("local_install_ok") : t("local_install_fail"));
+          await loadLocal();
+        }
+      } catch (e) { clearInterval(ver); }
+    }, 2500);
+  } catch (e) { toast(t("local_install_fail") + ": " + e.message); }
+}
+
+async function arrancarOllama() {
+  try {
+    const r = await api("/api/local/start", { method: "POST", body: { backend: "ollama" } });
+    toast(r.message || "ok");
+    LOCAL.info = r.status || LOCAL.info;
+    renderLocal();
+  } catch (e) { toast(e.message); }
+}
+
+async function arrancarLmStudio() {
+  try {
+    const r = await api("/api/local/start", { method: "POST", body: { backend: "lmstudio" } });
+    toast(r.message || "ok");
+    setTimeout(() => loadLocal(true), 1500);
+  } catch (e) { toast(e.message); }
+}
+
+async function descargarLocal(m, backend) {
+  try {
+    const r = await api("/api/local/pull", { method: "POST", body: { model: m.id, backend: backend || "ollama" } });
+    toast(r.message || (r.ok ? t("local_pull_start") : t("local_pull_fail")));
+    await loadLocal(true);
+  } catch (e) { toast(t("local_pull_fail") + ": " + e.message); }
+}
+
+async function cancelarDescarga() {
+  try { const r = await api("/api/local/cancel", { method: "POST", body: {} }); toast(r.message || ""); await loadLocal(true); }
+  catch (e) { toast(e.message); }
+}
+
+async function usarLocal(m, backend) {
+  try {
+    const r = await api("/api/local/use", { method: "POST", body: { model: m.id, backend: backend || "ollama" } });
+    if (!r.ok) return toast(r.message || "error");
+    await loadConfigState();
+    refreshChats();
+    updateModelPill();
+    toast(t("local_use_ok", { model: m.nombre || m.id }));
+    const modal = $("#localModal");
+    if (modal) modal.classList.add("hidden");
+    if (LOCAL.poll) { clearInterval(LOCAL.poll); LOCAL.poll = null; }
+    await newChat();
+    const inp = $("#input");
+    if (inp && !inp.value.trim()) { inp.value = t("local_try_msg"); autoGrow(); inp.focus(); }
+  } catch (e) { toast(e.message); }
+}
+
+async function probarLocal(m, backend) {
+  LOCAL.probando = m.id;
+  renderLocal();
+  try {
+    const r = await api("/api/config/test", { method: "POST", body: { provider: backend === "lmstudio" ? "lmstudio" : "ollama", model: m.id } });
+    LOCAL.probando = "";
+    renderLocal();
+    toast(r.ok ? t("local_test_ok", { reply: (r.reply || "").slice(0, 80) }) : t("local_test_fail", { error: (r.error || "?").slice(0, 120) }),
+          r.ok ? 5000 : 7000);
+  } catch (e) {
+    LOCAL.probando = "";
+    renderLocal();
+    toast(t("local_test_fail", { error: e.message }), 7000);
+  }
+}
+
+async function borrarLocal(m, backend) {
+  if (!confirm(t("local_confirm_remove", { model: m.id }))) return;
+  try {
+    const r = await api("/api/local/remove", { method: "POST", body: { model: m.id, backend: backend || "ollama" } });
+    toast(r.message || "");
+    LOCAL.info = r.status || LOCAL.info;
+    renderLocal();
+  } catch (e) { toast(e.message); }
+}
+
+async function abrirLocal(que) {
+  try { await api("/api/local/open", { method: "POST", body: { what: que } }); } catch (e) { toast(e.message); }
+}
+
 async function loadSetupInfo() {
   try { SETUP.info = await api("/api/config"); } catch { SETUP.info = { catalog: {}, providers: {} }; }
   try { SETUP.hermes = await api("/api/hermes"); } catch { SETUP.hermes = {}; }
@@ -1700,6 +2008,61 @@ function selectSetupProvider(pid) {
   $("#spKey").disabled = pid !== "__custom" && spec.requires_key === false;
   $("#spKey").placeholder = necesita ? "sk-..." : "no hace falta (servidor local)";
   if (guardado.has_key) $("#spKey").placeholder = "guardada ✓ (escribe otra para cambiarla)";
+  SETUP.models = (guardado.models || spec.models || []).slice();
+  renderSetupModels();
+  loadSetupModels();
+}
+
+
+/* --- lista de modelos del asistente (elegir con el raton, no a mano) ------ */
+
+async function loadSetupModels() {
+  const lista = $("#spModelList");
+  if (!lista) return;
+  const spec = setupFormSpec();
+  if (!spec.base_url) {
+    lista.innerHTML = `<div class="ml-hint">${t("setup_need_url")}</div>`;
+    return;
+  }
+  lista.innerHTML = `<div class="ml-hint">${t("setup_models_loading")}</div>`;
+  $("#spModelsLoad").disabled = true;
+  try {
+    const r = await api("/api/config/models", { method: "POST", body: { provider: spec.id, spec, refresh: true }, timeout: 45000 });
+    SETUP.models = r.models || [];
+    renderSetupModels();
+    if (!SETUP.models.length) {
+      lista.innerHTML = `<div class="ml-hint">${t("setup_models_none")}${r.error ? " · " + esc(r.error) : ""}</div>`;
+    }
+  } catch (e) {
+    lista.innerHTML = `<div class="ml-hint">${t("setup_models_none")} · ${esc(e.message)}</div>`;
+  } finally {
+    $("#spModelsLoad").disabled = false;
+  }
+}
+
+function renderSetupModels() {
+  const lista = $("#spModelList");
+  if (!lista) return;
+  const filtro = ($("#spBuscar").value || "").trim().toLowerCase();
+  const elegido = ($("#spModel").value || "").trim();
+  const todos = SETUP.models || [];
+  const modelos = todos.filter((m) => !filtro || m.toLowerCase().includes(filtro));
+  lista.innerHTML = "";
+  if (!modelos.length) {
+    lista.innerHTML = `<div class="ml-hint">${t("setup_models_empty")}</div>`;
+    return;
+  }
+  modelos.slice(0, 500).forEach((m) => {
+    const b = document.createElement("button");
+    b.className = "ml-item" + (m === elegido ? " sel" : "");
+    b.textContent = m;
+    b.addEventListener("click", () => {
+      $("#spModel").value = m;
+      renderSetupModels();
+      setupShow(t("setup_model_picked", { model: m }), "");
+    });
+    lista.appendChild(b);
+  });
 }
 
 function setupFormSpec() {
@@ -1725,6 +2088,7 @@ async function testSetup() {
     if (r.ok) {
       if (!modelo && r.model) $("#spModel").value = r.model;
       setupShow(t("setup_ok", { n: r.models || 0, reply: r.reply || "-", model: r.model || modelo }), "ok");
+      loadSetupModels();
       $("#setupSave").focus();
     } else {
       setupShow(t("setup_fail", { error: r.error || "?" }), "err");
@@ -1840,3 +2204,23 @@ async function startHermesInstall() {
     }, 3000);
   } catch (e) { toast(t("install_failed", { error: e.message })); }
 }
+
+/* --- enganches de los modelos locales --- */
+$("#localBtn").addEventListener("click", () => openLocal());
+$("#quickKey").addEventListener("click", () => openSetup("manage"));
+$("#setupLocalBtn").addEventListener("click", () => { $("#setupModal").classList.add("hidden"); openLocal(); });
+$("#localClose").addEventListener("click", () => { $("#localModal").classList.add("hidden"); if (LOCAL.poll) { clearInterval(LOCAL.poll); LOCAL.poll = null; } });
+$("#localModal").addEventListener("click", (e) => { if (e.target.id === "localModal") { $("#localModal").classList.add("hidden"); } });
+$("#localRefresh").addEventListener("click", () => loadLocal());
+$("#localCancelar").addEventListener("click", cancelarDescarga);
+$("#localCarpeta").addEventListener("click", () => abrirLocal("modelos"));
+$("#localOllamaWeb").addEventListener("click", () => abrirLocal("ollama_download"));
+$("#localLmDescargar").addEventListener("click", () => abrirLocal("lmstudio_download"));
+$("#localLmDocs").addEventListener("click", () => abrirLocal("lmstudio_docs"));
+$("#localBuscar").addEventListener("input", (e) => { LOCAL.filtro = e.target.value; renderLocal(); });
+$("#localLigero").addEventListener("change", (e) => { LOCAL.ligero = e.target.checked; renderLocal(); });
+$("#localInstalados").addEventListener("change", (e) => { LOCAL.instalados = e.target.checked; renderLocal(); });
+$("#spModelsLoad").addEventListener("click", () => loadSetupModels());
+$("#spBuscar").addEventListener("input", renderSetupModels);
+$("#spKey").addEventListener("change", () => { if (($("#spKey").value || "").trim()) loadSetupModels(); });
+window.openLocal = openLocal;

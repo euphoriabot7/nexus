@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/dependencies-none-3fb950?style=flat" alt="No dependencies">
   <img src="https://img.shields.io/badge/providers-any%20OpenAI--compatible-7a8dff?style=flat" alt="OpenAI compatible">
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20WSL-8b97b8?style=flat" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macOS-8b97b8?style=flat" alt="Platform">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=flat" alt="License"></a>
 </p>
 
@@ -26,6 +26,7 @@
   <a href="#-capturas">Capturas</a> &nbsp;&middot;&nbsp;
   <a href="#-panel">Panel</a> &nbsp;&middot;&nbsp;
   <a href="#-proveedores">Proveedores</a> &nbsp;&middot;&nbsp;
+  <a href="#-本地模型">本地模型</a> &nbsp;&middot;&nbsp;
   <a href="#-modo-agente">Modo agente</a> &nbsp;&middot;&nbsp;
   <a href="#-red-local">Red local</a> &nbsp;&middot;&nbsp;
   <a href="#-atajos">Atajos</a> &nbsp;&middot;&nbsp;
@@ -63,6 +64,11 @@ bash install-desktop.sh  # crea el acceso directo en el menú y el escritorio
 bash stop.sh             # detiene el backend
 ```
 
+**En Windows** (no hace falta WSL): doble clic en `run.bat`. Busca Python 3.9+, arranca el backend y abre la ventana
+de la app con Edge o Chrome en *modo aplicación* (sin barra de navegador). `install-windows.bat` crea el acceso directo
+en el escritorio y en el menú Inicio, y `stop.bat` detiene el backend. También puedes seguir usando la web en
+<http://127.0.0.1:8765> desde cualquier navegador.
+
 ## ⚡ Qué trae
 
 - Varios chats: buscar, fijar, renombrar, duplicar, vaciar, borrar y exportar.
@@ -77,6 +83,7 @@ bash stop.sh             # detiene el backend
 - **Plantillas de prompt**, **paleta de comandos** (Ctrl+P), dictado por voz y lectura en alto.
 - Estadísticas por chat, notificación y sonido al terminar, 6 acentos de color e import/export JSON.
 - **Interfaz en 7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio), se cambia desde la barra superior; el árabe pone la interfaz de derecha a izquierda.
+- **Modelos locales sin clave de API**: NEXUS instala Ollama o LM Studio, descarga el modelo que elijas (29 modelos pequeños, sin censura incluidos) y lo deja listo para chatear.
 - **Adjuntos que se quedan** — envía imágenes o documentos y se guardan con la conversación (miniatura o ficha del archivo, pulsa para abrir o descargar); siguen ahí al recargar y se reenvían al regenerar.
 
 ## 🖼 Capturas
@@ -130,6 +137,57 @@ La configuración se guarda en tu equipo, legible solo por ti:
 También valen las variables de entorno habituales (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`,
 `DEEPSEEK_API_KEY`…). El catálogo de ejemplos está en `providers.json`; puedes añadir cualquier otro servicio con su URL
 base (LiteLLM, vLLM, una pasarela propia, `http://127.0.0.1:11434/v1` para Ollama…).
+
+## 🧩 Modelos locales (sin clave de API)
+
+¿Sin clave de API? NEXUS puede ejecutar un **modelo local** en tu propio ordenador: sin cuenta, sin coste y sin que
+nada salga del equipo una vez descargado. Se encarga de todo: detecta e instala **[Ollama](https://ollama.com)**
+(o **[LM Studio](https://lmstudio.ai)**), descarga el modelo con barra de progreso y deja el proveedor configurado
+para que puedas hablar con él en el momento.
+
+Abre 🧩 en la barra superior, o *Ajustes → Modelos locales*.
+
+**Dos caminos:**
+
+- **Ollama** (recomendado): NEXUS lo instala (Linux: script oficial con tu contraseña; **Windows**: descarga y ejecuta
+  `OllamaSetup.exe`; macOS: la descarga oficial) y luego trae el modelo que elijas.
+- **LM Studio**: NEXUS lo detecta, arranca su servidor local y puede descargar modelos con el comando `lms`. Cada ficha
+  te dice el repositorio de Hugging Face que usa.
+
+**El catálogo** (29 modelos, todos de 3 GB o menos, con tamaños comprobados contra el registro real de Ollama y los
+ficheros de Hugging Face) está pensado para equipos ligeros y con acento en los modelos **sin censura** (Dolphin y
+los *abliterated*), con una nota honesta en cada ficha de lo que sabe y lo que no:
+
+| Modelo | Tamaño | Sin censura | Herramientas |
+|---|---|---|---|
+| Qwen2.5 0.5B abliterated | 379 MB | sí | no |
+| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | sí | no |
+| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | sí | no |
+| Llama 3.2 1B abliterated | 911 MB | sí | no |
+| Qwen2.5 1.5B abliterated | 940 MB | sí | no |
+| Qwen3 1.7B abliterated | 1,06 GB | sí | no |
+| Qwen2.5 Coder 1.5B abliterated | 1,07 GB | sí | no |
+| Dolphin Phi 2.7B (Q2/Q4) | 1,12 / 1,53 GB | sí | no |
+| StableLM Zephyr 3B | 1,53 GB | permisivo | no |
+| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1,61 GB | sí | no |
+| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1,84 GB | sí | no |
+| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1,84 / 2,12 GB | sí | no |
+| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1,93 / 2,22 GB | sí | no |
+| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1,93 GB | permisivo | **sí** |
+| Llama 3.2 3B abliterated | 2,14 GB | sí | no |
+| Qwen3 4B · Qwen3 1.7B | 2,38 / 1,30 GB | no | **sí** |
+| Spark X2.5 4B heretic | 2,48 GB | sí | sí |
+| MiniCPM5 2B heretic | 2,56 GB | sí | no |
+| Wizard Vicuna 7B sin censura (Q2) | 2,69 GB | sí | no |
+| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2,94 GB | sí / permisivo | no |
+
+ᴴᶠ = no está en la biblioteca de Ollama: se descarga desde Hugging Face (`ollama pull hf.co/usuario/repo:Q4_K_M`), que
+es lo que hace el botón Descargar por ti.
+
+**Solo para el modo agente**: un modelo local necesita entender la *llamada a funciones* para tocar archivos o ejecutar
+órdenes, y muy pocos modelos pequeños lo hacen. Las fichas marcadas con *con herramientas* (**Hermes 3 3B**,
+**Qwen3 1.7B/4B**, **Spark X2.5 4B**) son las que merece la pena probar; el resto son para conversar, redactar, resumir
+y traducir. Además corre en tu CPU, así que es lento: para trabajo de agente serio, mejor un proveedor por API.
 
 ## 🤖 Modo agente (opcional)
 
@@ -192,8 +250,8 @@ Variables: `NEXUS_PORT` (8765), `NEXUS_DATA`, `NEXUS_CONFIG_DIR`, `NEXUS_LAN=0`.
 
 - Las claves **no** están en el repositorio: viven en tu equipo (`~/.config/nexus/config.json`, permisos 0600) o en variables de entorno.
 - El modo agente ejecuta comandos en la carpeta de trabajo del chat: es tu propio equipo, úsalo con cuidado.
-- Requiere Python 3.9+ y un navegador. Probado en Linux (Mint/Ubuntu); en macOS y Windows/WSL funciona igual
-    (ahí usa `python3 server.py` y abre el navegador a mano).
+- Requiere Python 3.9+ y un navegador. Funciona en **Windows, Linux y macOS**: en Windows, doble clic en `run.bat`
+    (abre Edge o Chrome en modo aplicación); en Linux o macOS, `run.sh`.
 - La interfaz viene en **7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio); se cambia desde la barra superior o en Ajustes. El árabe además pone la interfaz de derecha a izquierda.
 
 ## 📄 Licencia

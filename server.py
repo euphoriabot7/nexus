@@ -25,6 +25,8 @@ import shutil
 import socket
 import sqlite3
 import subprocess
+import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -34,16 +36,53 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import local_models
+
 APP_DIR = Path(__file__).resolve().parent
 STATIC_DIR = APP_DIR / "app"
+
+IS_WIN = os.name == "nt"
+IS_MAC = sys.platform == "darwin"
+PLATFORM = "windows" if IS_WIN else ("macos" if IS_MAC else "linux")
+EXE = ".exe" if IS_WIN else ""
+
+
+def _appdata(nombre_local, nombre_roaming=None):
+    """Carpeta de datos del usuario segun el sistema."""
+    if IS_WIN:
+        base = Path(os.environ.get(nombre_roaming) or (Path.home() / "AppData" / nombre_roaming))
+        return base / "NEXUS"
+    if IS_MAC:
+        return Path.home() / "Library" / "Application Support" / "NEXUS"
+    return Path.home() / ".local" / "share" / "nexus"
+
+
 def _data_dir():
-    """~/.local/share/nexus; si ya existia la carpeta antigua (ocdesk), se respeta."""
+    """Carpeta de datos. En Linux ~/.local/share/nexus (respeta la antigua ocdesk);
+    en Windows %LOCALAPPDATA%\\NEXUS; en macOS ~/Library/Application Support/NEXUS."""
     env = os.environ.get("NEXUS_DATA")
     if env:
         return Path(env)
+    if IS_WIN:
+        return _appdata(None, "Local")
+    if IS_MAC:
+        return _appdata(None)
     nuevo = Path.home() / ".local" / "share" / "nexus"
     viejo = Path.home() / ".local" / "share" / "ocdesk"
     return viejo if (viejo.exists() and not nuevo.exists()) else nuevo
+
+
+def _config_dir():
+    """Configuracion: ~/.config/nexus (Linux), %APPDATA%\\nexus (Windows),
+    ~/Library/Application Support/NEXUS (macOS)."""
+    env = os.environ.get("NEXUS_CONFIG_DIR")
+    if env:
+        return Path(env)
+    if IS_WIN:
+        return _appdata(None, "Roaming")
+    if IS_MAC:
+        return _appdata(None)
+    return Path.home() / ".config" / "nexus"
 
 
 DATA_DIR = _data_dir()
@@ -51,7 +90,7 @@ DB_PATH = DATA_DIR / "nexus.db"
 FILES_DIR = DATA_DIR / "files"            # adjuntos guardados (imagenes y documentos)
 HERMES_ENV = Path.home() / ".hermes" / ".env"          # solo como atajo opcional
 HERMES_PROVIDER_CACHE = Path.home() / ".hermes" / "provider_models_cache.json"
-CONFIG_DIR = Path(os.environ.get("NEXUS_CONFIG_DIR", str(Path.home() / ".config" / "nexus")))
+CONFIG_DIR = _config_dir()
 CONFIG_PATH = CONFIG_DIR / "config.json"
 MODELS_CACHE = CONFIG_DIR / "models_cache.json"
 HOST = "127.0.0.1"
@@ -63,7 +102,8 @@ STOP_FLAGS = {}                    # chat_id -> threading.Event
 DEFAULT_WORKDIR = str(Path.home())
 LAN_FILE = DATA_DIR / "lan.json"
 LAN_ENABLED = os.environ.get("NEXUS_LAN", "1") != "0"   # accesible por LAN (con token)
-ALLOWED_ROOTS = [Path.home(), Path("/tmp"), Path("/var/tmp")]
+ALLOWED_ROOTS = [Path.home(), Path(tempfile.gettempdir())] + (
+    [] if IS_WIN else [Path("/tmp"), Path("/var/tmp")])
 
 MIME_EXTRA = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
@@ -111,14 +151,37 @@ def lan_addresses():
 
 
 def hermes_bin():
-    return shutil.which("hermes") or str(Path.home() / ".local/bin/hermes")
+    """Ruta del ejecutable de Hermes (o cadena vacia si no esta instalado)."""
+    encontrado = shutil.which("hermes")
+    if encontrado:
+        return encontrado
+    candidatos = [Path.home() / ".local" / "bin" / f"hermes{EXE}"]
+    if IS_WIN:
+        candidatos += [Path.home() / ".local" / "bin" / "hermes.cmd",
+                       Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "hermes" / "hermes.exe"]
+    for c in candidatos:
+        if c and Path(c).is_file():
+            return str(c)
+    return ""
 
 
 def agent_env():
     env = dict(os.environ)
-    extra = [str(Path.home() / ".local/bin"), "/usr/local/bin", "/usr/bin", "/bin"]
-    env["PATH"] = os.pathsep.join(extra + [env.get("PATH", "")])
+    extra = [str(Path.home() / ".local" / "bin")]
+    if not IS_WIN:
+        extra += ["/usr/local/bin", "/usr/bin", "/bin"]
+    else:
+        extra += [str(Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama"),
+                  str(Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Hermes")]
+    env["PATH"] = os.pathsep.join([e for e in extra if e] + [env.get("PATH", "")])
     return env
+
+
+def shell_command(comando):
+    """Envuelve una orden de shell para la plataforma actual."""
+    if IS_WIN:
+        return ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", comando]
+    return ["/bin/bash", "-lc", comando]
 
 
 def load_json(path, default):
@@ -394,19 +457,20 @@ def provider_index():
 # modo agente: Hermes es opcional
 # --------------------------------------------------------------------------- #
 
-HERMES_INSTALL = "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+HERMES_INSTALL = ("iex (irm https://hermes-agent.nousresearch.com/install.ps1)" if IS_WIN
+                  else "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash")
 HERMES_DOCS = "https://hermes-agent.nousresearch.com/docs/getting-started/installation"
 INSTALL_LOG = DATA_DIR / "hermes-install.log"
 INSTALL_STATE = {"running": False, "code": None, "started": 0.0}
 
 
 def hermes_installed():
-    binario = shutil.which("hermes") or str(Path.home() / ".local/bin/hermes")
-    return bool(shutil.which("hermes") or Path(binario).is_file())
+    return bool(hermes_bin())
 
 
 def hermes_status():
     return {"installed": hermes_installed(), "command": HERMES_INSTALL, "docs": HERMES_DOCS,
+            "platform": PLATFORM, "bin": hermes_bin(),
             "running": INSTALL_STATE["running"], "exit_code": INSTALL_STATE["code"],
             "log": str(INSTALL_LOG)}
 
@@ -422,7 +486,7 @@ def start_hermes_install():
         with open(INSTALL_LOG, "w", encoding="utf-8") as fh:
             fh.write(f"$ {HERMES_INSTALL}\n\n")
         log = open(INSTALL_LOG, "a", encoding="utf-8")  # noqa: SIM115
-        proc = subprocess.Popen(["/bin/bash", "-lc", HERMES_INSTALL], stdout=log, stderr=subprocess.STDOUT,
+        proc = subprocess.Popen(shell_command(HERMES_INSTALL), stdout=log, stderr=subprocess.STDOUT,
                                 env=agent_env(), cwd=str(Path.home()))
     except Exception as exc:  # noqa: BLE001
         return False, f"No se pudo lanzar el instalador: {exc}"
@@ -1683,6 +1747,7 @@ class Handler(BaseHTTPRequestHandler):
                                    "needs_setup": needs_setup(),
                                    "hermes": hermes_status(),
                                    "home": str(Path.home()),
+                                   "platform": PLATFORM,
                                    "pricing": pricing_info(),
                                    "config_path": str(CONFIG_PATH),
                                    "chips": example_chips(),
@@ -1732,6 +1797,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/project":
             data = list_project(params.get("path", ""))
             return self.send_json(data) if data else self.send_json({"error": "ruta no valida"}, 400)
+        if path == "/api/local":
+            return self.send_json(local_models.status())
+        if path == "/api/local/log":
+            return self.send_json({"log": local_models.install_log(),
+                                   "running": local_models.STATE["running"],
+                                   "code": local_models.STATE["code"]})
         if path.startswith("/api/files/"):
             nombre = os.path.basename(urllib.parse.unquote(path[len("/api/files/"):]))
             destino = FILES_DIR / nombre
@@ -1844,17 +1915,79 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/config/models":
             body = self.read_body()
             pid = (body.get("provider") or "").strip()
+            enlinea = body.get("spec") if isinstance(body.get("spec"), dict) else None
+            spec = spec_with_inline(pid, enlinea)
+            error, ids, fuente = "", [], ""
             try:
-                ids = fetch_models(pid)
+                ids = fetch_models_spec(spec)
+                fuente = "proveedor"
             except Exception as exc:  # noqa: BLE001
-                return self.send_json({"ok": False, "error": str(exc), "models": []})
-            return self.send_json({"ok": True, "models": ids})
+                error = str(exc)
+            if not ids:
+                ids = merged_models(pid, spec)
+                fuente = "guardado" if ids else ""
+            # si el proveedor tiene clave distinta guardada, se prueban las dos vias
+            if not ids and enlinea is None:
+                try:
+                    ids = fetch_models(pid)
+                    fuente = "proveedor"
+                    error = ""
+                except Exception as exc:  # noqa: BLE001
+                    error = error or str(exc)
+            return self.send_json({"ok": bool(ids) and not error, "models": ids, "error": error,
+                                   "source": fuente, "count": len(ids)})
         if path == "/api/pricing/refresh":
             try:
                 cuantos = refresh_pricing()
                 return self.send_json({"ok": True, "models": cuantos, "info": pricing_info()})
             except Exception as exc:  # noqa: BLE001
                 return self.send_json({"ok": False, "error": str(exc), "info": pricing_info()})
+        body = self.read_body()
+        if path == "/api/local/install":
+            backend = (body.get("backend") or "ollama").strip()
+            try:
+                ok, msg = local_models.install(backend)
+            except Exception as exc:  # noqa: BLE001
+                ok, msg = False, str(exc)
+            return self.send_json({"ok": ok, "message": msg, "status": local_models.status()})
+        if path == "/api/local/start":
+            try:
+                ok, msg = local_models.start_backend((body.get("backend") or "ollama").strip())
+            except Exception as exc:  # noqa: BLE001
+                ok, msg = False, str(exc)
+            return self.send_json({"ok": ok, "message": msg, "status": local_models.status()})
+        if path == "/api/local/pull":
+            modelo = (body.get("model") or "").strip()
+            if not modelo:
+                return self.send_json({"ok": False, "message": "falta el modelo"}, 400)
+            try:
+                ok, msg = local_models.pull(modelo, (body.get("backend") or "ollama").strip())
+            except Exception as exc:  # noqa: BLE001
+                ok, msg = False, str(exc)
+            return self.send_json({"ok": ok, "message": msg})
+        if path == "/api/local/cancel":
+            ok, msg = local_models.cancel_pull()
+            return self.send_json({"ok": ok, "message": msg})
+        if path == "/api/local/remove":
+            modelo = (body.get("model") or "").strip()
+            try:
+                ok, msg = local_models.remove(modelo, (body.get("backend") or "ollama").strip())
+            except Exception as exc:  # noqa: BLE001
+                ok, msg = False, str(exc)
+            return self.send_json({"ok": ok, "message": msg, "status": local_models.status()})
+        if path == "/api/local/use":
+            modelo = (body.get("model") or "").strip()
+            if not modelo:
+                return self.send_json({"ok": False, "message": "falta el modelo"}, 400)
+            try:
+                r = local_models.use(modelo, (body.get("backend") or "ollama").strip())
+                r["status"] = local_models.status()
+                return self.send_json(r)
+            except Exception as exc:  # noqa: BLE001
+                return self.send_json({"ok": False, "message": str(exc)})
+        if path == "/api/local/open":
+            ok, msg = local_models.open_target((body.get("what") or "").strip())
+            return self.send_json({"ok": ok, "message": msg})
         if path == "/api/prompts/seed":
             n = seed_examples(force=True)
             return self.send_json({"ok": True, "added": n, "presets": list_presets()})
@@ -2077,6 +2210,10 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+
+local_models.init(app_dir=APP_DIR, data_dir=DATA_DIR, config_dir=CONFIG_DIR,
+                  env_builder=agent_env, shell_runner=shell_command,
+                  config_get=user_config, config_save=save_user_config)
 
 def main():
     init_db()

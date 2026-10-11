@@ -25,7 +25,7 @@ T = {}
 
 T["en"] = dict(
     subtitle="A self-hosted desktop AI chat console. **No dependencies**, any OpenAI-compatible provider, everything stays on your machine.",
-    nav=["Quick start", "Features", "Screenshots", "Control panel", "Providers", "Agent mode", "LAN", "Shortcuts", "Structure", "License"],
+    nav=["Quick start", "Features", "Screenshots", "Control panel", "Providers", "Local models", "Agent mode", "LAN", "Shortcuts", "Structure", "License"],
     intro=[
         "NEXUS is a desktop chat console you run yourself: multi-chat, multi-provider, persistent history, streaming,",
         "file and image attachments, an *artifacts*-style code preview pane and a dashboard with your real token usage and cost.",
@@ -35,6 +35,57 @@ T["en"] = dict(
         "",
         "Nothing leaves your machine: the backend listens on `127.0.0.1` and the only outbound connection is the request to",
         "the provider you chose.",
+    ],
+    local_h="Local models (no API key)",
+    local=[
+        "No API key? NEXUS can run a **local model** on your own machine: no account, no cost, and nothing leaves the",
+        "computer once the model is downloaded. It handles the whole thing for you: it detects and installs",
+        "**[Ollama](https://ollama.com)** (or **[LM Studio](https://lmstudio.ai)**), downloads the model with a progress",
+        "bar and leaves the provider configured so you can chat right away.",
+        "",
+        "Open 🧩 in the top bar, or *Settings → Local models*.",
+        "",
+        "**Two ways in:**",
+        "",
+        "- **Ollama** (recommended): NEXUS installs it (Linux: official script with your password; **Windows**: it downloads",
+        "  and runs `OllamaSetup.exe`; macOS: the official download), then pulls the model you pick.",
+        "- **LM Studio**: NEXUS detects it, starts its local server and can download models with the `lms` command. Each card",
+        "  tells you the Hugging Face repo to use.",
+        "",
+        "**The catalogue** (29 models, all 3 GB or less, sizes checked against the real Ollama registry and the Hugging Face",
+        "files) is aimed at light machines and has a strong focus on **uncensored** models (Dolphin and *abliterated* ones),",
+        "with an honest note on every card about what it can and cannot do:",
+        "",
+        "| Model | Size | Uncensored | Tools |",
+        "|---|---|---|---|",
+        "| Qwen2.5 0.5B abliterated | 379 MB | yes | no |",
+        "| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | yes | no |",
+        "| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | yes | no |",
+        "| Llama 3.2 1B abliterated | 911 MB | yes | no |",
+        "| Qwen2.5 1.5B abliterated | 940 MB | yes | no |",
+        "| Qwen3 1.7B abliterated | 1.06 GB | yes | no |",
+        "| Qwen2.5 Coder 1.5B abliterated | 1.07 GB | yes | no |",
+        "| Dolphin Phi 2.7B (Q2/Q4) | 1.12 / 1.53 GB | yes | no |",
+        "| StableLM Zephyr 3B | 1.53 GB | permissive | no |",
+        "| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1.61 GB | yes | no |",
+        "| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1.84 GB | yes | no |",
+        "| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1.84 / 2.12 GB | yes | no |",
+        "| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1.93 / 2.22 GB | yes | no |",
+        "| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1.93 GB | permissive | **yes** |",
+        "| Llama 3.2 3B abliterated | 2.14 GB | yes | no |",
+        "| Qwen3 4B · Qwen3 1.7B | 2.38 / 1.30 GB | no | **yes** |",
+        "| Spark X2.5 4B heretic | 2.48 GB | yes | yes |",
+        "| MiniCPM5 2B heretic | 2.56 GB | yes | no |",
+        "| Wizard Vicuna 7B uncensored (Q2) | 2.69 GB | yes | no |",
+        "| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2.94 GB | yes / permissive | no |",
+        "",
+        "ᴴᶠ = not in the Ollama library: it is pulled from Hugging Face (`ollama pull hf.co/user/repo:Q4_K_M`), which the",
+        "Download button does for you.",
+        "",
+        "**Only for agent mode**: a local model needs to understand *tool calling* to touch files or run commands. Very few",
+        "small models do. The cards marked *tool calling* (**Hermes 3 3B**, **Qwen3 1.7B/4B**, **Spark X2.5 4B**) are the ones",
+        "worth trying; anything else is for chatting, writing, summarising and translating. It also runs on your CPU, so it is",
+        "slow — for real agent work you are better off with an API provider.",
     ],
     quick_h="Quick start",
     quick=[
@@ -54,6 +105,10 @@ T["en"] = dict(
         "bash install-desktop.sh  # adds a launcher to the app menu and desktop",
         "bash stop.sh             # stops the backend",
         "```",
+        "",
+        "**On Windows** (no need for WSL): double-click `run.bat`. It looks for Python 3.9+, starts the backend and opens the",
+        "app window with Edge or Chrome in *app mode*. `install-windows.bat` adds the shortcut to the desktop and the Start",
+        "menu, and `stop.bat` stops the backend. You can also keep using the website at <http://127.0.0.1:8765> from any browser.",
     ],
     feat_h="Features",
     features=[
@@ -69,6 +124,7 @@ T["en"] = dict(
         "**Prompt templates**, a **command palette** (Ctrl+P), voice dictation and read-aloud.",
         "Per-chat statistics, desktop notification and sound when a reply lands, 6 accent colours, JSON import/export.",
         "**Interface in 7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian), switchable from the top bar; Arabic flips the layout to RTL.",
+        "**Local models without an API key**: NEXUS installs Ollama or LM Studio, downloads the model you pick (29 small models, uncensored ones included) and leaves it ready to chat.",
         "**Attachments that stay** — send images or documents and they are saved with the conversation (thumbnail or file chip, click to open or download); they survive reloads and are resent when you regenerate.",
     ],
     shots_h="Screenshots",
@@ -146,10 +202,13 @@ T["en"] = dict(
     struct=["    nexus/",
             "      server.py            backend (Python standard library only)",
             "      providers.json       example provider catalogue",
+            "      local_models.json    catalogue of small local models (Ollama / LM Studio)",
+            "      local_models.py      local model helpers (install, download, configure)",
             "      prompts.json         example prompt library (25 prompts)",
             "      app/                 UI (HTML + CSS + JS, no dependencies)",
             "      assets/shots/        screenshots used in this README",
-            "      run.sh / stop.sh     start and stop",
+            "      run.sh / stop.sh     start and stop (Linux, macOS)",
+            "      run.bat / stop.bat   start and stop (Windows; install-windows.bat makes shortcuts)",
             "      install-desktop.sh   menu and desktop launchers",
             "      lan-allow.sh         opens the port in ufw (optional)",
             "",
@@ -162,8 +221,8 @@ T["en"] = dict(
     notes_h="Notes",
     notes=["Keys are **not** in the repository: they live on your machine (`~/.config/nexus/config.json`, mode 0600) or in env vars.",
            "Agent mode runs commands in the chat's working folder: it is your own machine, use it with care.",
-           "Requires Python 3.9+ and a browser. Tested on Linux (Mint/Ubuntu); on macOS and Windows/WSL it works the same",
-           "  (run `python3 server.py` and open the browser yourself there).",
+           "Requires Python 3.9+ and a browser. Runs on **Windows, Linux and macOS**: on Windows double-click `run.bat`",
+           "  (Edge or Chrome opens in app mode), on Linux/macOS use `run.sh`.",
            "The interface ships in **7 languages** (English, Spanish, Chinese, Japanese, Korean, Arabic and Indonesian); switch from the top bar or Settings. Arabic also flips the layout to right-to-left."],
     lic_h="License",
     lic="MIT — see [LICENSE](LICENSE).",
@@ -171,7 +230,7 @@ T["en"] = dict(
 
 T["es"] = dict(
     subtitle="Consola de chat de IA de escritorio, autoalojada. **Sin dependencias**, cualquier proveedor compatible con OpenAI y todo se queda en tu equipo.",
-    nav=["Inicio rápido", "Qué trae", "Capturas", "Panel", "Proveedores", "Modo agente", "Red local", "Atajos", "Estructura", "Licencia"],
+    nav=["Inicio rápido", "Qué trae", "Capturas", "Panel", "Proveedores", "本地模型", "Modo agente", "Red local", "Atajos", "Estructura", "Licencia"],
     intro=[
         "NEXUS es una consola de chat que ejecutas tú: varios chats, varios proveedores, historial persistente, streaming,",
         "adjuntos de archivos e imágenes, un panel lateral de previsualización de código estilo *artifacts* y un panel de control",
@@ -182,6 +241,57 @@ T["es"] = dict(
         "",
         "Nada sale de tu equipo: el backend escucha en `127.0.0.1` y la única conexión a internet es la petición al proveedor",
         "que tú elijas.",
+    ],
+    local_h="Modelos locales (sin clave de API)",
+    local=[
+        "¿Sin clave de API? NEXUS puede ejecutar un **modelo local** en tu propio ordenador: sin cuenta, sin coste y sin que",
+        "nada salga del equipo una vez descargado. Se encarga de todo: detecta e instala **[Ollama](https://ollama.com)**",
+        "(o **[LM Studio](https://lmstudio.ai)**), descarga el modelo con barra de progreso y deja el proveedor configurado",
+        "para que puedas hablar con él en el momento.",
+        "",
+        "Abre 🧩 en la barra superior, o *Ajustes → Modelos locales*.",
+        "",
+        "**Dos caminos:**",
+        "",
+        "- **Ollama** (recomendado): NEXUS lo instala (Linux: script oficial con tu contraseña; **Windows**: descarga y ejecuta",
+        "  `OllamaSetup.exe`; macOS: la descarga oficial) y luego trae el modelo que elijas.",
+        "- **LM Studio**: NEXUS lo detecta, arranca su servidor local y puede descargar modelos con el comando `lms`. Cada ficha",
+        "  te dice el repositorio de Hugging Face que usa.",
+        "",
+        "**El catálogo** (29 modelos, todos de 3 GB o menos, con tamaños comprobados contra el registro real de Ollama y los",
+        "ficheros de Hugging Face) está pensado para equipos ligeros y con acento en los modelos **sin censura** (Dolphin y",
+        "los *abliterated*), con una nota honesta en cada ficha de lo que sabe y lo que no:",
+        "",
+        "| Modelo | Tamaño | Sin censura | Herramientas |",
+        "|---|---|---|---|",
+        "| Qwen2.5 0.5B abliterated | 379 MB | sí | no |",
+        "| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | sí | no |",
+        "| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | sí | no |",
+        "| Llama 3.2 1B abliterated | 911 MB | sí | no |",
+        "| Qwen2.5 1.5B abliterated | 940 MB | sí | no |",
+        "| Qwen3 1.7B abliterated | 1,06 GB | sí | no |",
+        "| Qwen2.5 Coder 1.5B abliterated | 1,07 GB | sí | no |",
+        "| Dolphin Phi 2.7B (Q2/Q4) | 1,12 / 1,53 GB | sí | no |",
+        "| StableLM Zephyr 3B | 1,53 GB | permisivo | no |",
+        "| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1,61 GB | sí | no |",
+        "| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1,84 GB | sí | no |",
+        "| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1,84 / 2,12 GB | sí | no |",
+        "| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1,93 / 2,22 GB | sí | no |",
+        "| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1,93 GB | permisivo | **sí** |",
+        "| Llama 3.2 3B abliterated | 2,14 GB | sí | no |",
+        "| Qwen3 4B · Qwen3 1.7B | 2,38 / 1,30 GB | no | **sí** |",
+        "| Spark X2.5 4B heretic | 2,48 GB | sí | sí |",
+        "| MiniCPM5 2B heretic | 2,56 GB | sí | no |",
+        "| Wizard Vicuna 7B sin censura (Q2) | 2,69 GB | sí | no |",
+        "| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2,94 GB | sí / permisivo | no |",
+        "",
+        "ᴴᶠ = no está en la biblioteca de Ollama: se descarga desde Hugging Face (`ollama pull hf.co/usuario/repo:Q4_K_M`), que",
+        "es lo que hace el botón Descargar por ti.",
+        "",
+        "**Solo para el modo agente**: un modelo local necesita entender la *llamada a funciones* para tocar archivos o ejecutar",
+        "órdenes, y muy pocos modelos pequeños lo hacen. Las fichas marcadas con *con herramientas* (**Hermes 3 3B**,",
+        "**Qwen3 1.7B/4B**, **Spark X2.5 4B**) son las que merece la pena probar; el resto son para conversar, redactar, resumir",
+        "y traducir. Además corre en tu CPU, así que es lento: para trabajo de agente serio, mejor un proveedor por API.",
     ],
     quick_h="Inicio rápido",
     quick=[
@@ -201,6 +311,11 @@ T["es"] = dict(
         "bash install-desktop.sh  # crea el acceso directo en el menú y el escritorio",
         "bash stop.sh             # detiene el backend",
         "```",
+        "",
+        "**En Windows** (no hace falta WSL): doble clic en `run.bat`. Busca Python 3.9+, arranca el backend y abre la ventana",
+        "de la app con Edge o Chrome en *modo aplicación* (sin barra de navegador). `install-windows.bat` crea el acceso directo",
+        "en el escritorio y en el menú Inicio, y `stop.bat` detiene el backend. También puedes seguir usando la web en",
+        "<http://127.0.0.1:8765> desde cualquier navegador.",
     ],
     feat_h="Qué trae",
     features=[
@@ -216,6 +331,7 @@ T["es"] = dict(
         "**Plantillas de prompt**, **paleta de comandos** (Ctrl+P), dictado por voz y lectura en alto.",
         "Estadísticas por chat, notificación y sonido al terminar, 6 acentos de color e import/export JSON.",
         "**Interfaz en 7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio), se cambia desde la barra superior; el árabe pone la interfaz de derecha a izquierda.",
+        "**Modelos locales sin clave de API**: NEXUS instala Ollama o LM Studio, descarga el modelo que elijas (29 modelos pequeños, sin censura incluidos) y lo deja listo para chatear.",
         "**Adjuntos que se quedan** — envía imágenes o documentos y se guardan con la conversación (miniatura o ficha del archivo, pulsa para abrir o descargar); siguen ahí al recargar y se reenvían al regenerar.",
     ],
     shots_h="Capturas",
@@ -309,8 +425,8 @@ T["es"] = dict(
     notes_h="Notas",
     notes=["Las claves **no** están en el repositorio: viven en tu equipo (`~/.config/nexus/config.json`, permisos 0600) o en variables de entorno.",
            "El modo agente ejecuta comandos en la carpeta de trabajo del chat: es tu propio equipo, úsalo con cuidado.",
-           "Requiere Python 3.9+ y un navegador. Probado en Linux (Mint/Ubuntu); en macOS y Windows/WSL funciona igual",
-           "  (ahí usa `python3 server.py` y abre el navegador a mano).",
+           "Requiere Python 3.9+ y un navegador. Funciona en **Windows, Linux y macOS**: en Windows, doble clic en `run.bat`",
+           "  (abre Edge o Chrome en modo aplicación); en Linux o macOS, `run.sh`.",
            "La interfaz viene en **7 idiomas** (inglés, español, chino, japonés, coreano, árabe e indonesio); se cambia desde la barra superior o en Ajustes. El árabe además pone la interfaz de derecha a izquierda."],
     lic_h="Licencia",
     lic="MIT — ver [LICENSE](LICENSE).",
@@ -318,7 +434,7 @@ T["es"] = dict(
 
 T["zh"] = dict(
     subtitle="自托管的桌面 AI 聊天控制台。**零依赖**，支持任何兼容 OpenAI 的服务，所有数据都留在你自己的机器上。",
-    nav=["快速开始", "功能", "截图", "控制面板", "服务商", "智能体模式", "局域网", "快捷键", "目录结构", "许可证"],
+    nav=["快速开始", "功能", "截图", "控制面板", "服务商", "ローカルモデル", "智能体模式", "局域网", "快捷键", "目录结构", "许可证"],
     intro=[
         "NEXUS 是你自己运行的聊天控制台：多会话、多服务商、持久历史、流式输出、文件与图片附件、",
         "*artifacts* 风格的代码预览侧栏，以及显示真实用量与花费的控制面板。",
@@ -437,7 +553,7 @@ T["zh"] = dict(
 
 T["ja"] = dict(
     subtitle="セルフホスト型のデスクトップ AI チャットコンソール。**依存関係ゼロ**、OpenAI 互換のどのサービスでも動作し、データはすべて手元に残ります。",
-    nav=["クイックスタート", "機能", "スクリーンショット", "コントロールパネル", "プロバイダー", "エージェントモード", "LAN", "ショートカット", "構成", "ライセンス"],
+    nav=["クイックスタート", "機能", "スクリーンショット", "コントロールパネル", "プロバイダー", "로컬 모델", "エージェントモード", "LAN", "ショートカット", "構成", "ライセンス"],
     intro=[
         "NEXUS は自分で動かすチャットコンソールです。複数チャット、複数プロバイダー、永続履歴、ストリーミング、",
         "ファイルと画像の添付、*artifacts* 風のコードプレビューペイン、実際の使用量とコストが見えるダッシュボードを備えています。",
@@ -560,7 +676,7 @@ T["ja"] = dict(
 
 T["ko"] = dict(
     subtitle="셀프 호스팅 데스크톱 AI 채팅 콘솔. **의존성 없음**, OpenAI 호환 서비스라면 무엇이든, 데이터는 모두 내 컴퓨터에 남습니다.",
-    nav=["빠른 시작", "기능", "스크린샷", "제어판", "공급자", "에이전트 모드", "LAN", "단축키", "구성", "라이선스"],
+    nav=["빠른 시작", "기능", "스크린샷", "제어판", "공급자", "النماذج المحلية", "에이전트 모드", "LAN", "단축키", "구성", "라이선스"],
     intro=[
         "NEXUS는 직접 실행하는 채팅 콘솔입니다. 여러 채팅, 여러 공급자, 영구 기록, 스트리밍, 파일·이미지 첨부,",
         "*artifacts* 스타일 코드 미리보기 패널, 그리고 실제 사용량과 비용을 보여주는 대시보드를 갖추고 있습니다.",
@@ -682,7 +798,7 @@ T["ko"] = dict(
 
 T["ar"] = dict(
     subtitle="وحدة تحكم دردشة ذكاء اصطناعي مكتبية تُستضاف ذاتيًا. **بدون أي تبعيات**، وأي مزوّد متوافق مع OpenAI، وكل شيء يبقى على جهازك.",
-    nav=["بداية سريعة", "الميزات", "لقطات الشاشة", "لوحة التحكم", "المزودون", "وضع الوكيل", "الشبكة المحلية", "اختصارات", "البنية", "الرخصة"],
+    nav=["بداية سريعة", "الميزات", "لقطات الشاشة", "لوحة التحكم", "المزودون", "Modelos locales", "وضع الوكيل", "الشبكة المحلية", "اختصارات", "البنية", "الرخصة"],
     intro=[
         "NEXUS وحدة تحكم دردشة تشغّلها بنفسك: محادثات متعددة، مزودون متعددون، سجل دائم، بث مباشر،",
         "مرفقات ملفات وصور، لوحة معاينة كود على طريقة *artifacts*، ولوحة تحكم تُظهر استهلاكك وتكلفتك الحقيقية.",
@@ -804,7 +920,7 @@ T["ar"] = dict(
 
 T["id"] = dict(
     subtitle="Konsol chat AI desktop yang Anda jalankan sendiri. **Tanpa dependensi**, semua penyedia yang kompatibel dengan OpenAI, dan semuanya tetap di komputer Anda.",
-    nav=["Mulai cepat", "Fitur", "Tangkapan layar", "Panel kendali", "Penyedia", "Mode agen", "Jaringan lokal", "Pintasan", "Struktur", "Lisensi"],
+    nav=["Mulai cepat", "Fitur", "Tangkapan layar", "Panel kendali", "Penyedia", "Model lokal", "Mode agen", "Jaringan lokal", "Pintasan", "Struktur", "Lisensi"],
     intro=[
         "NEXUS adalah konsol chat yang Anda jalankan sendiri: banyak chat, banyak penyedia, riwayat permanen, streaming,",
         "lampiran berkas dan gambar, panel pratinjau kode bergaya *artifacts*, serta dasbor pemakaian dan biaya Anda yang sebenarnya.",
@@ -943,7 +1059,7 @@ TEMPLATE = """{langbar}
   <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/dependencies-none-3fb950?style=flat" alt="No dependencies">
   <img src="https://img.shields.io/badge/providers-any%20OpenAI--compatible-7a8dff?style=flat" alt="OpenAI compatible">
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20WSL-8b97b8?style=flat" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macOS-8b97b8?style=flat" alt="Platform">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=flat" alt="License"></a>
 </p>
 
@@ -953,6 +1069,7 @@ TEMPLATE = """{langbar}
   <a href="#-{a_shots}">{n_shots}</a> &nbsp;&middot;&nbsp;
   <a href="#-{a_panel}">{n_panel}</a> &nbsp;&middot;&nbsp;
   <a href="#-{a_prov}">{n_prov}</a> &nbsp;&middot;&nbsp;
+  <a href="#-{a_local}">{n_local}</a> &nbsp;&middot;&nbsp;
   <a href="#-{a_agent}">{n_agent}</a> &nbsp;&middot;&nbsp;
   <a href="#-{a_lan}">{n_lan}</a> &nbsp;&middot;&nbsp;
   <a href="#-{a_short}">{n_short}</a> &nbsp;&middot;&nbsp;
@@ -984,6 +1101,10 @@ TEMPLATE = """{langbar}
 ## 🔑 {prov_h}
 
 {prov}
+
+## 🧩 {local_h}
+
+{local}
 
 ## 🤖 {agent_h}
 
@@ -1057,6 +1178,8 @@ def shots_block(shots):
 
 
 def build(code):
+    # los idiomas que todavia no traducen una seccion nueva caen al ingles
+    T[code] = {**T["en"], **T[code]}
     t = T[code]
     nav = t["nav"]
     anclas = [slug(nav[i]) for i in range(len(nav))]
@@ -1064,15 +1187,17 @@ def build(code):
         langbar=langbar(code),
         subtitle=fix_bold(t["subtitle"]),
         n_quick=nav[0], n_feat=nav[1], n_shots=nav[2], n_panel=nav[3], n_prov=nav[4],
-        n_agent=nav[5], n_lan=nav[6], n_short=nav[7], n_struct=nav[8],
+        n_local=nav[5], n_agent=nav[6], n_lan=nav[7], n_short=nav[8], n_struct=nav[9],
         a_quick=anclas[0], a_feat=anclas[1], a_shots=anclas[2], a_panel=anclas[3],
-        a_prov=anclas[4], a_agent=anclas[5], a_lan=anclas[6], a_short=anclas[7], a_struct=anclas[8],
+        a_prov=anclas[4], a_local=anclas[5], a_agent=anclas[6], a_lan=anclas[7],
+        a_short=anclas[8], a_struct=anclas[9],
         intro="\n".join(t["intro"]),
         quick_h=t["quick_h"], quick="\n".join(t["quick"]),
         feat_h=t["feat_h"], features=bullets(t["features"]),
         shots_h=t["shots_h"], shots=shots_block(t["shots"]),
         panel_h=t["panel_h"], panel_intro=t["panel_intro"], panel=bullets(t["panel"]),
         prov_h=t["prov_h"], prov="\n".join(t["prov"]),
+        local_h=t["local_h"], local="\n".join(t["local"]),
         agent_h=t["agent_h"], agent="\n".join(t["agent"]),
         lan_h=t["lan_h"], lan="\n".join(t["lan"]),
         short_h=t["short_h"], short="\n".join(t["short"]),

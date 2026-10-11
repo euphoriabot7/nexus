@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/dependencies-none-3fb950?style=flat" alt="No dependencies">
   <img src="https://img.shields.io/badge/providers-any%20OpenAI--compatible-7a8dff?style=flat" alt="OpenAI compatible">
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20WSL-8b97b8?style=flat" alt="Platform">
+  <img src="https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macOS-8b97b8?style=flat" alt="Platform">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=flat" alt="License"></a>
 </p>
 
@@ -26,6 +26,7 @@
   <a href="#-لقطات-الشاشة">لقطات الشاشة</a> &nbsp;&middot;&nbsp;
   <a href="#-لوحة-التحكم">لوحة التحكم</a> &nbsp;&middot;&nbsp;
   <a href="#-المزودون">المزودون</a> &nbsp;&middot;&nbsp;
+  <a href="#-modelos-locales">Modelos locales</a> &nbsp;&middot;&nbsp;
   <a href="#-وضع-الوكيل">وضع الوكيل</a> &nbsp;&middot;&nbsp;
   <a href="#-الشبكة-المحلية">الشبكة المحلية</a> &nbsp;&middot;&nbsp;
   <a href="#-اختصارات">اختصارات</a> &nbsp;&middot;&nbsp;
@@ -127,6 +128,57 @@ bash stop.sh             # يوقف الخادم
 يمكنك أيضًا استخدام متغيرات البيئة المعتادة (`OPENAI_API_KEY`، `OPENROUTER_API_KEY`، `GROQ_API_KEY`، `DEEPSEEK_API_KEY`…).
 الفهرس التجريبي في `providers.json`، ويمكنك إضافة أي خدمة أخرى برابطها الأساسي
 (LiteLLM، vLLM، بوابة خاصة، `http://127.0.0.1:11434/v1` لـ Ollama…).
+
+## 🧩 Local models (no API key)
+
+No API key? NEXUS can run a **local model** on your own machine: no account, no cost, and nothing leaves the
+computer once the model is downloaded. It handles the whole thing for you: it detects and installs
+**[Ollama](https://ollama.com)** (or **[LM Studio](https://lmstudio.ai)**), downloads the model with a progress
+bar and leaves the provider configured so you can chat right away.
+
+Open 🧩 in the top bar, or *Settings → Local models*.
+
+**Two ways in:**
+
+- **Ollama** (recommended): NEXUS installs it (Linux: official script with your password; **Windows**: it downloads
+  and runs `OllamaSetup.exe`; macOS: the official download), then pulls the model you pick.
+- **LM Studio**: NEXUS detects it, starts its local server and can download models with the `lms` command. Each card
+  tells you the Hugging Face repo to use.
+
+**The catalogue** (29 models, all 3 GB or less, sizes checked against the real Ollama registry and the Hugging Face
+files) is aimed at light machines and has a strong focus on **uncensored** models (Dolphin and *abliterated* ones),
+with an honest note on every card about what it can and cannot do:
+
+| Model | Size | Uncensored | Tools |
+|---|---|---|---|
+| Qwen2.5 0.5B abliterated | 379 MB | yes | no |
+| TinyDolphin 1.1B (Q4/Q6) | 637 MB / 862 MB | yes | no |
+| Dolphin 3.0 Llama 3.2 1B (Q4) ᴴᶠ | 770 MB | yes | no |
+| Llama 3.2 1B abliterated | 911 MB | yes | no |
+| Qwen2.5 1.5B abliterated | 940 MB | yes | no |
+| Qwen3 1.7B abliterated | 1.06 GB | yes | no |
+| Qwen2.5 Coder 1.5B abliterated | 1.07 GB | yes | no |
+| Dolphin Phi 2.7B (Q2/Q4) | 1.12 / 1.53 GB | yes | no |
+| StableLM Zephyr 3B | 1.53 GB | permissive | no |
+| Dolphin 3.0 Llama 3.2 3B (Q3) ᴴᶠ | 1.61 GB | yes | no |
+| Qwen2.5 / Qwen2.5-Coder 3B abliterated | 1.84 GB | yes | no |
+| Dolphin 3.0 Qwen2.5 3B (Q4/Q5) ᴴᶠ | 1.84 / 2.12 GB | yes | no |
+| Dolphin 3.0 Llama 3.2 3B (Q4/Q5) ᴴᶠ | 1.93 / 2.22 GB | yes | no |
+| Hermes 3 Llama 3.2 3B ᴴᶠ · Ollama | 1.93 GB | permissive | **yes** |
+| Llama 3.2 3B abliterated | 2.14 GB | yes | no |
+| Qwen3 4B · Qwen3 1.7B | 2.38 / 1.30 GB | no | **yes** |
+| Spark X2.5 4B heretic | 2.48 GB | yes | yes |
+| MiniCPM5 2B heretic | 2.56 GB | yes | no |
+| Wizard Vicuna 7B uncensored (Q2) | 2.69 GB | yes | no |
+| Dolphin Mistral 7B (Q2) · OpenHermes 2.5 7B (Q2) | 2.94 GB | yes / permissive | no |
+
+ᴴᶠ = not in the Ollama library: it is pulled from Hugging Face (`ollama pull hf.co/user/repo:Q4_K_M`), which the
+Download button does for you.
+
+**Only for agent mode**: a local model needs to understand *tool calling* to touch files or run commands. Very few
+small models do. The cards marked *tool calling* (**Hermes 3 3B**, **Qwen3 1.7B/4B**, **Spark X2.5 4B**) are the ones
+worth trying; anything else is for chatting, writing, summarising and translating. It also runs on your CPU, so it is
+slow — for real agent work you are better off with an API provider.
 
 ## 🤖 وضع الوكيل (اختياري)
 

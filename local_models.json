@@ -1,0 +1,764 @@
+{
+  "nota": "Modelos locales de hasta 3 GB (cuantización indicada en cada ficha) para equipos ligeros. Los marcados como 'sin censura' están afinados para no rechazar peticiones (Dolphin/abliterated). Tamaños comprobados contra el registro de Ollama y contra los ficheros GGUF de Hugging Face. Las fichas 'Hugging Face' (hf.co/...) no están en la biblioteca de Ollama: se descargan igual con el botón Descargar, porque Ollama sabe traer GGUF de Hugging Face. Solo los modelos con herramientas = sí pueden intentar el modo agente.",
+  "revisado": "2026-10-11",
+  "modelos": [
+    {
+      "id": "huihui_ai/qwen2.5-abliterate:0.5b",
+      "nombre": "Qwen2.5 0.5B abliterated",
+      "backend": "ollama",
+      "params": "0.5B",
+      "mb": 379,
+      "familia": "Qwen2.5 abliterado (sin rechazos)",
+      "sin_censura": true,
+      "multilingue": true,
+      "contexto": 32768,
+      "herramientas": false,
+      "resumen": "El más pequeño de la lista. Aligerado de rechazos, va justo para charlar y respuestas cortas en equipos muy limitados.",
+      "sabe": [
+        "charlar",
+        "respuestas cortas",
+        "traducir frases"
+      ],
+      "no_sabe": [
+        "razonamiento largo",
+        "código",
+        "llamar a herramientas"
+      ],
+      "recomendado": "Probar la app en un PC viejo o con poca RAM (2 GB de RAM libre basta)."
+    },
+    {
+      "id": "tinydolphin:1.1b-v2.8-q4_K_M",
+      "nombre": "TinyDolphin 1.1B (Q4)",
+      "backend": "ollama",
+      "params": "1.1B",
+      "mb": 637,
+      "familia": "TinyLlama + dataset Dolphin 2.8",
+      "multilingue": false,
+      "contexto": 4096,
+      "herramientas": false,
+      "resumen": "Entrenado por Eric Hartford con el dataset Dolphin 2.8: responde sin filtros, pero con la cabeza de un 1B. Ideal para probar que todo funciona.",
+      "sabe": [
+        "charlar",
+        "roleplay sencillo",
+        "textos cortos"
+      ],
+      "no_sabe": [
+        "instrucciones de varios pasos",
+        "código",
+        "español fino"
+      ],
+      "recomendado": "Primera prueba: descarga rápida y arranca en cualquier máquina.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "tinydolphin:1.1b-v2.8-q6_K",
+      "nombre": "TinyDolphin 1.1B (Q6, mejor calidad)",
+      "backend": "ollama",
+      "params": "1.1B",
+      "mb": 862,
+      "familia": "TinyLlama + Dolphin 2.8",
+      "multilingue": false,
+      "contexto": 4096,
+      "herramientas": false,
+      "resumen": "La misma base del anterior con más precisión (Q6). Un poco mejor en coherencia, sigue siendo un 1B.",
+      "sabe": [
+        "charlar",
+        "roleplay",
+        "resúmenes muy cortos"
+      ],
+      "no_sabe": [
+        "tareas de varios pasos",
+        "código"
+      ],
+      "recomendado": "Si el Q4 te deja respuestas incoherentes, prueba este.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "huihui_ai/qwen2.5-abliterate:1.5b",
+      "nombre": "Qwen2.5 1.5B abliterated",
+      "backend": "ollama",
+      "params": "1.5B",
+      "mb": 940,
+      "familia": "Qwen2.5 abliterado",
+      "multilingue": true,
+      "contexto": 32768,
+      "herramientas": false,
+      "resumen": "Sin rechazos y multilingüe de verdad (español incluido). Para su tamaño entiende bastante bien las instrucciones.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir",
+        "preguntas concretas"
+      ],
+      "no_sabe": [
+        "código serio",
+        "herramientas",
+        "razonamiento largo"
+      ],
+      "recomendado": "El mejor equilibrio tamaño/uso para uso diario ligero.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "huihui_ai/llama3.2-abliterate:1b",
+      "nombre": "Llama 3.2 1B abliterated",
+      "backend": "ollama",
+      "params": "1B",
+      "mb": 911,
+      "familia": "Llama 3.2 abliterado",
+      "multilingue": true,
+      "contexto": 131072,
+      "herramientas": false,
+      "resumen": "Llama 3.2 1B con el rechazo eliminado por abliteración. Contexto enorme (128k) para lo que pesa.",
+      "sabe": [
+        "charlar",
+        "resumir textos largos (contexto grande)",
+        "traducir"
+      ],
+      "no_sabe": [
+        "razonamiento complejo",
+        "código",
+        "herramientas"
+      ],
+      "recomendado": "Cuando necesites meterle documentos largos en un PC modesto.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "huihui_ai/qwen3-abliterated:1.7b",
+      "nombre": "Qwen3 1.7B abliterated",
+      "backend": "ollama",
+      "params": "1.7B",
+      "mb": 1056,
+      "familia": "Qwen3 abliterado (con modo razonamiento)",
+      "multilingue": true,
+      "contexto": 32768,
+      "herramientas": false,
+      "resumen": "Qwen3 abliterado: puede 'pensar' antes de responder (razonamiento), sin rechazos y en español decente.",
+      "sabe": [
+        "charlar",
+        "razonar paso a paso",
+        "matemáticas sencillas",
+        "redactar"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "código complejo"
+      ],
+      "recomendado": "El más listo por debajo de 1,1 GB.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "huihui_ai/qwen2.5-coder-abliterate:1.5b",
+      "nombre": "Qwen2.5 Coder 1.5B abliterated",
+      "backend": "ollama",
+      "params": "1.5B",
+      "mb": 1066,
+      "familia": "Qwen2.5-Coder abliterado",
+      "multilingue": true,
+      "contexto": 32768,
+      "herramientas": false,
+      "resumen": "Especializado en código y sin rechazos. Escribe funciones sueltas, no proyectos enteros.",
+      "sabe": [
+        "código de una función",
+        "explicar código",
+        "SQL básico",
+        "regex"
+      ],
+      "no_sabe": [
+        "proyectos grandes",
+        "herramientas",
+        "refactors largos"
+      ],
+      "recomendado": "Para pegar un fragmento y que lo arregle o lo explique.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "dolphin-phi:2.7b-v2.6-q2_K",
+      "nombre": "Dolphin Phi 2.7B (Q2, mínimo)",
+      "backend": "ollama",
+      "params": "2.7B",
+      "mb": 1119,
+      "familia": "Microsoft Phi + Dolphin 2.6",
+      "multilingue": false,
+      "contexto": 2048,
+      "herramientas": false,
+      "resumen": "Dolphin Phi comprimido al máximo (Q2). Ocupa poco pero la calidad baja bastante; usa el Q4 si puedes.",
+      "sabe": [
+        "charlar",
+        "roleplay",
+        "textos creativos"
+      ],
+      "no_sabe": [
+        "español fino",
+        "código",
+        "tareas largas"
+      ],
+      "recomendado": "Solo si vas muy justo de disco o RAM.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "dolphin-phi:2.7b-v2.6-q4_0",
+      "nombre": "Dolphin Phi 2.7B (Q4)",
+      "backend": "ollama",
+      "params": "2.7B",
+      "mb": 1528,
+      "familia": "Microsoft Phi + Dolphin 2.6",
+      "multilingue": false,
+      "contexto": 2048,
+      "herramientas": false,
+      "resumen": "El clásico Dolphin Phi de Eric Hartford en su cuantización normal: sin censura y bastante coherente para 2.7B.",
+      "sabe": [
+        "charlar",
+        "roleplay y escritura creativa",
+        "resumir"
+      ],
+      "no_sabe": [
+        "código",
+        "herramientas",
+        "contexto largo"
+      ],
+      "recomendado": "Buena calidad sin censura con 2 GB de RAM libre.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "stablelm-zephyr:3b",
+      "nombre": "StableLM Zephyr 3B",
+      "backend": "ollama",
+      "params": "3B",
+      "mb": 1534,
+      "familia": "StableLM 2 + Zephyr (permisivo)",
+      "multilingue": false,
+      "contexto": 4096,
+      "herramientas": false,
+      "resumen": "No es 'sin censura' declarado, pero es muy permisivo y sigue instrucciones mejor que los 1B.",
+      "sabe": [
+        "instrucciones sencillas",
+        "charlar",
+        "redactar"
+      ],
+      "no_sabe": [
+        "español fino",
+        "herramientas",
+        "código"
+      ],
+      "recomendado": "Si quieres que obedezca instrucciones y no te importa el tono.",
+      "sin_censura": false,
+      "_flag_deducido": true
+    },
+    {
+      "id": "huihui_ai/qwen2.5-abliterate:3b",
+      "nombre": "Qwen2.5 3B abliterated",
+      "backend": "ollama",
+      "params": "3B",
+      "mb": 1841,
+      "familia": "Qwen2.5 abliterado",
+      "multilingue": true,
+      "contexto": 32768,
+      "herramientas": false,
+      "resumen": "El tope de calidad de la lista sin pasar de 2 GB: sin rechazos, multilingüe y con cabeza para 3B.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir",
+        "preguntas de cultura general",
+        "código sencillo"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "razonamiento muy largo"
+      ],
+      "recomendado": "La mejor opción si el equipo aguanta ~4 GB de RAM libre.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "huihui_ai/qwen2.5-coder-abliterate:3b",
+      "nombre": "Qwen2.5 Coder 3B abliterated",
+      "backend": "ollama",
+      "params": "3B",
+      "mb": 1841,
+      "familia": "Qwen2.5-Coder abliterado",
+      "multilingue": true,
+      "contexto": 32768,
+      "herramientas": false,
+      "resumen": "El mejor de la lista para programar sin filtros, dentro del límite de 2 GB.",
+      "sabe": [
+        "código",
+        "explicar y corregir código",
+        "SQL",
+        "scripts"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "proyectos completos"
+      ],
+      "recomendado": "Para trabajar con código en local sin censura.",
+      "sin_censura": true,
+      "_flag_deducido": true
+    },
+    {
+      "id": "hermes3:3b",
+      "nombre": "Hermes 3 3B (Nous Research)",
+      "backend": "ollama",
+      "params": "3B",
+      "mb": 1926,
+      "familia": "Llama 3.2 + Hermes 3 (Nous Research)",
+      "multilingue": true,
+      "contexto": 131072,
+      "herramientas": true,
+      "sin_censura": false,
+      "resumen": "No es 'sin censura' pero es poco restrictivo y es el ÚNICO de la lista que sabe llamar a funciones: es el candidato para el modo agente en local.",
+      "sabe": [
+        "instrucciones",
+        "llamada a funciones (herramientas)",
+        "resumir",
+        "redactar"
+      ],
+      "no_sabe": [
+        "razonamiento largo",
+        "código complejo"
+      ],
+      "recomendado": "Para probar el modo agente sin API externa (lento, pero funciona)."
+    },
+    {
+      "id": "hf.co/bartowski/Dolphin3.0-Llama3.2-3B-GGUF:Q4_K_M",
+      "nombre": "Dolphin 3.0 Llama 3.2 3B (Q4_K_M)",
+      "backend": "ollama",
+      "hf": true,
+      "params": "3B",
+      "mb": 1926,
+      "familia": "Llama 3.2 3B + Dolphin 3.0 (Eric Hartford)",
+      "sin_censura": true,
+      "multilingue": true,
+      "contexto": 131072,
+      "herramientas": false,
+      "resumen": "El Dolphin 3.0 3B que pediste. No esta en la biblioteca de Ollama, asi que se descarga desde Hugging Face con el mismo boton (Ollama soporta hf.co). Sin censura y bastante capaz para 3B.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir",
+        "codigo sencillo",
+        "instrucciones de varios pasos"
+      ],
+      "no_sabe": [
+        "llamar a herramientas",
+        "razonamiento muy largo"
+      ],
+      "recomendado": "El mejor 'sin censura' de 3B por debajo de 2 GB."
+    },
+    {
+      "id": "hf.co/bartowski/Dolphin3.0-Llama3.2-3B-GGUF:Q3_K_M",
+      "nombre": "Dolphin 3.0 Llama 3.2 3B (Q3_K_M, mas ligero)",
+      "backend": "ollama",
+      "hf": true,
+      "params": "3B",
+      "mb": 1609,
+      "familia": "Llama 3.2 3B + Dolphin 3.0",
+      "sin_censura": true,
+      "multilingue": true,
+      "contexto": 131072,
+      "herramientas": false,
+      "resumen": "El mismo Dolphin 3.0 3B con menos precision para gastar menos memoria y disco (1,6 GB).",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "precision alta"
+      ],
+      "recomendado": "Para equipos con 4 GB de RAM justos."
+    },
+    {
+      "id": "hf.co/bartowski/Dolphin3.0-Llama3.2-1B-GGUF:Q4_K_M",
+      "nombre": "Dolphin 3.0 Llama 3.2 1B (Q4_K_M)",
+      "backend": "ollama",
+      "hf": true,
+      "params": "1B",
+      "mb": 770,
+      "familia": "Llama 3.2 1B + Dolphin 3.0",
+      "sin_censura": true,
+      "multilingue": true,
+      "contexto": 131072,
+      "herramientas": false,
+      "resumen": "Dolphin 3.0 en 1B: descarga en un momento y arranca en cualquier PC. Respuestas simples.",
+      "sabe": [
+        "charlar",
+        "respuestas cortas",
+        "resumir frases"
+      ],
+      "no_sabe": [
+        "tareas complejas",
+        "herramientas"
+      ],
+      "recomendado": "Primera toma de contacto y equipos muy justos."
+    },
+    {
+      "id": "hf.co/bartowski/Dolphin3.0-Qwen2.5-3B-GGUF:Q4_K_M",
+      "nombre": "Dolphin 3.0 Qwen2.5 3B (Q4_K_M)",
+      "backend": "ollama",
+      "hf": true,
+      "params": "3B",
+      "mb": 1841,
+      "familia": "Qwen2.5 3B + Dolphin 3.0",
+      "sin_censura": true,
+      "multilingue": true,
+      "contexto": 32768,
+      "herramientas": false,
+      "resumen": "Dolphin 3.0 sobre Qwen2.5 3B: sin censura y mejor en espanol que la version Llama, mas rapido.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir",
+        "codigo sencillo"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "razonamiento largo"
+      ],
+      "recomendado": "Si escribes sobre todo en espanol, este antes que el Llama."
+    },
+    {
+      "id": "hf.co/bartowski/Hermes-3-Llama-3.2-3B-GGUF:Q4_K_M",
+      "nombre": "Hermes 3 Llama 3.2 3B (Q4_K_M)",
+      "backend": "ollama",
+      "hf": true,
+      "params": "3B",
+      "mb": 1926,
+      "familia": "Llama 3.2 3B + Hermes 3 (Nous Research)",
+      "sin_censura": false,
+      "multilingue": true,
+      "contexto": 131072,
+      "herramientas": true,
+      "resumen": "Hermes 3 de Nous Research desde Hugging Face: no es 'sin censura' pero es poco restrictivo y sabe llamar a funciones, asi que puede intentar el modo agente en local.",
+      "sabe": [
+        "instrucciones",
+        "llamada a funciones (herramientas)",
+        "resumir",
+        "redactar"
+      ],
+      "no_sabe": [
+        "razonamiento muy largo",
+        "codigo complejo"
+      ],
+      "recomendado": "Para probar el modo agente sin API externa."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "huihui_ai/llama3.2-abliterate:3b",
+      "nombre": "Llama 3.2 3B abliterated",
+      "params": "3B",
+      "mb": 2137,
+      "familia": "Llama 3.2 3B abliterado",
+      "contexto": 131072,
+      "resumen": "Llama 3.2 3B sin rechazos, con contexto de 128k: el mejor 'sin censura' para textos largos.",
+      "sabe": [
+        "charlar",
+        "resumir documentos largos",
+        "redactar",
+        "traducir"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "código complejo"
+      ],
+      "recomendado": "Si necesitas meterle mucho texto y no pasar de 2,1 GB."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "huihui_ai/qwen3-abliterated:4b",
+      "nombre": "Qwen3 4B abliterated",
+      "params": "4B",
+      "mb": 2382,
+      "familia": "Qwen3 4B abliterado (con razonamiento)",
+      "contexto": 32768,
+      "resumen": "Qwen3 4B sin rechazos y con modo de razonamiento: el más listo del catálogo por debajo de 2,5 GB.",
+      "sabe": [
+        "razonar paso a paso",
+        "matemáticas",
+        "redactar",
+        "traducir",
+        "código sencillo"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "contextos enormes"
+      ],
+      "recomendado": "La mejor calidad 'sin censura' si tienes 6 GB de RAM."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "Maternion/minicpm5-heretic:2b",
+      "nombre": "MiniCPM5 2B heretic",
+      "params": "2B",
+      "mb": 2556,
+      "familia": "MiniCPM5 2B abliterado (heretic)",
+      "contexto": 32768,
+      "resumen": "MiniCPM5 abliterado con muy pocos rechazos. Rinde como un 4B en varias tareas con tamaño de 2B.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "preguntas concretas"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "código complejo"
+      ],
+      "recomendado": "Alternativa moderna a los 3B de siempre."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": true,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "Maternion/spark-x2.5-heretic:4b",
+      "nombre": "Spark X2.5 4B heretic",
+      "params": "4B",
+      "mb": 2480,
+      "familia": "Spark X2.5 4B abliterado",
+      "contexto": 1000000,
+      "resumen": "4B abliterado con contexto declarado de 1M y soporte de herramientas y agentes segun su ficha. Poquísimos rechazos.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "código",
+        "herramientas (según su ficha)",
+        "textos muy largos"
+      ],
+      "no_sabe": [
+        "razonamiento profundo"
+      ],
+      "recomendado": "El candidato 'sin censura' para probar el modo agente en local (verifica las herramientas)."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": false,
+      "id": "dolphin-mistral:7b-v2.6-q2_K",
+      "nombre": "Dolphin Mistral 7B (Q2)",
+      "params": "7B",
+      "mb": 2941,
+      "familia": "Mistral 7B + Dolphin 2.6",
+      "contexto": 32768,
+      "resumen": "El clásico Dolphin Mistral de 7B comprimido a Q2. Sin censura y bueno en código, aunque la compresión se nota.",
+      "sabe": [
+        "charlar",
+        "código",
+        "redactar",
+        "roleplay"
+      ],
+      "no_sabe": [
+        "español fino",
+        "herramientas"
+      ],
+      "recomendado": "Si quieres un 7B sin censura y no pasas de 3 GB."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": false,
+      "id": "wizard-vicuna-uncensored:7b-q2_K",
+      "nombre": "Wizard Vicuna 7B sin censura (Q2)",
+      "params": "7B",
+      "mb": 2695,
+      "familia": "Llama 2 + Wizard Vicuna Uncensored",
+      "contexto": 2048,
+      "resumen": "Uno de los clásicos sin censura de Eric Hartford, comprimido. Conversación y roleplay sin filtros.",
+      "sabe": [
+        "charlar",
+        "roleplay",
+        "escritura creativa"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "contexto largo",
+        "español"
+      ],
+      "recomendado": "Para escritura creativa sin restricciones."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": false,
+      "multilingue": false,
+      "id": "openhermes:7b-mistral-v2.5-q2_K",
+      "nombre": "OpenHermes 2.5 7B (Q2)",
+      "params": "7B",
+      "mb": 2940,
+      "familia": "Mistral 7B + OpenHermes 2.5",
+      "contexto": 32768,
+      "resumen": "No es 'sin censura' declarado, pero es muy permisivo y de los que mejor siguen instrucciones en 7B.",
+      "sabe": [
+        "instrucciones",
+        "charlar",
+        "resumir",
+        "código sencillo"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "español fino"
+      ],
+      "recomendado": "Si quieres obediencia más que libertad."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": true,
+      "sin_censura": false,
+      "multilingue": true,
+      "id": "qwen3:4b",
+      "nombre": "Qwen3 4B (con herramientas)",
+      "params": "4B",
+      "mb": 2382,
+      "familia": "Qwen3 4B (Alibaba)",
+      "contexto": 32768,
+      "resumen": "No es 'sin censura', pero es el 4B que mejor llama a funciones: la opción realista para el modo agente en local.",
+      "sabe": [
+        "herramientas (modo agente)",
+        "razonar",
+        "código",
+        "traducir"
+      ],
+      "no_sabe": [
+        "nada grave para su tamaño"
+      ],
+      "recomendado": "Para el modo agente local con un modelo moderno."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": true,
+      "sin_censura": false,
+      "multilingue": true,
+      "id": "qwen3:1.7b",
+      "nombre": "Qwen3 1.7B (con herramientas)",
+      "params": "1.7B",
+      "mb": 1296,
+      "familia": "Qwen3 1.7B (Alibaba)",
+      "contexto": 32768,
+      "resumen": "El modelo más pequeño del catálogo que sabe llamar a funciones: útil para probar el modo agente sin gastar RAM.",
+      "sabe": [
+        "herramientas (modo agente)",
+        "charlar",
+        "traducir"
+      ],
+      "no_sabe": [
+        "tareas complejas"
+      ],
+      "recomendado": "Prueba rápida del modo agente en un equipo justo."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "hf.co/bartowski/Dolphin3.0-Llama3.2-3B-GGUF:Q5_K_M",
+      "nombre": "Dolphin 3.0 Llama 3.2 3B (Q5_K_M)",
+      "params": "3B",
+      "mb": 2215,
+      "hf": true,
+      "familia": "Llama 3.2 3B + Dolphin 3.0",
+      "contexto": 131072,
+      "resumen": "El Dolphin 3.0 3B con más precisión que el Q4 (2,2 GB). Mejor coherencia en textos largos.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir",
+        "código sencillo"
+      ],
+      "no_sabe": [
+        "herramientas"
+      ],
+      "recomendado": "Si el Q4 te supo a poco."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "hf.co/bartowski/Dolphin3.0-Qwen2.5-3B-GGUF:Q5_K_M",
+      "nombre": "Dolphin 3.0 Qwen2.5 3B (Q5_K_M)",
+      "params": "3B",
+      "mb": 2122,
+      "hf": true,
+      "familia": "Qwen2.5 3B + Dolphin 3.0",
+      "contexto": 32768,
+      "resumen": "Dolphin 3.0 sobre Qwen2.5 3B con cuantización Q5: el mejor español sin censura por debajo de 2,2 GB.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir",
+        "preguntas concretas"
+      ],
+      "no_sabe": [
+        "herramientas"
+      ],
+      "recomendado": "Mi recomendación para uso diario en español."
+    }
+  ],
+  "lmstudio": [
+    {
+      "repo": "bartowski/Dolphin3.0-Llama3.2-1B-GGUF",
+      "nombre": "Dolphin 3.0 Llama 3.2 1B",
+      "params": "1B",
+      "mb": 800,
+      "sin_censura": true,
+      "resumen": "Dolphin 3.0 de Eric Hartford sobre Llama 3.2 1B. Descarga rápida para probar LM Studio.",
+      "quant": "Q4_K_M"
+    },
+    {
+      "repo": "bartowski/Dolphin3.0-Llama3.2-3B-GGUF",
+      "nombre": "Dolphin 3.0 Llama 3.2 3B",
+      "params": "3B",
+      "mb": 2020,
+      "sin_censura": true,
+      "resumen": "Dolphin 3.0 3B: el mejor equilibrio sin censura en LM Studio (Q4_K_M ronda los 2 GB).",
+      "quant": "Q4_K_M"
+    },
+    {
+      "repo": "bartowski/Dolphin3.0-Qwen2.5-3B-GGUF",
+      "nombre": "Dolphin 3.0 Qwen2.5 3B",
+      "params": "3B",
+      "mb": 2000,
+      "sin_censura": true,
+      "multilingue": true,
+      "resumen": "Dolphin 3.0 sobre Qwen2.5 3B: sin censura y mejor en español que la versión Llama.",
+      "quant": "Q4_K_M"
+    },
+    {
+      "repo": "bartowski/Hermes-3-Llama-3.2-3B-GGUF",
+      "nombre": "Hermes 3 Llama 3.2 3B",
+      "params": "3B",
+      "mb": 2000,
+      "sin_censura": false,
+      "herramientas": true,
+      "resumen": "Hermes 3 de Nous Research: el de LM Studio que sabe usar herramientas (modo agente local).",
+      "quant": "Q4_K_M"
+    }
+  ]
+}
