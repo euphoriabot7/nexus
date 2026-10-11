@@ -242,7 +242,6 @@ window.NEXUS_ADD_LANG({ code: "id", name: "Bahasa Indonesia", strings: {
     duplicated: "Chat diduplikat",
     cleared: "Pesan dikosongkan",
     title_placeholder: "Chat baru",
-prices: "Harga",
     refresh_prices: "Unduh tabel harga (models.dev)",
     pricing_info: "harga: {n} model · diperbarui {date}",
     pricing_none: "belum ada tabel harga (tekan ↻ Harga)",

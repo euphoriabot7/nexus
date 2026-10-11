@@ -245,7 +245,6 @@ window.NEXUS_ADD_LANG({
     duplicated: "تم تكرار الدردشة",
     cleared: "تم إفراغ الرسائل",
     title_placeholder: "دردشة جديدة",
-  prices: "الأسعار",
     refresh_prices: "تنزيل جدول الأسعار (models.dev)",
     pricing_info: "الأسعار: {n} موديل · آخر تحديث {date}",
     pricing_none: "لا يوجد جدول أسعار بعد (اضغط ↻ الأسعار)",

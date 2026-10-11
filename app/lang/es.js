@@ -263,7 +263,6 @@
     duplicated: "Chat duplicado",
     cleared: "Mensajes vaciados",
     title_placeholder: "Nuevo chat",
-  prices: "Precios",
     refresh_prices: "Descargar la tabla de precios (models.dev)",
     pricing_info: "precios: {n} modelos · actualizado {date}",
     pricing_none: "sin tabla de precios todavía (pulsa ↻ Precios)",

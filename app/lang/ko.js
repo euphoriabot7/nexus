@@ -242,7 +242,6 @@ window.NEXUS_ADD_LANG({ code: "ko", name: "한국어", strings: {
     duplicated: "채팅 복제됨",
     cleared: "메시지 비워짐",
     title_placeholder: "새 채팅",
-  prices: "가격",
     refresh_prices: "가격표 다운로드(models.dev)",
     pricing_info: "가격: 모델 {n}개 · 업데이트 {date}",
     pricing_none: "아직 가격표가 없습니다 (↻ 가격 클릭)",

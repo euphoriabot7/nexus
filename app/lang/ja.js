@@ -263,7 +263,6 @@
     duplicated: "チャットを複製しました",
     cleared: "メッセージを消去しました",
     title_placeholder: "新規チャット",
-  prices: "価格",
     refresh_prices: "価格表をダウンロード（models.dev）",
     pricing_info: "価格: {n} モデル · 更新 {date}",
     pricing_none: "価格表がまだありません（↻ 価格を押す）",
