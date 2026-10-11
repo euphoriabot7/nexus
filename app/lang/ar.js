@@ -390,6 +390,7 @@ window.NEXUS_ADD_LANG({
     upd_error: "تعذّر التحقق:",
     upd_via_git: "يُطبَّق تلقائيًا بواسطة git",
     upd_via_zip: "تنزيل الحزمة",
+    attach_no_vision: "هذا الموديل لا يرى الصور: تم حفظ الملف لكن لم يُرسل. اختر موديلًا يدعم الرؤية (أو موديلًا سحابيًا).",
     meta_tokens: "رمز",
     meta_out: "إخراج",
     meta_interrupted: "مقاطعة",

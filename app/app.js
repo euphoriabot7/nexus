@@ -822,6 +822,10 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
           contentEl.innerHTML = `<span class="local-wait">⏳ ${t("local_wait_agent")}</span>`;
           scrollBottom();
         }
+        if (n && n.kind === "no_vision" && !asst.meta.noticeVision) {
+          asst.meta.noticeVision = true;
+          toast(t("attach_no_vision"), 8000);
+        }
       },
       onError: (msg) => { asst.meta = { error: msg, agent: !!agent }; },
     });

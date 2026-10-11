@@ -1048,11 +1048,8 @@ def save_attachments(msg_id, attachments):
     for i, a in enumerate(attachments or []):
         name = safe_filename(a.get("name"))
         mime = a.get("mime") or "application/octet-stream"
-        try:
-            raw = base64.b64decode((a.get("data") or "") + "===")
-        except Exception:
-            continue
-        if not raw:
+        raw = norm_b64(a.get("data"))
+        if not raw:                       # base64 corrupto: mejor no escribir un archivo basura
             continue
         fname = f"{msg_id}_{i}_{name}"
         (FILES_DIR / fname).write_bytes(raw)
@@ -1077,6 +1074,58 @@ def files_of_message(m):
     return ((m or {}).get("meta") or {}).get("files") or []
 
 
+VISION_CACHE = {}
+
+
+def norm_b64(data):
+    """Devuelve los bytes del adjunto venga como venga: base64 puro o URL de datos.
+
+    Un cliente puede mandar 'data:image/png;base64,AAAA...'; si se pasa tal cual al
+    modelo, la imagen llega corrupta y el proveedor responde 'invalid image input'.
+    """
+    texto = str(data or "").strip()
+    if texto.startswith("data:"):
+        partes = texto.split(",", 1)
+        texto = partes[1] if len(partes) == 2 else ""
+    texto = texto.strip()
+    # si trae caracteres que no son base64 (ni espacios), el adjunto no es valido:
+    # antes se colaban y se escribia un archivo basura de unos pocos bytes
+    if not texto or not re.fullmatch(r"[A-Za-z0-9+/=\s]+", texto):
+        return None
+    try:
+        crudo = base64.b64decode(texto + "===")
+    except Exception:  # noqa: BLE001
+        return None
+    return crudo or None
+
+
+def sin_imagenes(attachments):
+    """Los adjuntos que no son imagenes (para modelos que no ven)."""
+    return [a for a in (attachments or []) if not str(a.get("mime") or "").startswith("image/")]
+
+
+def modelo_ve_imagenes(chat):
+    """Si el modelo puede ver imagenes. En local se pregunta a Ollama/LM Studio y se recuerda."""
+    pid = (chat.get("provider") or "").lower()
+    modelo = chat.get("model") or ""
+    if pid not in ("ollama", "lmstudio"):
+        return True            # en la nube se asume que si; si falla, hay reintento mas abajo
+    clave = f"{pid}:{modelo}"
+    if clave in VISION_CACHE:
+        return VISION_CACHE[clave]
+    ve = True
+    try:
+        binario = local_models.ollama_bin() if pid == "ollama" else local_models.lms_bin()
+        if binario:
+            r = subprocess.run([binario, "show", modelo], capture_output=True, text=True, timeout=40,
+                               env=(agent_env() if pid == "ollama" else None))
+            ve = "vision" in ((r.stdout or "") + (r.stderr or "")).lower()
+    except Exception:  # noqa: BLE001
+        ve = True
+    VISION_CACHE[clave] = ve
+    return ve
+
+
 def split_attachments(attachments):
     text_blocks, images, total = [], [], 0
     for a in attachments or []:
@@ -1086,14 +1135,13 @@ def split_attachments(attachments):
         total += len(data)
         if total > MAX_ATTACH_TOTAL:
             raise RuntimeError("Los adjuntos superan el limite de tamaño.")
+        crudo = norm_b64(data)
+        if crudo is None:                      # adjunto ilegible: no se le pasa al modelo
+            continue
         if mime.startswith("image/"):
-            images.append({"name": name, "url": f"data:{mime};base64,{data}"})
+            images.append({"name": name, "url": f"data:{mime};base64,{base64.b64encode(crudo).decode()}"})
         else:
-            try:
-                raw = base64.b64decode(data + "===")[:MAX_ATTACH_TEXT]
-            except Exception:
-                raw = b""
-            text_blocks.append((name, raw.decode("utf-8", "replace")))
+            text_blocks.append((name, crudo[:MAX_ATTACH_TEXT].decode("utf-8", "replace")))
     return text_blocks, images
 
 
@@ -1136,7 +1184,26 @@ def stream_completion(chat, history, on_delta, attachments=None):
                                  headers=headers, method="POST")
     text_parts, meta = [], {"usage": None}
     t0 = time.time()
-    with urllib.request.urlopen(req, timeout=600) as resp:
+    try:
+        respuesta = urllib.request.urlopen(req, timeout=600)
+    except urllib.error.HTTPError as exc:
+        detalle = ""
+        try:
+            detalle = exc.read().decode("utf-8", "replace")[:400]
+        except Exception:  # noqa: BLE001
+            pass
+        grave = detalle.lower()
+        hay_imagenes = any(str(a.get("mime") or "").startswith("image/") for a in (attachments or []))
+        if hay_imagenes and any(x in grave for x in ("image", "vision", "mmproj", "multimodal")):
+            # el modelo no ve: se repite el turno sin las imagenes, avisando
+            meta["sin_vision"] = True
+            payload["messages"] = build_messages(chat, history, sin_imagenes(attachments))
+            req = urllib.request.Request(base + "/chat/completions", data=json.dumps(payload).encode("utf-8"),
+                                         headers=headers, method="POST")
+            respuesta = urllib.request.urlopen(req, timeout=600)
+        else:
+            raise RuntimeError(f"El proveedor respondio {exc.code}. {detalle}")
+    with respuesta as resp:
         for raw in resp:
             line = raw.decode("utf-8", "replace").strip()
             if not line or not line.startswith("data:"):
@@ -2053,6 +2120,17 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return {}
 
+    def cuerpo_mal_formado(self):
+        """True si la peticion traia cuerpo y no era JSON valido (para responder 400)."""
+        raw = getattr(self, "_body_raw", b"") or b""
+        if not raw.strip():
+            return False
+        try:
+            json.loads(raw.decode("utf-8"))
+            return False
+        except Exception:  # noqa: BLE001
+            return True
+
     def sse_start(self):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -2406,6 +2484,8 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:  # noqa: BLE001
                 return self.send_json({"ok": False, "error": str(exc)}, 400)
         if path == "/api/agents":
+            if self.cuerpo_mal_formado():
+                return self.send_json({"error": "el cuerpo de la peticion no es JSON valido"}, 400)
             body = self.read_body()
             try:
                 ag = save_agent(body)
@@ -2499,6 +2579,8 @@ class Handler(BaseHTTPRequestHandler):
         if m:
             return self.send_json({"ok": cancel_task(m.group(1))})
         if path == "/api/chats":
+            if self.cuerpo_mal_formado():
+                return self.send_json({"error": "el cuerpo de la peticion no es JSON valido"}, 400)
             body = self.read_body()
             chat = create_chat(body.get("title"), body.get("provider"),
                                body.get("model"), body.get("agent", 0),
@@ -2510,6 +2592,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"preset": save_preset(body.get("id"), body.get("title", "Plantilla"),
                                                          body.get("body", ""), body.get("cat", ""))})
         if path == "/api/import":
+            if self.cuerpo_mal_formado():
+                return self.send_json({"error": "el cuerpo de la peticion no es JSON valido"}, 400)
             return self.import_data()
         m = re.match(r"^/api/chats/([\w-]+)/clear$", path)
         if m:
@@ -2530,8 +2614,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def import_data(self):
         body = self.read_body()
+        # el fichero puede venir mal formado: mejor decirselo al usuario que cerrar la conexion
+        if not isinstance(body, dict):
+            return self.send_json({"error": "el fichero no tiene el formato esperado"}, 400)
+        chats = body.get("chats")
+        if not isinstance(chats, list):
+            return self.send_json({"error": "el fichero no trae una lista de chats"}, 400)
         n = 0
-        for item in body.get("chats", []):
+        for item in chats:
+            if not isinstance(item, dict):
+                continue
             c = item.get("chat", {})
             new = create_chat(c.get("title", "Importado"), c.get("provider"), c.get("model"),
                               c.get("agent", 0), c.get("workdir", ""), c.get("toolsets", ""))
@@ -2545,6 +2637,12 @@ class Handler(BaseHTTPRequestHandler):
                          mm.get("provider", ""), mm.get("model", ""), json.dumps(mm.get("meta", {})), now()))
             n += 1
         return self.send_json({"imported": n})
+
+    def _safe_json(self, cuerpo, codigo=200):
+        try:
+            return self.send_json(cuerpo, codigo)
+        except Exception:  # noqa: BLE001
+            return None
 
     # -- streaming de un turno ---------------------------------------------
     def handle_chat_stream(self):
@@ -2633,6 +2731,9 @@ class Handler(BaseHTTPRequestHandler):
                     self._safe_sse("artifact", {"path": path, "tool": tool, "kind": clase_artefacto(path),
                                                 "content": content, "final": bool(final)})
 
+                if attachments and any(str(a.get("mime") or "").startswith("image/") for a in attachments):
+                    # el modo agente no le pasa imagenes al modelo: se avisa
+                    self._safe_sse("notice", {"kind": "no_vision"})
                 if local_endpoint(chat.get("provider") or ""):
                     # el arranque del agente local puede tardar minutos: que se vea
                     self._safe_sse("notice", {"kind": "local_agent"})
@@ -2641,7 +2742,12 @@ class Handler(BaseHTTPRequestHandler):
                 if artifacts:
                     meta["artifacts"] = artifacts
             else:
-                text, meta = stream_completion(chat, history, on_delta, attachments)
+                atts = attachments
+                if atts and any(str(a.get("mime") or "").startswith("image/") for a in atts) \
+                        and not modelo_ve_imagenes(chat):
+                    atts = sin_imagenes(atts)
+                    self._safe_sse("notice", {"kind": "no_vision"})
+                text, meta = stream_completion(chat, history, on_delta, atts)
             update_message(asst_mid, text, meta)
             u = meta.get("usage") or {}
             log_event(mode, content[:100] or "(turno)", chat_id=chat_id, model=chat["model"],

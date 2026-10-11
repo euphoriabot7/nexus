@@ -387,6 +387,7 @@ window.NEXUS_ADD_LANG({ code: "ko", name: "한국어", strings: {
     upd_error: "확인할 수 없습니다:",
     upd_via_git: "git으로 자동 적용",
     upd_via_zip: "패키지 다운로드",
+    attach_no_vision: "이 모델은 이미지를 볼 수 없습니다: 파일은 저장했지만 보내지 않았습니다. 비전 지원 모델(또는 클라우드 모델)을 선택하세요.",
     meta_tokens: "토큰",
     meta_out: "출력",
     meta_interrupted: "중단됨",

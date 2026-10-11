@@ -409,6 +409,7 @@
     upd_error: "No se pudo comprobar:",
     upd_via_git: "se aplica sola con git",
     upd_via_zip: "se descarga el paquete",
+    attach_no_vision: "Este modelo no ve imágenes: se ha guardado el archivo, pero no se lo he enviado. Elige un modelo con visión (o uno de la nube) para que pueda mirarla.",
     meta_tokens: "tok",
     meta_out: "salida",
     meta_interrupted: "interrumpido",

@@ -387,6 +387,7 @@ window.NEXUS_ADD_LANG({ code: "id", name: "Bahasa Indonesia", strings: {
     upd_error: "Tidak bisa memeriksa:",
     upd_via_git: "diterapkan dengan git",
     upd_via_zip: "unduh paket",
+    attach_no_vision: "Model ini tidak bisa melihat gambar: berkas disimpan, tetapi tidak dikirim. Pilih model dengan kemampuan visi (atau model cloud).",
     meta_tokens: "token",
     meta_out: "keluaran",
     meta_interrupted: "dibatalkan",

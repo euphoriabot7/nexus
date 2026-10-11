@@ -409,6 +409,7 @@
     upd_error: "Could not check:",
     upd_via_git: "applied with git",
     upd_via_zip: "package download",
+    attach_no_vision: "This model cannot see images: the file is saved, but it was not sent. Pick a vision model (or a cloud one) so it can look at it.",
     meta_tokens: "tok",
     meta_out: "out",
     meta_interrupted: "interrupted",

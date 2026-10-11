@@ -408,6 +408,7 @@
     upd_error: "確認できませんでした:",
     upd_via_git: "git で自動適用",
     upd_via_zip: "パッケージをダウンロード",
+    attach_no_vision: "このモデルは画像を見られません：ファイルは保存しましたが、送信していません。画像対応のモデル（またはクラウドのモデル）を選んでください。",
     meta_tokens: "トークン",
     meta_out: "出力",
     meta_interrupted: "中断",
