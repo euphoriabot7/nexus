@@ -325,6 +325,7 @@ window.NEXUS_ADD_LANG({ code: "ko", name: "한국어", strings: {
     local_ram: "여유 메모리 {free} / {total} GB",
     local_ram_low: "로컬 에이전트 모드에 메모리 부족",
     local_agent_ram: "여유가 {free} GB뿐이면 로컬 에이전트 모드는 매우 느리거나 실행되지 않습니다. Hermes는 64k 창이 필요합니다. 에이전트에는 API 공급자를 쓰거나 더 작은 로컬 모델로 채팅 모드를 사용하세요.",
+    local_agent_switched: "이 모델은 도구를 쓰지 않아서 대화 모드로 바꿨습니다. 대화, 작성, 요약, 번역은 가능합니다. 파일 조작이나 명령 실행에는 도구 지원 모델(qwen3:1.7b, qwen3:4b, Hermes 3 3B)이 필요합니다.",
     meta_tokens: "토큰",
     meta_out: "출력",
     meta_interrupted: "중단됨",

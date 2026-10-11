@@ -1995,7 +1995,17 @@ async function usarLocal(m, backend) {
     if (inp && !inp.value.trim()) { inp.value = t("local_try_msg"); autoGrow(); inp.focus(); }
     if (state.chat && state.chat.agent) {
       const poco = LOCAL.info && LOCAL.info.ram_libre && LOCAL.info.ram_libre < 3;
-      toast(m.herramientas ? (poco ? t("local_agent_ram") : t("local_agent_warn_tools")) : t("local_agent_warn"), 7000);
+      if (m.herramientas) {
+        toast(poco ? t("local_agent_ram") : t("local_agent_warn_tools"), 7000);
+      } else {
+        // este modelo no sabe usar herramientas: se deja el chat en modo charla para
+        // que no acabe en un bucle raro del agente
+        await api(`/api/chats/${state.activeId}`, { method: "PATCH", body: { agent: 0 } });
+        state.chat.agent = 0;
+        updateAgentBtn();
+        refreshChats();
+        toast(t("local_agent_switched"), 7000);
+      }
     } else if (!m.herramientas) {
       toast(t("local_chat_hint"), 4500);
     }

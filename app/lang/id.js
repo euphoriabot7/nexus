@@ -325,6 +325,7 @@ window.NEXUS_ADD_LANG({ code: "id", name: "Bahasa Indonesia", strings: {
     local_ram: "RAM bebas {free} dari {total} GB",
     local_ram_low: "RAM sedikit untuk mode agen lokal",
     local_agent_ram: "Dengan {free} GB bebas, mode agen lokal akan sangat lambat (atau tidak muat): Hermes butuh jendela 64k. Untuk agen pakai penyedia API, atau pilih model lokal lebih kecil dan coba mode obrolan.",
+    local_agent_switched: "Model ini tidak memakai alat, jadi saya ubah obrolan ke mode obrolan. Bisa untuk mengobrol, menulis, meringkas, dan menerjemah; untuk menyentuh berkas atau menjalankan perintah perlu model dengan alat (qwen3:1.7b, qwen3:4b, atau Hermes 3 3B).",
     meta_tokens: "token",
     meta_out: "keluaran",
     meta_interrupted: "dibatalkan",

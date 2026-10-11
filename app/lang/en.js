@@ -346,6 +346,7 @@
     local_ram: "{free} of {total} GB RAM free",
     local_ram_low: "little RAM for local agent mode",
     local_agent_ram: "With {free} GB free, local agent mode will be very slow (or will not fit): Hermes needs a 64k window. Use your API provider for agent mode, or pick a smaller local model and try chat mode.",
+    local_agent_switched: "This model does not use tools, so I switched the chat to chat mode. You can talk, write, summarise and translate with it; touching files or running commands needs a tool-capable model (qwen3:1.7b, qwen3:4b or Hermes 3 3B).",
     meta_tokens: "tok",
     meta_out: "out",
     meta_interrupted: "interrupted",
