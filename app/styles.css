@@ -953,3 +953,23 @@ body.rtl .ci-title,body.rtl .pt-title,body.rtl .pt-body{text-align:right}
   .local-lista{max-height:none}
   .modal-card.local-card{width:100vw;max-width:100vw;max-height:92dvh}
 }
+
+/* en disco */
+.local-disco{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;background:#070a12;overflow:hidden}
+.ld-titulo{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;
+  border-bottom:1px solid var(--line);font-size:12.5px;color:var(--txt-dim)}
+.ld-titulo b{color:var(--txt)}
+.ld-libre{font-family:var(--mono);font-size:11px;color:var(--txt-faint)}
+.ld-vacio{padding:11px 12px;font-size:12px;color:var(--txt-faint)}
+.ld-fila{display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid rgba(120,160,255,.06);font-size:12px}
+.ld-fila:last-child{border-bottom:0}
+.ld-nombre{flex:1;font-family:var(--mono);font-size:11.5px;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ld-meta{font-family:var(--mono);font-size:11px;color:var(--txt-faint);white-space:nowrap}
+.ld-fila .mini-btn{padding:4px 9px;font-size:11px}
+.mini-btn.danger{color:#ff8fa6;border-color:rgba(255,93,143,.4)}
+.mini-btn.danger:hover{color:#fff;background:rgba(255,93,143,.18);border-color:var(--danger)}
+.lc-tag.agente{color:#04121a;background:linear-gradient(135deg,var(--accent),var(--accent-2));border:0;font-weight:700}
+
+.lc-aviso{margin-top:6px;font-size:11.5px;color:#ffd9a8;opacity:.9}
+
+.local-nota{font-size:11.5px;color:var(--txt-faint);line-height:1.5;margin:-4px 0 12px}

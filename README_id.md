@@ -177,6 +177,14 @@ with an honest note on every card about what it can and cannot do:
 ᴴᶠ = not in the Ollama library: it is pulled from Hugging Face (`ollama pull hf.co/user/repo:Q4_K_M`), which the
 Download button does for you.
 
+
+**Local models in agent mode.** NEXUS prepares Hermes for you the first time you use a local model in agent
+mode: it registers the provider endpoint (`hermes config set providers.ollama.base_url …`), asks Ollama for a
+64k window (`model.ollama_num_ctx`, Hermes' minimum) and turns off streaming for that provider, because Hermes
+hangs with Ollama when streaming tool calls. Then it drops the whole thing on the model: **agent mode needs a
+model that supports tool calling**. Checked against Ollama itself: `qwen3:1.7b` (1.3 GB), `qwen3:4b` (2.4 GB) and
+`hermes3:3b` (1.9 GB) do; **models pulled from Hugging Face (`hf.co/…`) do not** (Ollama answers *HTTP 400: does
+not support tools*), so those are for chat only. And it runs on your CPU: a local agent turn takes a while.
 **Only for agent mode**: a local model needs to understand *tool calling* to touch files or run commands. Very few
 small models do. The cards marked *tool calling* (**Hermes 3 3B**, **Qwen3 1.7B/4B**, **Spark X2.5 4B**) are the ones
 worth trying; anything else is for chatting, writing, summarising and translating. It also runs on your CPU, so it is

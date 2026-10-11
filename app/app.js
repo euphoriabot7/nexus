@@ -818,7 +818,8 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
   }
 
   asst.content = acc;
-  contentEl.innerHTML = mdToHtml(acc) || '<span style="color:var(--txt-faint)">(sin contenido)</span>';
+  const fallo = asst.meta && (asst.meta.error || asst.meta.interrupted);
+  contentEl.innerHTML = mdToHtml(acc) || (fallo ? "" : '<span style="color:var(--txt-faint)">' + t("msg_empty") + '</span>');
   if (LS.get("nexus_autoView", true) && !splitEnabled()) {
     const vb = contentEl.querySelector(".artifact-bar [data-viewmsg]");
     if (vb && !contentEl.querySelector(".artifact-slot .cb-frame")) vb.click();
@@ -1652,7 +1653,8 @@ const SETUP = { mode: "first", sel: "", info: null, hermes: null, poll: null, mo
 
 /* ======================= MODELOS LOCALES (Ollama / LM Studio) ============== */
 
-const LOCAL = { info: null, poll: null, filtro: "", ligero: false, instalados: false, probando: "" };
+const LOCAL = { info: null, poll: null, filtro: "", ligero: false, instalados: false, probando: "",
+                censura: false, tools: false };
 
 function pesoMb(mb) {
   const n = Number(mb) || 0;
@@ -1726,9 +1728,11 @@ function renderLocal() {
     if (!d.ollama_running) accionesO.push(boton(t("local_start"), () => arrancarOllama(), "primary"));
     accionesO.push(boton(t("local_folder"), () => abrirLocal("modelos")));
   }
+  const ram = d.ram_libre ? t("local_ram", { free: d.ram_libre, total: d.ram_total || "?" }) : "";
   const subO = d.ollama_bin
     ? `${d.ollama_version || "Ollama"} · ${d.ollama_running ? t("local_running") : t("local_stopped")} · ` +
-      t("local_installed_n", { n: (d.ollama_instalados || []).length })
+      t("local_installed_n", { n: (d.ollama_instalados || []).length }) + (ram ? " · " + ram : "") +
+      (d.ram_libre && d.ram_libre < 3 ? " ⚠ " + t("local_ram_low") : "")
     : `${t("local_not_installed")} · ${t("local_free", { g: d.espacio_libre || "?" })}`;
   estado.appendChild(tarjeta("Ollama", subO, accionesO));
 
@@ -1745,6 +1749,9 @@ function renderLocal() {
       t("local_installed_n", { n: (d.lmstudio_modelos || []).length })
     : t("local_not_installed");
   estado.appendChild(tarjeta("LM Studio", subL, accionesL));
+
+  const nota = $("#localNota");
+  if (nota) nota.textContent = d.nota || "";
 
   // --- progreso de descarga ---
   const pull = d.pull || {};
@@ -1764,8 +1771,10 @@ function renderLocal() {
   const lista = $("#localLista");
   const filtro = (LOCAL.filtro || "").trim().toLowerCase();
   const modelos = (d.catalogo || []).filter((m) => {
-    if (LOCAL.ligero && m.mb > 1024) return false;
+    if (LOCAL.ligero && m.mb > 1500) return false;
     if (LOCAL.instalados && !m.instalado) return false;
+    if (LOCAL.censura && !m.sin_censura) return false;
+    if (LOCAL.tools && !m.herramientas) return false;
     if (!filtro) return true;
     return (m.id + " " + m.nombre + " " + (m.familia || "") + " " + (m.resumen || "")).toLowerCase().includes(filtro);
   });
@@ -1782,6 +1791,7 @@ function renderLocal() {
         <b>${esc(m.nombre)}</b>
         ${m.sin_censura ? `<span class="lc-tag sin">${t("local_uncensored")}</span>` : ""}
         ${m.herramientas ? `<span class="lc-tag herr">${t("local_tools_yes")}</span>` : ""}
+        ${m.herramientas ? `<span class="lc-tag agente">${t("local_agent_ready")}</span>` : ""}
         ${m.hf ? `<span class="lc-tag hf">HF</span>` : ""}
         ${m.instalado ? `<span class="lc-tag ok">${t("local_installed")}</span>` : ""}
       </div>
@@ -1790,6 +1800,7 @@ function renderLocal() {
       <div class="lc-detalle"><b>${t("local_can")}:</b> ${esc((m.sabe || []).join(", "))}
         · <b>${t("local_cant")}:</b> ${esc((m.no_sabe || []).join(", "))}</div>
       ${m.recomendado ? `<div class="lc-uso">▸ ${esc(m.recomendado)}</div>` : ""}
+      ${m.sin_tools_motivo ? `<div class="lc-aviso">⚠ ${esc(m.sin_tools_motivo)}</div>` : ""}
       <div class="lc-acc"></div>`;
     const acc = card.querySelector(".lc-acc");
     const mk = (texto, fn, clase) => {
@@ -1820,6 +1831,46 @@ function renderLocal() {
     lista.appendChild(card);
   });
 
+  // --- en disco: todo lo instalado, con boton de borrar ---
+  const disco = $("#localDisco");
+  if (disco) {
+    const inst = d.ollama_instalados || [];
+    const total = inst.reduce((a, m) => a + (m.size || 0), 0);
+    disco.innerHTML = "";
+    const titulo = document.createElement("div");
+    titulo.className = "ld-titulo";
+    titulo.innerHTML = `<b>${t("local_disk_title", { n: inst.length, size: pesoBytes(total) })}</b>
+      <span class="ld-libre" title="${esc(d.carpeta_modelos || "")}">${t("local_free", { g: d.espacio_libre || "?" })}</span>`;
+    titulo.title = d.carpeta_modelos || "";
+    disco.appendChild(titulo);
+    if (!inst.length) {
+      const vacio = document.createElement("div");
+      vacio.className = "ld-vacio";
+      vacio.textContent = t("local_disk_empty");
+      disco.appendChild(vacio);
+    }
+    inst.forEach((m) => {
+      const fila = document.createElement("div");
+      fila.className = "ld-fila";
+      fila.innerHTML = `<span class="ld-nombre" title="${esc(m.name)}">${esc(m.name)}</span>
+        <span class="ld-meta">${pesoBytes(m.size)}${m.quant ? " · " + esc(m.quant) : ""}</span>`;
+      const enCatalogo = (d.catalogo || []).find((x) => x.id === m.name);
+      if (enCatalogo) {
+        const usar = document.createElement("button");
+        usar.className = "mini-btn";
+        usar.textContent = t("local_use");
+        usar.addEventListener("click", () => usarLocal(enCatalogo));
+        fila.appendChild(usar);
+      }
+      const borrar = document.createElement("button");
+      borrar.className = "mini-btn danger";
+      borrar.textContent = t("local_remove");
+      borrar.addEventListener("click", () => borrarDelDisco(m));
+      fila.appendChild(borrar);
+      disco.appendChild(fila);
+    });
+  }
+
   // --- LM Studio: catalogo ---
   const lmInfo = $("#localLmEstado");
   if (lmInfo) {
@@ -1835,7 +1886,8 @@ function renderLocal() {
       card.className = "lm-card";
       card.innerHTML = `<div class="lc-cabeza"><b>${esc(m.nombre)}</b>
         ${m.sin_censura ? `<span class="lc-tag sin">${t("local_uncensored")}</span>` : ""}
-        ${m.herramientas ? `<span class="lc-tag herr">${t("local_tools_yes")}</span>` : ""}</div>
+        ${m.herramientas ? `<span class="lc-tag herr">${t("local_tools_yes")}</span>` : ""}
+        ${m.herramientas ? `<span class="lc-tag agente">${t("local_agent_ready")}</span>` : ""}</div>
         <div class="lc-meta">${esc(m.params)} · ${pesoMb(m.mb)} · ${esc(m.quant || "Q4_K_M")} · ${esc(m.repo)}</div>
         <div class="lc-desc">${esc(m.resumen || "")}</div>`;
       const acc = document.createElement("div");
@@ -1850,6 +1902,25 @@ function renderLocal() {
       lmLista.appendChild(card);
     });
   }
+}
+
+function pesoBytes(bytes) {
+  const b = Number(bytes) || 0;
+  if (b < 1024 * 1024) return Math.round(b / 1024) + " KB";
+  if (b < 1024 * 1024 * 1024) return (b / 1024 / 1024).toFixed(0) + " MB";
+  return (b / 1024 / 1024 / 1024).toFixed(2).replace(".", ",") + " GB";
+}
+
+async function borrarDelDisco(m) {
+  const libro = pesoBytes(m.size);
+  if (!confirm(t("local_confirm_remove", { model: m.name }) + "\n" + t("local_will_free", { size: libro }))) return;
+  try {
+    const r = await api("/api/local/remove", { method: "POST", body: { model: m.name } });
+    if (r.ok) toast(t("local_freed", { size: libro }));
+    else toast(r.message || t("local_remove_fail"));
+    LOCAL.info = r.status || LOCAL.info;
+    renderLocal();
+  } catch (e) { toast(t("local_remove_fail") + ": " + e.message); }
 }
 
 async function instalarOllama() {
@@ -1922,6 +1993,12 @@ async function usarLocal(m, backend) {
     await newChat();
     const inp = $("#input");
     if (inp && !inp.value.trim()) { inp.value = t("local_try_msg"); autoGrow(); inp.focus(); }
+    if (state.chat && state.chat.agent) {
+      const poco = LOCAL.info && LOCAL.info.ram_libre && LOCAL.info.ram_libre < 3;
+      toast(m.herramientas ? (poco ? t("local_agent_ram") : t("local_agent_warn_tools")) : t("local_agent_warn"), 7000);
+    } else if (!m.herramientas) {
+      toast(t("local_chat_hint"), 4500);
+    }
   } catch (e) { toast(e.message); }
 }
 
@@ -2219,6 +2296,8 @@ $("#localLmDescargar").addEventListener("click", () => abrirLocal("lmstudio_down
 $("#localLmDocs").addEventListener("click", () => abrirLocal("lmstudio_docs"));
 $("#localBuscar").addEventListener("input", (e) => { LOCAL.filtro = e.target.value; renderLocal(); });
 $("#localLigero").addEventListener("change", (e) => { LOCAL.ligero = e.target.checked; renderLocal(); });
+$("#localFiltroCensura").addEventListener("change", (e) => { LOCAL.censura = e.target.checked; renderLocal(); });
+$("#localFiltroTools").addEventListener("change", (e) => { LOCAL.tools = e.target.checked; renderLocal(); });
 $("#localInstalados").addEventListener("change", (e) => { LOCAL.instalados = e.target.checked; renderLocal(); });
 $("#spModelsLoad").addEventListener("click", () => loadSetupModels());
 $("#spBuscar").addEventListener("input", renderSetupModels);

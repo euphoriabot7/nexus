@@ -457,8 +457,11 @@ def provider_index():
 # modo agente: Hermes es opcional
 # --------------------------------------------------------------------------- #
 
-HERMES_INSTALL = ("iex (irm https://hermes-agent.nousresearch.com/install.ps1)" if IS_WIN
-                  else "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash")
+def hermes_install_command():
+    """Orden oficial de instalacion de Hermes segun el sistema (se calcula al usarla)."""
+    if IS_WIN:
+        return "iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
+    return "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
 HERMES_DOCS = "https://hermes-agent.nousresearch.com/docs/getting-started/installation"
 INSTALL_LOG = DATA_DIR / "hermes-install.log"
 INSTALL_STATE = {"running": False, "code": None, "started": 0.0}
@@ -469,7 +472,7 @@ def hermes_installed():
 
 
 def hermes_status():
-    return {"installed": hermes_installed(), "command": HERMES_INSTALL, "docs": HERMES_DOCS,
+    return {"installed": hermes_installed(), "command": hermes_install_command(), "docs": HERMES_DOCS,
             "platform": PLATFORM, "bin": hermes_bin(),
             "running": INSTALL_STATE["running"], "exit_code": INSTALL_STATE["code"],
             "log": str(INSTALL_LOG)}
@@ -484,9 +487,9 @@ def start_hermes_install():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with open(INSTALL_LOG, "w", encoding="utf-8") as fh:
-            fh.write(f"$ {HERMES_INSTALL}\n\n")
+            fh.write(f"$ {hermes_install_command()}\n\n")
         log = open(INSTALL_LOG, "a", encoding="utf-8")  # noqa: SIM115
-        proc = subprocess.Popen(shell_command(HERMES_INSTALL), stdout=log, stderr=subprocess.STDOUT,
+        proc = subprocess.Popen(shell_command(hermes_install_command()), stdout=log, stderr=subprocess.STDOUT,
                                 env=agent_env(), cwd=str(Path.home()))
     except Exception as exc:  # noqa: BLE001
         return False, f"No se pudo lanzar el instalador: {exc}"
@@ -1035,8 +1038,99 @@ def tool_artifact(name, args, cwd):
     return str(p)
 
 
+HERMES_CONFIG_FILE = Path.home() / ".hermes" / "config.yaml"
+LOCAL_ENDPOINTS = {"ollama": "http://127.0.0.1:11434/v1", "lmstudio": "http://127.0.0.1:1234/v1"}
+
+
+def local_endpoint(pid, spec=None):
+    """Endpoint del proveedor si apunta a la propia maquina (Ollama, LM Studio...)."""
+    pid = pid or ""
+    if pid in LOCAL_ENDPOINTS:
+        return LOCAL_ENDPOINTS[pid]
+    try:
+        base, _ = provider_credentials(spec or provider_spec(pid))
+    except Exception:
+        return ""
+    if base and ("127.0.0.1" in base or "localhost" in base):
+        return base.rstrip("/")
+    return ""
+
+
+def hermes_config_set(clave, valor):
+    """Escribe una clave en la configuracion de Hermes con SU propio comando.
+
+    Es la via segura: Hermes valida y guarda el YAML el mismo, sin que NEXUS
+    toque el fichero (editar el YAML a mano ya rompio la configuracion una vez).
+    Devuelve (ok, detalle)."""
+    binario = hermes_bin()
+    if not binario:
+        return False, "Hermes no esta instalado"
+    try:
+        r = subprocess.run([binario, "config", "set", str(clave), str(valor)],
+                           capture_output=True, text=True, timeout=90, env=agent_env())
+    except Exception as exc:  # noqa: BLE001
+        return False, f"no se pudo ejecutar hermes config set: {exc}"
+    if r.returncode == 0:
+        return True, f"{clave} = {valor}"
+    detalle = (r.stderr or r.stdout or "").strip().splitlines()
+    return False, (detalle[-1] if detalle else "fallo al guardar")[:200]
+
+
+def ensure_hermes_provider(pid, base, api_key="local"):
+    """Prepara Hermes para hablar con un proveedor local (modo agente).
+
+    Deja el endpoint, el modo de API y **stream: false** (con streaming, Ollama se
+    queda colgado en el modo agente de Hermes). Devuelve (ok, mensaje)."""
+    if not base or not pid:
+        return False, "sin endpoint"
+    if not hermes_bin():
+        return False, "Hermes no esta instalado: el modo agente no esta disponible"
+    hechos = []
+    for clave, valor in ((f"providers.{pid}.base_url", base),
+                         (f"providers.{pid}.api_key", api_key),
+                         (f"providers.{pid}.api_mode", "chat_completions"),
+                         (f"providers.{pid}.stream", "false")):
+        ok, _ = hermes_config_set(clave, valor)
+        if ok:
+            hechos.append(clave.rsplit(".", 1)[-1])
+    if not hechos:
+        return False, f"no se pudo configurar el proveedor '{pid}' en Hermes"
+    return True, f"Hermes listo para '{pid}' ({base})"
+
+
+def ensure_hermes_ollama_ctx(valor=64000):
+    """Hermes exige 64k de ventana para el modo agente; el plugin de Ollama de Hermes
+    manda num_ctx, asi que se declara model.ollama_num_ctx (solo afecta a local)."""
+    if not hermes_bin():
+        return False, "Hermes no esta instalado"
+    ok, detalle = hermes_config_set("model.ollama_num_ctx", int(valor))
+    return ok, (f"Hermes: ollama_num_ctx = {int(valor)}" if ok else detalle)
+
+
 def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifact=None):
     """Ejecuta un turno del agente Hermes y transmite los deltas de texto."""
+    base = local_endpoint(chat.get("provider") or "")
+    if base and (chat.get("provider") or "") == "ollama" and chat.get("model"):
+        try:
+            # Ollama solo respeta num_ctx en el propio modelo: se usa una variante de 64k
+            nombre, aviso, ctx = local_models.agent_variant(chat["model"])
+            print(f"[agente] {aviso}", flush=True)
+            if nombre != chat["model"]:
+                chat = dict(chat, model=nombre)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[agente] no se pudo preparar la variante: {exc}", flush=True)
+    if base:
+        try:
+            ok, msg = ensure_hermes_provider(chat["provider"], base)
+            print(f"[agente] {msg}", flush=True)
+            if (chat.get("provider") or "") == "ollama":
+                # ollama_num_ctx no llega a Ollama por la API compatible con OpenAI: se deja
+                # puesto igualmente (Hermes lo usa para calcular su ventana) pero el contexto
+                # real se fija con la variante del modelo (agent_variant).
+                ok2, msg2 = ensure_hermes_ollama_ctx()
+                print(f"[agente] {msg2}", flush=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[agente] no se pudo preparar Hermes para {chat.get('provider')}: {exc}", flush=True)
     cmd = [hermes_bin(), "chat", "-q", text, "--format", "stream-json"]
     if chat.get("agent_session"):
         cmd += ["--resume", chat["agent_session"]]
@@ -1046,11 +1140,15 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
         cmd += ["--provider", chat["provider"]]
     if chat.get("toolsets"):
         cmd += ["-t", chat["toolsets"]]
+    if base:
+        # en local va lento: presupuesto de tiempo para que no se quede colgado
+        cmd += ["--run-budget", "600"]
     cwd = chat.get("workdir") or DEFAULT_WORKDIR
 
     proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, bufsize=1, env=agent_env())
     text_parts, meta, session = [], {"agent": True, "usage": None}, ""
+    quejas = []                     # lineas que no son JSON (errores del CLI)
     pending = {}  # tool_call_id -> ruta, para avisar cuando el archivo ya esta escrito
     t0 = time.time()
     try:
@@ -1060,6 +1158,8 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
                 break
             line = line.strip()
             if not line.startswith("{"):
+                if line and not line.startswith(("session_id:", "Bye", "\u271d")):
+                    quejas.append(line)
                 continue
             try:
                 ev = json.loads(line)
@@ -1101,6 +1201,11 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
             proc.wait(timeout=5)
         except Exception:
             proc.kill()
+    if not text_parts and not meta.get("error"):
+        code = meta.get("exit_code")
+        detalle = " ".join(quejas[-3:])[:400]
+        if code not in (0, None) or detalle:
+            meta["error"] = (f"El modo agente no respondio (codigo {code}). {detalle}").strip()
     return "".join(text_parts), meta, session
 
 
@@ -2167,8 +2272,15 @@ class Handler(BaseHTTPRequestHandler):
                 detail = exc.read().decode("utf-8", "replace")[:400]
             except Exception:
                 detail = ""
-            update_message(asst_mid, "".join(parts), {"error": f"HTTP {exc.code}"})
-            self._safe_sse("error", {"message": f"El proveedor respondio {exc.code}. {detail}"})
+            if exc.code == 404 and local_endpoint(chat.get("provider") or ""):
+                nombre = chat.get("model") or ""
+                mensaje = (f"El modelo '{nombre}' no esta descargado en "
+                           f"{chat.get('provider')}. Abre Modelos locales (barra superior) y "
+                           "descargalo, o elige en Ajustes otro de los que ya tienes.")
+            else:
+                mensaje = f"El proveedor respondio {exc.code}. {detail}"
+            update_message(asst_mid, "".join(parts), {"error": mensaje})
+            self._safe_sse("error", {"message": mensaje})
         except Exception as exc:  # noqa: BLE001
             update_message(asst_mid, "".join(parts), {"error": str(exc)})
             self._safe_sse("error", {"message": str(exc)})

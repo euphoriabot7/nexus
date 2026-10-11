@@ -184,6 +184,15 @@ los *abliterated*), con una nota honesta en cada ficha de lo que sabe y lo que n
 ᴴᶠ = no está en la biblioteca de Ollama: se descarga desde Hugging Face (`ollama pull hf.co/usuario/repo:Q4_K_M`), que
 es lo que hace el botón Descargar por ti.
 
+
+**Modelos locales en modo agente.** NEXUS prepara Hermes la primera vez que usas un modelo local en modo
+agente: registra el endpoint del proveedor (`hermes config set providers.ollama.base_url …`), le pide a Ollama
+una ventana de 64k (`model.ollama_num_ctx`, el mínimo de Hermes) y desactiva el streaming para ese proveedor,
+porque Hermes se queda colgado con Ollama al transmitir llamadas a herramientas. Y luego todo depende del
+modelo: **el modo agente necesita un modelo que sepa llamar a funciones**. Comprobado contra el propio Ollama:
+`qwen3:1.7b` (1,3 GB), `qwen3:4b` (2,4 GB) y `hermes3:3b` (1,9 GB) sí; **los traídos de Hugging Face
+(`hf.co/…`) no** (Ollama responde *HTTP 400: does not support tools*), así que esos solo para chat. Y corre en
+tu CPU: un turno del agente en local tarda.
 **Solo para el modo agente**: un modelo local necesita entender la *llamada a funciones* para tocar archivos o ejecutar
 órdenes, y muy pocos modelos pequeños lo hacen. Las fichas marcadas con *con herramientas* (**Hermes 3 3B**,
 **Qwen3 1.7B/4B**, **Spark X2.5 4B**) son las que merece la pena probar; el resto son para conversar, redactar, resumir

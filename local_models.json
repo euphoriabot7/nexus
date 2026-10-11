@@ -1,5 +1,5 @@
 {
-  "nota": "Modelos locales de hasta 3 GB (cuantización indicada en cada ficha) para equipos ligeros. Los marcados como 'sin censura' están afinados para no rechazar peticiones (Dolphin/abliterated). Tamaños comprobados contra el registro de Ollama y contra los ficheros GGUF de Hugging Face. Las fichas 'Hugging Face' (hf.co/...) no están en la biblioteca de Ollama: se descargan igual con el botón Descargar, porque Ollama sabe traer GGUF de Hugging Face. Solo los modelos con herramientas = sí pueden intentar el modo agente.",
+  "nota": "Modelos locales de hasta 3 GB para equipos ligeros. Los 'sin censura' estan afinados para no rechazar peticiones (Dolphin, abliterated, heretic). Tamanos comprobados contra el registro de Ollama y los ficheros GGUF de Hugging Face. MODO AGENTE: ademas de entender la llamada a funciones, el modelo debe llegar a 64k de ventana (minimo de Hermes). Comprobado: los modelos descargados de Hugging Face (hf.co/...) NO soportan herramientas en Ollama; los que si lo hacen son qwen3:1.7b y qwen3:4b (los mas ligeros) y hermes3:3b / qwen3-abliterated. En los demas, modo chat.",
   "revisado": "2026-10-11",
   "modelos": [
     {
@@ -354,7 +354,8 @@
         "llamar a herramientas",
         "razonamiento muy largo"
       ],
-      "recomendado": "El mejor 'sin censura' de 3B por debajo de 2 GB."
+      "recomendado": "El mejor 'sin censura' de 3B por debajo de 2 GB.",
+      "sin_tools_motivo": "Los GGUF de Hugging Face no traen plantilla de herramientas en Ollama."
     },
     {
       "id": "hf.co/bartowski/Dolphin3.0-Llama3.2-3B-GGUF:Q3_K_M",
@@ -368,7 +369,7 @@
       "multilingue": true,
       "contexto": 131072,
       "herramientas": false,
-      "resumen": "El mismo Dolphin 3.0 3B con menos precision para gastar menos memoria y disco (1,6 GB).",
+      "resumen": "El mismo Dolphin 3.0 3B con menos precision para gastar menos memoria y disco (1,6 GB). (Descargado desde Hugging Face, Ollama no le activa la llamada a funciones.)",
       "sabe": [
         "charlar",
         "redactar",
@@ -379,7 +380,8 @@
         "herramientas",
         "precision alta"
       ],
-      "recomendado": "Para equipos con 4 GB de RAM justos."
+      "recomendado": "Para equipos con 4 GB de RAM justos.",
+      "sin_tools_motivo": "Los GGUF de Hugging Face no traen plantilla de herramientas en Ollama."
     },
     {
       "id": "hf.co/bartowski/Dolphin3.0-Llama3.2-1B-GGUF:Q4_K_M",
@@ -393,7 +395,7 @@
       "multilingue": true,
       "contexto": 131072,
       "herramientas": false,
-      "resumen": "Dolphin 3.0 en 1B: descarga en un momento y arranca en cualquier PC. Respuestas simples.",
+      "resumen": "Dolphin 3.0 en 1B: descarga en un momento y arranca en cualquier PC. Respuestas simples. (Descargado desde Hugging Face, Ollama no le activa la llamada a funciones.)",
       "sabe": [
         "charlar",
         "respuestas cortas",
@@ -403,7 +405,8 @@
         "tareas complejas",
         "herramientas"
       ],
-      "recomendado": "Primera toma de contacto y equipos muy justos."
+      "recomendado": "Primera toma de contacto y equipos muy justos.",
+      "sin_tools_motivo": "Los GGUF de Hugging Face no traen plantilla de herramientas en Ollama."
     },
     {
       "id": "hf.co/bartowski/Dolphin3.0-Qwen2.5-3B-GGUF:Q4_K_M",
@@ -417,7 +420,7 @@
       "multilingue": true,
       "contexto": 32768,
       "herramientas": false,
-      "resumen": "Dolphin 3.0 sobre Qwen2.5 3B: sin censura y mejor en espanol que la version Llama, mas rapido.",
+      "resumen": "Dolphin 3.0 sobre Qwen2.5 3B: sin censura y mejor en espanol que la version Llama, mas rapido. (Descargado desde Hugging Face, Ollama no le activa la llamada a funciones.)",
       "sabe": [
         "charlar",
         "redactar",
@@ -429,7 +432,8 @@
         "herramientas",
         "razonamiento largo"
       ],
-      "recomendado": "Si escribes sobre todo en espanol, este antes que el Llama."
+      "recomendado": "Si escribes sobre todo en espanol, este antes que el Llama.",
+      "sin_tools_motivo": "Los GGUF de Hugging Face no traen plantilla de herramientas en Ollama."
     },
     {
       "id": "hf.co/bartowski/Hermes-3-Llama-3.2-3B-GGUF:Q4_K_M",
@@ -442,7 +446,7 @@
       "sin_censura": false,
       "multilingue": true,
       "contexto": 131072,
-      "herramientas": true,
+      "herramientas": false,
       "resumen": "Hermes 3 de Nous Research desde Hugging Face: no es 'sin censura' pero es poco restrictivo y sabe llamar a funciones, asi que puede intentar el modo agente en local.",
       "sabe": [
         "instrucciones",
@@ -454,7 +458,8 @@
         "razonamiento muy largo",
         "codigo complejo"
       ],
-      "recomendado": "Para probar el modo agente sin API externa."
+      "recomendado": "Para probar el modo agente sin API externa.",
+      "sin_tools_motivo": "Los GGUF de Hugging Face no traen plantilla de herramientas en Ollama."
     },
     {
       "backend": "ollama",
@@ -531,7 +536,7 @@
     },
     {
       "backend": "ollama",
-      "herramientas": true,
+      "herramientas": false,
       "sin_censura": true,
       "multilingue": true,
       "id": "Maternion/spark-x2.5-heretic:4b",
@@ -682,7 +687,7 @@
       "hf": true,
       "familia": "Llama 3.2 3B + Dolphin 3.0",
       "contexto": 131072,
-      "resumen": "El Dolphin 3.0 3B con más precisión que el Q4 (2,2 GB). Mejor coherencia en textos largos.",
+      "resumen": "El Dolphin 3.0 3B con más precisión que el Q4 (2,2 GB). Mejor coherencia en textos largos. (Descargado desde Hugging Face, Ollama no le activa la llamada a funciones.)",
       "sabe": [
         "charlar",
         "redactar",
@@ -693,7 +698,8 @@
       "no_sabe": [
         "herramientas"
       ],
-      "recomendado": "Si el Q4 te supo a poco."
+      "recomendado": "Si el Q4 te supo a poco.",
+      "sin_tools_motivo": "Los GGUF de Hugging Face no traen plantilla de herramientas en Ollama."
     },
     {
       "backend": "ollama",
@@ -707,7 +713,7 @@
       "hf": true,
       "familia": "Qwen2.5 3B + Dolphin 3.0",
       "contexto": 32768,
-      "resumen": "Dolphin 3.0 sobre Qwen2.5 3B con cuantización Q5: el mejor español sin censura por debajo de 2,2 GB.",
+      "resumen": "Dolphin 3.0 sobre Qwen2.5 3B con cuantización Q5: el mejor español sin censura por debajo de 2,2 GB. (Descargado desde Hugging Face, Ollama no le activa la llamada a funciones.)",
       "sabe": [
         "charlar",
         "redactar",
@@ -718,7 +724,152 @@
       "no_sabe": [
         "herramientas"
       ],
-      "recomendado": "Mi recomendación para uso diario en español."
+      "recomendado": "Mi recomendación para uso diario en español.",
+      "sin_tools_motivo": "Los GGUF de Hugging Face no traen plantilla de herramientas en Ollama."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "richardyoung/agents-a1-4b-heretic",
+      "nombre": "Agents-A1 4B heretic (para agente)",
+      "params": "4B",
+      "mb": 2583,
+      "familia": "Qwen3.5 4B agéntico + abliterado (Heretic)",
+      "contexto": 262144,
+      "resumen": "El mejor 'sin censura' para el MODO AGENTE: es un modelo entrenado para usar herramientas y tareas de varios pasos, abliterado (de 99 rechazos de 100 a 11). Contexto de 256k, muy por encima del mínimo de Hermes.",
+      "sabe": [
+        "usar herramientas (modo agente)",
+        "tareas de varios pasos",
+        "código",
+        "redactar"
+      ],
+      "no_sabe": [
+        "nada grave para su tamaño"
+      ],
+      "recomendado": "Si quieres modo agente local sin censura, empieza por este."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": false,
+      "id": "richardyoung/lfm2.5-1.2b-instruct-heretic",
+      "nombre": "LFM2.5 1.2B heretic (rapidísimo)",
+      "params": "1.2B",
+      "mb": 697,
+      "familia": "LiquidAI LFM2.5 1.2B + Heretic",
+      "contexto": 125000,
+      "resumen": "1,2B abliterado (97 rechazos de 100 eliminados) con arquitectura híbrida: es el más rápido de la lista y cabe en cualquier equipo. No usa herramientas.",
+      "sabe": [
+        "charlar",
+        "respuestas rápidas",
+        "redactar",
+        "resumir"
+      ],
+      "no_sabe": [
+        "modo agente",
+        "razonamiento complejo"
+      ],
+      "recomendado": "Para equipos muy flojos o respuestas instantáneas."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": false,
+      "id": "richardyoung/phi-4-mini-instruct-heretic",
+      "nombre": "Phi-4 mini 3.8B heretic",
+      "params": "3.8B",
+      "mb": 2378,
+      "familia": "Microsoft Phi-4-mini 3.8B + Heretic",
+      "contexto": 128000,
+      "resumen": "El Phi-4-mini sin censura (de 99 rechazos a 5, con muy poca pérdida de calidad). Fuerte en razonamiento y matemáticas para su tamaño.",
+      "sabe": [
+        "razonar",
+        "matemáticas",
+        "charlar",
+        "resumir",
+        "código sencillo"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "español fino"
+      ],
+      "recomendado": "Si buscas cabeza más que obediencia."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": false,
+      "id": "vatistasdim/Cipher-Abliterated",
+      "nombre": "Cipher Abliterated 3.2B",
+      "params": "3.2B",
+      "mb": 1926,
+      "familia": "Cipher 3.2B abliterado",
+      "contexto": 131072,
+      "resumen": "3,2B abliterado orientado a lluvia de ideas y respuestas variadas; su ficha dice que admite flujos con herramientas.",
+      "sabe": [
+        "idear",
+        "comparar opciones",
+        "redactar",
+        "planificar"
+      ],
+      "no_sabe": [
+        "precisión milimétrica",
+        "modo agente fiable"
+      ],
+      "recomendado": "Para brainstorming sin filtros."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": false,
+      "id": "huihui_ai/gemma3-abliterated:1b",
+      "nombre": "Gemma 3 1B abliterated",
+      "params": "1B",
+      "mb": 769,
+      "familia": "Google Gemma 3 1B abliterado",
+      "contexto": 32768,
+      "resumen": "Gemma 3 pequeño sin rechazos: moderno, ligero y con buen español para ser 1B.",
+      "sabe": [
+        "charlar",
+        "resumir",
+        "traducir"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "código"
+      ],
+      "recomendado": "Alternativa moderna a TinyDolphin cuando quieres algo más listo."
+    },
+    {
+      "backend": "ollama",
+      "herramientas": false,
+      "sin_censura": true,
+      "multilingue": true,
+      "id": "sachasayan/interimlabs-huihui-qwen3.5-2b-abliterated:Q4_K_M",
+      "nombre": "Qwen3.5 2B abliterated",
+      "params": "2B",
+      "mb": 1212,
+      "familia": "Qwen3.5 2B abliterado (empaquetado por Interim Labs)",
+      "contexto": 32768,
+      "resumen": "Qwen3.5 2B sin censura: de lo más nuevo y capaz por debajo de 1,3 GB, y multilingüe de verdad.",
+      "sabe": [
+        "charlar",
+        "redactar",
+        "resumir",
+        "traducir",
+        "preguntas concretas"
+      ],
+      "no_sabe": [
+        "herramientas",
+        "contextos enormes"
+      ],
+      "recomendado": "Mi recomendación ligera actual: mejor que los 1,5B de la generación anterior."
     }
   ],
   "lmstudio": [

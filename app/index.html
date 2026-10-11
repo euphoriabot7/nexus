@@ -322,14 +322,19 @@
     <p class="modal-note" data-i18n="local_note">Todo ocurre en tu equipo: sin cuenta, sin claves y sin conexión una vez descargado. Necesitas Ollama o LM Studio; NEXUS los detecta, los instala y descarga el modelo por ti.</p>
 
     <div id="localEstado" class="local-estado"></div>
+    <p id="localNota" class="modal-note local-nota"></p>
 
     <div class="local-barra">
       <input id="localBuscar" type="text" placeholder="Buscar modelo..." data-i18n-ph="local_search">
-      <label class="chk"><input type="checkbox" id="localLigero"> <span data-i18n="local_only_tiny">solo &lt; 1 GB</span></label>
+      <label class="chk"><input type="checkbox" id="localFiltroCensura"> <span data-i18n="local_filter_uncensored">sin censura</span></label>
+      <label class="chk"><input type="checkbox" id="localFiltroTools"> <span data-i18n="local_filter_tools">con herramientas (agente)</span></label>
+      <label class="chk"><input type="checkbox" id="localLigero"> <span data-i18n="local_only_tiny">ligeros (&lt; 1,5 GB)</span></label>
       <label class="chk"><input type="checkbox" id="localInstalados"> <span data-i18n="local_only_installed">solo instalados</span></label>
       <span id="localCuenta" class="hint"></span>
       <button id="localRefresh" class="mini-btn" data-i18n="refresh">Actualizar</button>
     </div>
+
+    <div id="localDisco" class="local-disco"></div>
 
     <div id="localProgreso" class="local-progreso hidden">
       <div class="lp-cabeza"><span id="lpModelo">—</span><span id="lpPct">0%</span></div>

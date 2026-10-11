@@ -180,6 +180,12 @@ def lmstudio_models():
     return out[:300]
 
 
+def models_dir():
+    """Carpeta donde Ollama guarda los modelos."""
+    base = Path(os.environ.get("OLLAMA_MODELS") or (Path.home() / ".ollama" / "models"))
+    return str(base)
+
+
 def status():
     cat = catalog()
     instalados = {m["name"]: m for m in ollama_models()}
@@ -201,7 +207,32 @@ def status():
         "pull": {k: v for k, v in PULL.items() if k != "proc"},
         "descargas": {"ollama": OLLAMA_DOWNLOAD[PLATFORM], "lmstudio": LMSTUDIO_DOWNLOAD},
         "espacio_libre": _free_gb(),
+        "carpeta_modelos": models_dir(),
+        "ram_libre": ram_gb()[0], "ram_total": ram_gb()[1],
+        "agente": {"contexto_sugerido": agent_context_goal("")[0] if False else None,
+                   "aviso": agent_context_goal("")[1] if False else ""},
     }
+
+
+def ram_gb():
+    """(libre, total) en GB, o (None, None) si no se puede saber."""
+    try:
+        if not IS_WIN and Path("/proc/meminfo").is_file():
+            datos = {}
+            for linea in Path("/proc/meminfo").read_text().splitlines():
+                campos = linea.split()
+                if len(campos) >= 2:
+                    datos[campos[0].rstrip(":")] = int(campos[1])
+            return round(datos.get("MemAvailable", 0) / 1024 ** 2, 1), round(datos.get("MemTotal", 0) / 1024 ** 2, 1)
+        pagina = os.sysconf("SC_PAGE_SIZE")
+        total = os.sysconf("SC_PHYS_PAGES") * pagina / 1024 ** 3
+        try:
+            libre = os.sysconf("SC_AVPHYS_PAGES") * pagina / 1024 ** 3
+        except (ValueError, OSError):
+            libre = total * 0.5
+        return round(libre, 1), round(total, 1)
+    except Exception:
+        return None, None
 
 
 def _free_gb():
@@ -342,6 +373,77 @@ def _percent(linea):
     import re
     m = re.search(r"(\d{1,3})%", linea)
     return int(m.group(1)) if m else None
+
+
+def model_context(model):
+    """Ventana de contexto que anuncia el modelo (0 si no se puede saber)."""
+    b = ollama_bin()
+    if not b:
+        return 0
+    try:
+        r = subprocess.run([b, "show", model], capture_output=True, text=True, timeout=45,
+                           env=(CTX["env"]() if CTX["env"] else None))
+        import re as _re
+        m = _re.search(r"(?i)context length\s+([\d.,]+)", r.stdout or "")
+        if m:
+            return int(m.group(1).replace(".", "").replace(",", ""))
+    except Exception:
+        pass
+    return 0
+
+
+def agent_context_goal(model, min_ctx=64000):
+    """Ventana que se le va a pedir al modelo para el agente, con el por que.
+
+    Hermes exige >= 64k para el modo agente. Ollama reserva memoria para esa
+    ventana (KV cache): en un equipo de 7 GB, 40k se come la RAM entera. Por eso
+    se limita a lo que quepa segun la memoria libre, sin pasar del maximo del
+    modelo. Devuelve (contexto, motivo)."""
+    libre, _total = ram_gb()
+    techo = min_ctx
+    motivo = "ventana completa"
+    if libre is not None:
+        if libre < 3.5:
+            techo, motivo = 24576, "memoria libre baja: ventana reducida a 24k"
+        elif libre < 5.5:
+            techo, motivo = 32768, "memoria libre justa: ventana reducida a 32k"
+    propio = model_context(model)
+    if propio and propio < techo:
+        techo, motivo = propio, f"el modelo admite {propio} como maximo"
+    return int(techo), motivo
+
+
+def agent_variant(model, min_ctx=64000):
+    """Modelo que hay que usar para el modo agente (crea la variante si hace falta).
+
+    Ollama ignora el `num_ctx` que Hermes manda por la API compatible con OpenAI
+    (carga el modelo con 4096), asi que la ventana se fija en un Modelfile. Las
+    variantes reutilizan los blobs del modelo base: no ocupan disco extra real."""
+    b = ollama_bin()
+    if not b:
+        return model, "Ollama no esta instalado", 0
+    objetivo, motivo = agent_context_goal(model, min_ctx)
+    ctx_modelo = model_context(model)
+    if ctx_modelo and ctx_modelo >= min_ctx and objetivo >= min_ctx:
+        return model, f"{model}: {ctx_modelo} de contexto, vale para agente tal cual", ctx_modelo
+    variante = f"{model}-agente-{objetivo // 1024}k"
+    if variante.endswith("-agente") or variante == model:
+        variante = f"{model}-agente"
+    instalados = {m["name"] for m in ollama_models()}
+    if variante in instalados:
+        return variante, f"reutilizo la variante {variante}", objetivo
+    trabajo = pathlib.Path(CTX["data_dir"]) / "modelfiles"
+    trabajo.mkdir(parents=True, exist_ok=True)
+    archivo = trabajo / (variante.replace("/", "_").replace(":", "_") + ".Modelfile")
+    archivo.write_text(f"FROM {model}\nPARAMETER num_ctx {objetivo}\nPARAMETER temperature 0.7\n", encoding="utf-8")
+    try:
+        r = subprocess.run([b, "create", variante, "-f", str(archivo)], capture_output=True, text=True,
+                           timeout=600, env=(CTX["env"]() if CTX["env"] else None))
+        if r.returncode != 0:
+            return model, f"no se pudo crear la variante: {(r.stderr or r.stdout or '')[:200]}", 0
+    except Exception as exc:  # noqa: BLE001
+        return model, f"no se pudo crear la variante: {exc}", 0
+    return variante, f"variante {variante} lista para el agente ({motivo})", objetivo
 
 
 def pull(model, backend="ollama"):
