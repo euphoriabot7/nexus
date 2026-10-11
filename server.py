@@ -2252,6 +2252,9 @@ class Handler(BaseHTTPRequestHandler):
                     self._safe_sse("artifact", {"path": path, "tool": tool,
                                                 "content": content, "final": bool(final)})
 
+                if local_endpoint(chat.get("provider") or ""):
+                    # el arranque del agente local puede tardar minutos: que se vea
+                    self._safe_sse("notice", {"kind": "local_agent"})
                 text, meta, _ = run_agent_turn(chat, content, on_delta, on_session, stop_event,
                                                on_artifact=on_artifact)
                 if artifacts:

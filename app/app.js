@@ -811,6 +811,13 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
         }
         handleSplitArtifact(d);
       },
+      onNotice: (n) => {
+        if (n && n.kind === "local_agent" && !asst.meta.noticeLocal) {
+          asst.meta.noticeLocal = true;
+          contentEl.innerHTML = `<span class="local-wait">⏳ ${t("local_wait_agent")}</span>`;
+          scrollBottom();
+        }
+      },
       onError: (msg) => { asst.meta = { error: msg, agent: !!agent }; },
     });
   } catch (e) {
@@ -870,6 +877,7 @@ async function streamRequest(body, signal, cb) {
       else if (ev === "delta") cb.onDelta(obj.text);
       else if (ev === "session") { if (cb.onSession) cb.onSession(obj); }
       else if (ev === "artifact") { if (cb.onArtifact) cb.onArtifact(obj); }
+      else if (ev === "notice") { if (cb.onNotice) cb.onNotice(obj); }
       else if (ev === "done") cb.onDone(obj);
       else if (ev === "error") cb.onError(obj.message);
     }

@@ -347,6 +347,7 @@
     local_ram_low: "poca memoria para el modo agente local",
     local_agent_ram: "Con {free} GB libres el modo agente local va a ir muy lento (o no cabrá): Hermes necesita una ventana de 64k. Para el agente usa tu proveedor por API, o elige un modelo local más pequeño y prueba en modo chat.",
     local_agent_switched: "Este modelo no usa herramientas, así que he puesto el chat en modo charla. Con él puedes conversar, redactar, resumir y traducir; para tocar archivos o ejecutar órdenes hace falta un modelo con herramientas (qwen3:1.7b, qwen3:4b o Hermes 3 3B).",
+    local_wait_agent: "Preparando el modelo local: puede tardar varios minutos (corre en tu CPU). Si se queda ahí mucho rato, cambia el chat a modo charla.",
     meta_tokens: "tok",
     meta_out: "salida",
     meta_interrupted: "interrumpido",
