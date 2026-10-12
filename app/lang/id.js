@@ -322,6 +322,7 @@ window.NEXUS_ADD_LANG({ code: "id", name: "Bahasa Indonesia", strings: {
     local_will_free: "{size} akan dibebaskan.",
     local_freed: "Dihapus: {size} dibebaskan",
     local_remove_fail: "Tidak bisa menghapus model",
+    local_era_el_actual: "Itu model chat ini: pilih yang lain atau buka Pengaturan",
     local_ram: "RAM bebas {free} dari {total} GB",
     local_ram_low: "RAM sedikit untuk mode agen lokal",
     local_agent_ram: "Dengan {free} GB bebas, mode agen lokal akan sangat lambat (atau tidak muat): Hermes butuh jendela 64k. Untuk agen pakai penyedia API, atau pilih model lokal lebih kecil dan coba mode obrolan.",

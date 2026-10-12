@@ -181,6 +181,21 @@ def lmstudio_models():
     return out[:300]
 
 
+def installed_names(backend="ollama"):
+    """Nombres de los modelos que el backend tiene AHORA.
+
+    Devuelve lista vacia si el backend no responde: quien lo use debe entender
+    "no lo se" y no "no hay ninguno" (si no, se borraria la lista guardada).
+    """
+    if backend == "lmstudio":
+        if not lmstudio_running():
+            return []
+        return [m["name"] for m in lmstudio_models() if m.get("name")]
+    if not ollama_running():
+        return []
+    return [m["name"] for m in ollama_models() if m.get("name")]
+
+
 def models_dir():
     """Carpeta donde Ollama guarda de verdad los modelos.
 

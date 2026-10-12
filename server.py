@@ -458,11 +458,75 @@ def needs_setup():
     return True
 
 
+def _modelos_locales_al_dia(pid, spec, models):
+    """En un proveedor local la lista buena es la que el backend tiene AHORA.
+
+    Sin esto, un modelo borrado con `ollama rm` sigue apareciendo en el selector
+    porque las listas guardadas (config + caches) nunca se recalculan.
+    Si el backend no responde se conserva la lista guardada, para no dejar la app vacia.
+    """
+    if not url_es_local(spec.get("base_url")):
+        return models
+    vivos = local_models.installed_names("lmstudio" if pid == "lmstudio" else "ollama")
+    if not vivos:
+        return models
+    orden = {m: i for i, m in enumerate(models)}
+    return sorted(vivos, key=lambda m: (orden.get(m, 10 ** 6), m))
+
+
+def olvidar_modelo(pid, modelo):
+    """Saca un modelo borrado de las listas guardadas, las caches y el predeterminado.
+
+    Devuelve True si habia algo que limpiar. Se llama tras borrar un modelo (haya
+    salido bien o no el comando): si ya no esta instalado, no debe seguir ofreciendose.
+    """
+    tocado = False
+    try:
+        cfg = user_config()
+        provs = cfg.get("providers") or {}
+        spec = dict(provs.get(pid) or {})
+        antes = list(spec.get("models") or [])
+        ahora = [m for m in antes if m != modelo]
+        if len(ahora) != len(antes):
+            spec["models"] = ahora
+            provs[pid] = spec
+            cfg["providers"] = provs
+            tocado = True
+        d = cfg.get("default") or {}
+        if d.get("provider") == pid and d.get("model") == modelo:
+            if ahora:
+                cfg["default"] = {"provider": pid, "model": ahora[0]}
+            else:
+                cfg.pop("default", None)
+            tocado = True
+        if tocado:
+            save_user_config(cfg)
+    except Exception:  # noqa: BLE001
+        pass
+    for ruta in (MODELS_CACHE, HERMES_PROVIDER_CACHE):
+        try:
+            cache = load_json(ruta, {})
+            if not isinstance(cache, dict):
+                continue
+            got = cache.get(pid)
+            if isinstance(got, dict) and isinstance(got.get("models"), list):
+                quedan = [m for m in got["models"] if m != modelo]
+                if len(quedan) != len(got["models"]):
+                    got["models"] = quedan
+                    cache[pid] = got
+                    ruta.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+                    tocado = True
+        except Exception:  # noqa: BLE001
+            pass
+    return tocado
+
+
 def provider_index():
     out = {}
     for pid in provider_ids():
         spec = provider_spec(pid)
-        out[pid] = {"id": pid, "label": spec.get("label", pid), "models": merged_models(pid, spec),
+        out[pid] = {"id": pid, "label": spec.get("label", pid),
+                    "models": _modelos_locales_al_dia(pid, spec, merged_models(pid, spec)),
                     "key_env": spec.get("key_env", ""), "base_url": spec.get("base_url", ""),
                     "has_key": bool(api_key_for(spec)),
                     "requires_key": spec.get("requires_key", True) is not False,
@@ -2542,11 +2606,21 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"ok": ok, "message": msg})
         if path == "/api/local/remove":
             modelo = (body.get("model") or "").strip()
+            backend = (body.get("backend") or "ollama").strip()
             try:
-                ok, msg = local_models.remove(modelo, (body.get("backend") or "ollama").strip())
+                ok, msg = local_models.remove(modelo, backend)
             except Exception as exc:  # noqa: BLE001
                 ok, msg = False, str(exc)
-            return self.send_json({"ok": ok, "message": msg, "status": local_models.status()})
+            # Si ya no esta en el backend, se olvida tambien de las listas guardadas
+            # y de las caches (si no, el selector sigue ofreciendo un modelo borrado).
+            try:
+                if modelo and modelo not in local_models.installed_names(backend):
+                    olvidar_modelo("lmstudio" if backend == "lmstudio" else "ollama", modelo)
+                    olvidar_modelo("ollama", modelo)   # puede venir de la lista heredada de ollama
+            except Exception:  # noqa: BLE001
+                pass
+            return self.send_json({"ok": ok, "message": msg, "status": local_models.status(),
+                                   "providers": provider_index()})
         if path == "/api/local/use":
             modelo = (body.get("model") or "").strip()
             if not modelo:

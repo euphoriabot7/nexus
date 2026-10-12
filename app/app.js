@@ -1962,7 +1962,20 @@ async function borrarDelDisco(m) {
     else toast(r.message || t("local_remove_fail"));
     LOCAL.info = r.status || LOCAL.info;
     renderLocal();
+    await refrescarTrasBorrar(m.name);
   } catch (e) { toast(t("local_remove_fail") + ": " + e.message); }
+}
+
+/* Tras borrar un modelo: recarga el estado (lista del selector incluida) y avisa
+   si era el modelo de este chat, que si no seguiria apuntando a algo inexistente. */
+async function refrescarTrasBorrar(nombre) {
+  const eraElMio = !!(state.chat && state.chat.model === nombre);
+  try {
+    await loadConfigState();
+    if ($("#modelPop") && !$("#modelPop").classList.contains("hidden")) renderModelList("");
+    updateModelPill();
+  } catch (e) { /* el panel local ya se ha refrescado */ }
+  if (eraElMio) toast(t("local_era_el_actual"));
 }
 
 async function instalarOllama() {
@@ -2077,6 +2090,7 @@ async function borrarLocal(m, backend) {
     toast(r.message || "");
     LOCAL.info = r.status || LOCAL.info;
     renderLocal();
+    await refrescarTrasBorrar(m.id);
   } catch (e) { toast(e.message); }
 }
 

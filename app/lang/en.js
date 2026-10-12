@@ -343,6 +343,7 @@
     local_will_free: "{size} will be freed.",
     local_freed: "Deleted: {size} freed",
     local_remove_fail: "Could not delete the model",
+    local_era_el_actual: "That was this chat's model: pick another one or open Settings",
     local_ram: "{free} of {total} GB RAM free",
     local_ram_low: "little RAM for local agent mode",
     local_agent_ram: "With {free} GB free, local agent mode will be very slow (or will not fit): Hermes needs a 64k window. Use your API provider for agent mode, or pick a smaller local model and try chat mode.",

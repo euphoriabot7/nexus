@@ -343,6 +343,7 @@
     local_will_free: "Se liberarán {size}.",
     local_freed: "Borrado: {size} liberados",
     local_remove_fail: "No se pudo borrar el modelo",
+    local_era_el_actual: "Ese era el modelo de este chat: elige otro o ábrelo en Ajustes",
     local_ram: "RAM libre {free} de {total} GB",
     local_ram_low: "poca memoria para el modo agente local",
     local_agent_ram: "Con {free} GB libres el modo agente local va a ir muy lento (o no cabrá): Hermes necesita una ventana de 64k. Para el agente usa tu proveedor por API, o elige un modelo local más pequeño y prueba en modo chat.",

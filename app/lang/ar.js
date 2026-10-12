@@ -325,6 +325,7 @@ window.NEXUS_ADD_LANG({
     local_will_free: "سيتم تحرير {size}.",
     local_freed: "تم الحذف: تحرير {size}",
     local_remove_fail: "تعذّر حذف الموديل",
+    local_era_el_actual: "كان هذا نموذج هذه المحادثة: اختر نموذجًا آخر أو افتح الإعدادات",
     local_ram: "ذاكرة متاحة {free} من {total} GB",
     local_ram_low: "ذاكرة قليلة لوضع الوكيل المحلي",
     local_agent_ram: "مع {free} GB متاحة سيكون وضع الوكيل المحلي بطيئًا جدًا (أو لن يعمل): Hermes يحتاج نافذة 64k. استخدم مزوّد API للوكيل، أو اختر موديلًا محليًا أصغر وجرّب وضع المحادثة.",

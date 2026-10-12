@@ -322,6 +322,7 @@ window.NEXUS_ADD_LANG({ code: "ko", name: "한국어", strings: {
     local_will_free: "{size} 가 확보됩니다.",
     local_freed: "삭제됨: {size} 확보",
     local_remove_fail: "모델을 삭제하지 못했습니다",
+    local_era_el_actual: "이 채팅에서 쓰던 모델입니다. 다른 모델을 고르거나 설정을 여세요",
     local_ram: "여유 메모리 {free} / {total} GB",
     local_ram_low: "로컬 에이전트 모드에 메모리 부족",
     local_agent_ram: "여유가 {free} GB뿐이면 로컬 에이전트 모드는 매우 느리거나 실행되지 않습니다. Hermes는 64k 창이 필요합니다. 에이전트에는 API 공급자를 쓰거나 더 작은 로컬 모델로 채팅 모드를 사용하세요.",

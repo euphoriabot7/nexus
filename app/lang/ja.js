@@ -343,6 +343,7 @@
     local_will_free: "{size} が解放されます。",
     local_freed: "削除しました: {size} を解放",
     local_remove_fail: "モデルを削除できませんでした",
+    local_era_el_actual: "これがこのチャットのモデルでした。別のモデルを選ぶか設定を開いてください",
     local_ram: "空きメモリ {free} / {total} GB",
     local_ram_low: "ローカルエージェントモードにはメモリ不足",
     local_agent_ram: "空き {free} GB ではローカルエージェントモードは非常に遅くなります（動かない可能性も）。Hermes は 64k のウィンドウを必要とします。エージェントにはAPIプロバイダーを使うか、より小さいローカルモデルでチャットモードをお試しください。",
