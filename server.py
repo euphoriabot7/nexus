@@ -427,6 +427,9 @@ def test_provider(pid, model="", inline=None):
     spec = spec0
     base, key = provider_credentials(spec)
     payload = {"model": model, "messages": [{"role": "user", "content": "Responde solo: ok"}], "max_tokens": 16}
+    if url_es_local(base):
+        # qwen3 y similares "piensan" por defecto: sin esto la prueba tarda minutos y falla por tiempo
+        payload["reasoning_effort"] = "none"
     try:
         req = urllib.request.Request(base + "/chat/completions", data=json.dumps(payload).encode(),
                                      headers=provider_headers(spec, key, stream=False), method="POST")
@@ -1179,6 +1182,9 @@ def stream_completion(chat, history, on_delta, attachments=None):
 
     payload = {"model": chat["model"], "messages": build_messages(chat, history, attachments),
                "stream": True, "stream_options": {"include_usage": True}}
+    if url_es_local(base):
+        # los modelos locales con "pensamiento" (qwen3...) tardan 10 veces mas si no se desactiva
+        payload["reasoning_effort"] = "none"
     req = urllib.request.Request(base + "/chat/completions",
                                  data=json.dumps(payload).encode("utf-8"),
                                  headers=headers, method="POST")

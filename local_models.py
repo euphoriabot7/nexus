@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -432,6 +433,16 @@ def agent_context_goal(model, min_ctx=64000):
     return int(techo), motivo
 
 
+def _modelo_base(model):
+    """Quita los sufijos de variante de agente (-agente, -agente-32k) si los lleva."""
+    base = (model or "").strip()
+    while True:
+        limpio = re.sub(r"-agente(-\d+k)?$", "", base)
+        if limpio == base or not limpio:
+            return base
+        base = limpio
+
+
 def agent_variant(model, min_ctx=64000):
     """Modelo que hay que usar para el modo agente (crea la variante si hace falta).
 
@@ -445,16 +456,17 @@ def agent_variant(model, min_ctx=64000):
     ctx_modelo = model_context(model)
     if ctx_modelo and ctx_modelo >= min_ctx and objetivo >= min_ctx:
         return model, f"{model}: {ctx_modelo} de contexto, vale para agente tal cual", ctx_modelo
-    variante = f"{model}-agente-{objetivo // 1024}k"
-    if variante.endswith("-agente") or variante == model:
-        variante = f"{model}-agente"
+    base = _modelo_base(model) or model
+    variante = f"{base}-agente-{objetivo // 1024}k"
+    if variante.endswith("-agente") or variante == base:
+        variante = f"{base}-agente"
     instalados = {m["name"] for m in ollama_models()}
     if variante in instalados:
         return variante, f"reutilizo la variante {variante}", objetivo
     trabajo = Path(CTX["data_dir"]) / "modelfiles"
     trabajo.mkdir(parents=True, exist_ok=True)
     archivo = trabajo / (variante.replace("/", "_").replace(":", "_") + ".Modelfile")
-    archivo.write_text(f"FROM {model}\nPARAMETER num_ctx {objetivo}\nPARAMETER temperature 0.7\n", encoding="utf-8")
+    archivo.write_text(f"FROM {base}\nPARAMETER num_ctx {objetivo}\nPARAMETER temperature 0.7\n", encoding="utf-8")
     try:
         r = subprocess.run([b, "create", variante, "-f", str(archivo)], capture_output=True, text=True,
                            timeout=600, env=(CTX["env"]() if CTX["env"] else None))
