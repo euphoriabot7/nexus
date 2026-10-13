@@ -113,6 +113,90 @@ LAN_ENABLED = os.environ.get("NEXUS_LAN", "1") != "0"   # accesible por LAN (con
 ALLOWED_ROOTS = [Path.home(), Path(tempfile.gettempdir())] + (
     [] if IS_WIN else [Path("/tmp"), Path("/var/tmp")])
 
+# --------------------------------------------------------------------------- #
+# registro en disco
+# --------------------------------------------------------------------------- #
+# pythonw.exe (Windows) no tiene consola: sys.stdout es None y todo lo que se
+# imprima se pierde, asi que un fallo al arrancar no deja ningun rastro. El
+# propio servidor duplica su salida en DATA_DIR/server.log; los lanzadores ya no
+# redirigen la salida (asi no se mezclan dos escritores en el mismo fichero).
+
+LOG_PATH = DATA_DIR / "server.log"
+LOG_MAX = 2_000_000      # ~2 MB: se rota a server.log.1
+
+
+def _rota_log():
+    try:
+        if LOG_PATH.is_file() and LOG_PATH.stat().st_size > LOG_MAX:
+            viejo = LOG_PATH.with_name("server.log.1")
+            try:
+                if viejo.is_file():
+                    viejo.unlink()
+            except OSError:
+                pass
+            try:
+                LOG_PATH.replace(viejo)
+            except OSError:
+                pass
+    except Exception:
+        pass
+
+
+class _Tee:
+    """Copia en el registro todo lo que va a stdout/stderr (y no rompe nunca)."""
+
+    def __init__(self, original, fichero):
+        self._original = original
+        self._fichero = fichero
+
+    def write(self, texto):
+        if self._original is not None:
+            try:
+                self._original.write(texto)
+            except Exception:
+                pass
+        try:
+            self._fichero.write(texto)
+            self._fichero.flush()
+        except Exception:
+            pass
+        return len(texto) if texto else 0
+
+    def flush(self):
+        for destino in (self._original, self._fichero):
+            try:
+                if destino is not None:
+                    destino.flush()
+            except Exception:
+                pass
+
+    def isatty(self):
+        return False
+
+    @property
+    def encoding(self):
+        return "utf-8"
+
+    def __getattr__(self, nombre):
+        return getattr(self._original, nombre)
+
+
+def setup_logging():
+    """Duplica stdout/stderr en server.log. Nunca impide que la app arranque."""
+    if os.environ.get("NEXUS_LOG", "1") == "0":
+        return None
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _rota_log()
+        fichero = open(LOG_PATH, "a", encoding="utf-8", errors="replace", buffering=1)
+    except Exception:
+        return None
+    sys.stdout = _Tee(sys.stdout, fichero)
+    sys.stderr = _Tee(sys.stderr, fichero)
+    print(f"\n[nexus] {time.strftime('%Y-%m-%d %H:%M:%S')} · {PLATFORM} · python {sys.version.split()[0]} · datos {DATA_DIR}")
+    return fichero
+
+
 MIME_EXTRA = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
     ".webp": "image/webp", ".bmp": "image/bmp", ".avif": "image/avif", ".ico": "image/x-icon",
@@ -129,7 +213,7 @@ def lan_config():
     if not cfg.get("token"):
         cfg["token"] = uuid.uuid4().hex + uuid.uuid4().hex[:8]
         try:
-            LAN_FILE.write_text(json.dumps(cfg))
+            LAN_FILE.write_text(json.dumps(cfg), encoding="utf-8")
         except Exception:
             pass
     return cfg
@@ -1184,7 +1268,7 @@ def modelo_ve_imagenes(chat):
     try:
         binario = local_models.ollama_bin() if pid == "ollama" else local_models.lms_bin()
         if binario:
-            r = subprocess.run([binario, "show", modelo], capture_output=True, text=True, timeout=40,
+            r = subprocess.run([binario, "show", modelo], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40,
                                env=(agent_env() if pid == "ollama" else None))
             ve = "vision" in ((r.stdout or "") + (r.stderr or "")).lower()
     except Exception:  # noqa: BLE001
@@ -1434,7 +1518,7 @@ def aplicar_actualizacion():
     try:
         if tiene_git():
             r = subprocess.run(["git", "pull", "--ff-only"], cwd=str(APP_DIR), capture_output=True,
-                               text=True, timeout=240)
+                               text=True, encoding="utf-8", errors="replace", timeout=240)
             salida = ((r.stdout or "") + (r.stderr or "")).strip()[-400:]
             return r.returncode == 0, salida or "ya estaba al dia"
         # instalacion sin git: se baja el paquete y se copia encima
@@ -1520,7 +1604,7 @@ def hermes_config_set(clave, valor):
         return False, "Hermes no esta instalado"
     try:
         r = subprocess.run([binario, "config", "set", str(clave), str(valor)],
-                           capture_output=True, text=True, timeout=90, env=agent_env())
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90, env=agent_env())
     except Exception as exc:  # noqa: BLE001
         return False, f"no se pudo ejecutar hermes config set: {exc}"
     if r.returncode == 0:
@@ -1599,7 +1683,7 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
     cwd = chat.get("workdir") or DEFAULT_WORKDIR
 
     proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            text=True, bufsize=1, env=agent_env())
+                            text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env())
     text_parts, meta, session = [], {"agent": True, "usage": None}, ""
     quejas = []                     # lineas que no son JSON (errores del CLI)
     pending = {}  # tool_call_id -> ruta, para avisar cuando el archivo ya esta escrito
@@ -2024,7 +2108,7 @@ def run_task(tid):
     parts, tokens, cost, err, rc = [], 0, 0.0, "", None
     try:
         proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, bufsize=1, env=agent_env())
+                                text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env())
         run["proc"] = proc
         for line in proc.stdout:
             if stop.is_set():
@@ -2898,6 +2982,7 @@ local_models.init(app_dir=APP_DIR, data_dir=DATA_DIR, config_dir=CONFIG_DIR,
                   config_get=user_config, config_save=save_user_config)
 
 def main():
+    setup_logging()
     init_db()
     lan_config()
     auto_refresh_pricing()          # en segundo plano: no bloquea el arranque

@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
-# NEXUS · detiene el backend.
+# NEXUS · detiene el backend. Linux y macOS.
 PORT="${NEXUS_PORT:-8765}"
-DATA_DIR="${NEXUS_DATA:-$HOME/.local/share/nexus}"
-[ -d "$DATA_DIR" ] || DATA_DIR="$HOME/.local/share/ocdesk"
+if [ -z "${NEXUS_DATA:-}" ]; then
+  if [ "$(uname -s)" = "Darwin" ]; then
+    DATA_DIR="$HOME/Library/Application Support/NEXUS"
+  else
+    DATA_DIR="$HOME/.local/share/nexus"
+    [ -d "$DATA_DIR" ] || DATA_DIR="$HOME/.local/share/ocdesk"
+  fi
+else
+  DATA_DIR="$NEXUS_DATA"
+fi
 PIDFILE="$DATA_DIR/server.pid"
 if [ -f "$PIDFILE" ]; then
   PID="$(cat "$PIDFILE")"

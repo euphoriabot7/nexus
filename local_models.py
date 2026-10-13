@@ -23,6 +23,7 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
+import zipfile
 from pathlib import Path
 
 IS_WIN = os.name == "nt"
@@ -101,7 +102,7 @@ def ollama_version():
     if not b:
         return ""
     try:
-        out = subprocess.run([b, "--version"], capture_output=True, text=True, timeout=20)
+        out = subprocess.run([b, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
         return ((out.stdout or "") + (out.stderr or "")).strip().splitlines()[0][:60]
     except Exception:
         return ""
@@ -161,7 +162,7 @@ def lmstudio_models():
     b = lms_bin()
     if b:
         try:
-            r = subprocess.run([b, "ls", "--json"], capture_output=True, text=True, timeout=30)
+            r = subprocess.run([b, "ls", "--json"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
             data = json.loads(r.stdout or "[]")
             for it in (data if isinstance(data, list) else []):
                 mid = it.get("modelKey") or it.get("identifier") or it.get("path") or ""
@@ -252,9 +253,13 @@ def status():
 def ram_gb():
     """(libre, total) en GB, o (None, None) si no se puede saber."""
     try:
-        if not IS_WIN and Path("/proc/meminfo").is_file():
+        if IS_WIN:
+            return _ram_windows()
+        if IS_MAC:
+            return _ram_macos()
+        if Path("/proc/meminfo").is_file():
             datos = {}
-            for linea in Path("/proc/meminfo").read_text().splitlines():
+            for linea in Path("/proc/meminfo").read_text(encoding="utf-8", errors="replace").splitlines():
                 campos = linea.split()
                 if len(campos) >= 2:
                     datos[campos[0].rstrip(":")] = int(campos[1])
@@ -268,6 +273,64 @@ def ram_gb():
         return round(libre, 1), round(total, 1)
     except Exception:
         return None, None
+
+
+def _ram_windows():
+    """Memoria en Windows sin dependencias: GlobalMemoryStatusEx (kernel32)."""
+    try:
+        import ctypes
+
+        class _Memoria(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong),
+                        ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong),
+                        ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong),
+                        ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong),
+                        ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+        datos = _Memoria()
+        datos.dwLength = ctypes.sizeof(_Memoria)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(datos)):
+            return None, None
+        return (round(datos.ullAvailPhys / 1024 ** 3, 1),
+                round(datos.ullTotalPhys / 1024 ** 3, 1))
+    except Exception:
+        return None, None
+
+
+def _ram_macos():
+    """Memoria en macOS sin dependencias: sysctl hw.memsize + vm_stat."""
+    total = libre = None
+    try:
+        r = subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=10)
+        total = int((r.stdout or "").strip() or 0) / 1024 ** 3
+    except Exception:
+        total = None
+    try:
+        r = subprocess.run(["vm_stat"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=10)
+        pagina, libres = 4096, 0
+        for linea in (r.stdout or "").splitlines():
+            if "page size of" in linea:
+                try:
+                    pagina = int(linea.split("page size of")[1].split()[0])
+                except Exception:
+                    pass
+            elif linea.lower().startswith(("pages free", "pages inactive", "pages speculative")):
+                try:
+                    libres += int(linea.split(":")[1].strip().rstrip("."))
+                except Exception:
+                    pass
+        libre = libres * pagina / 1024 ** 3
+    except Exception:
+        libre = None
+    if total is None:
+        return None, None
+    return round(libre if libre is not None else total * 0.5, 1), round(total, 1)
 
 
 def _free_gb():
@@ -335,9 +398,20 @@ def install(backend="ollama"):
                 shutil.copyfileobj(r, fh)
         except Exception as exc:  # noqa: BLE001
             return False, f"No se pudo descargar Ollama: {exc}"
-        _run_install(["/usr/bin/unzip", "-o", str(destino), "-d", str(Path.home() / "Applications")], env)
-        webbrowser.open("file://" + str(Path.home() / "Applications" / "Ollama.app"))
-        return True, "Descargado. Arrastra Ollama a Aplicaciones y abrelo una vez."
+        destino_app = Path.home() / "Applications"
+        destino_app.mkdir(parents=True, exist_ok=True)
+        try:
+            # zipfile de la biblioteca estandar: no depende de /usr/bin/unzip
+            with zipfile.ZipFile(destino) as z:
+                z.extractall(destino_app)
+        except Exception as exc:  # noqa: BLE001
+            return False, f"No se pudo descomprimir Ollama: {exc}"
+        try:
+            webbrowser.open(str(destino_app / "Ollama.app"))
+        except Exception:  # noqa: BLE001
+            pass
+        return True, ("Ollama descargado en ~/Aplicaciones. Abrelo una vez (si macOS no lo deja, "
+                      "Ajustes > Privacidad y seguridad > Abrir igualmente) y vuelve aqui.")
 
     # Linux: script oficial. Necesita root para /usr/local/bin y el servicio systemd.
     if not shutil.which("curl"):
@@ -416,7 +490,7 @@ def model_context(model):
     if not b:
         return 0
     try:
-        r = subprocess.run([b, "show", model], capture_output=True, text=True, timeout=45,
+        r = subprocess.run([b, "show", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45,
                            env=(CTX["env"]() if CTX["env"] else None))
         import re as _re
         m = _re.search(r"(?i)context length\s+([\d.,]+)", r.stdout or "")
@@ -483,7 +557,7 @@ def agent_variant(model, min_ctx=64000):
     archivo = trabajo / (variante.replace("/", "_").replace(":", "_") + ".Modelfile")
     archivo.write_text(f"FROM {base}\nPARAMETER num_ctx {objetivo}\nPARAMETER temperature 0.7\n", encoding="utf-8")
     try:
-        r = subprocess.run([b, "create", variante, "-f", str(archivo)], capture_output=True, text=True,
+        r = subprocess.run([b, "create", variante, "-f", str(archivo)], capture_output=True, text=True, encoding="utf-8", errors="replace",
                            timeout=600, env=(CTX["env"]() if CTX["env"] else None))
         if r.returncode != 0:
             return model, f"no se pudo crear la variante: {(r.stderr or r.stdout or '')[:200]}", 0
@@ -516,7 +590,7 @@ def pull(model, backend="ollama"):
 
     def _run():
         try:
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                                     bufsize=1, env=env)
             PULL["proc"] = proc
             # vigilante: si la descarga deja de dar senales, se corta y se avisa en vez de quedarse colgada.
@@ -584,7 +658,7 @@ def remove(model, backend="ollama"):
             return False, "LM Studio no esta instalado."
         # descargarlo de memoria antes de borrarlo
         try:
-            subprocess.run([b, "unload", model], capture_output=True, text=True, timeout=30,
+            subprocess.run([b, "unload", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
                            env=(CTX["env"]() if CTX["env"] else None))
         except Exception:  # noqa: BLE001
             pass
@@ -596,14 +670,14 @@ def remove(model, backend="ollama"):
         # Si el modelo esta cargado en memoria, Ollama puede quedarse colgado ("Stopping...")
         # al borrarlo: primero se descarga y se le da un momento para soltarlo.
         try:
-            subprocess.run([b, "stop", model], capture_output=True, text=True, timeout=45,
+            subprocess.run([b, "stop", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45,
                            env=(CTX["env"]() if CTX["env"] else None))
             time.sleep(1.5)
         except Exception:  # noqa: BLE001
             pass
         cmd = [b, "rm", model]
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=90,
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90,
                            env=(CTX["env"]() if CTX["env"] else None))
         if r.returncode == 0:
             return True, "Modelo borrado."

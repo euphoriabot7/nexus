@@ -1,0 +1,25 @@
+# Normaliza finales de linea en el repositorio; cada checkout los ajusta a su sistema.
+* text=auto
+
+# Windows: obligatorio CRLF (cmd.exe se atraganta con los .bat en LF)
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Unix/macOS: siempre LF (un shebang con CR rompe el script)
+*.sh      text eol=lf
+*.command text eol=lf
+*.desktop text eol=lf
+*.py      text eol=lf
+*.js      text eol=lf
+*.html    text eol=lf
+*.css     text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+
+# binarios: ni tocarlos
+*.ico   binary
+*.png   binary
+*.jpg   binary
+*.webp  binary
+*.woff2 binary

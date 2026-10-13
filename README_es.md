@@ -64,9 +64,16 @@ bash install-desktop.sh  # crea el acceso directo en el menú y el escritorio
 bash stop.sh             # detiene el backend
 ```
 
-**En Windows** (no hace falta WSL): doble clic en `run.bat`. Busca Python 3.9+, arranca el backend y abre la ventana
-de la app con Edge o Chrome en *modo aplicación* (sin barra de navegador). `install-windows.bat` crea el acceso directo
-en el escritorio y en el menú Inicio, y `stop.bat` detiene el backend. También puedes seguir usando la web en
+**En Windows** (no hace falta WSL ni instalar nada más que Python): **dos clics**.
+
+1. Doble clic en **`install-windows.bat`**. Comprueba que tienes Python 3.9 o superior (si no, abre python.org y te dice
+   que marques *Add python.exe to PATH*), crea el acceso directo **NEXUS** en el Escritorio y en el menú Inicio con el
+   icono de la app, y la abre.
+2. A partir de ahí, doble clic en **NEXUS** y ya está: arranca el backend y abre la app en su propia ventana con Edge o
+   Chrome en *modo aplicación* (sin barra de navegador ni pestañas), como cualquier programa.
+
+`run.bat` hace lo mismo sin crear nada (útil si prefieres no instalar), `stop.bat` apaga el backend y `update.bat` trae
+la última versión de GitHub sin tocar tus chats ni tus claves. También puedes seguir usando la web en
 <http://127.0.0.1:8765> desde cualquier navegador.
 
 ## ⚡ Qué trae

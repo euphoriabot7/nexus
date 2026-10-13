@@ -19,6 +19,7 @@ else
 fi
 DATA_DIR="${NEXUS_DATA:-$DEF_DATA}"
 LOG="$DATA_DIR/server.log"
+LOG_ARRANQUE="$DATA_DIR/server-arranque.log"
 PIDFILE="$DATA_DIR/server.pid"
 mkdir -p "$DATA_DIR"
 
@@ -42,7 +43,8 @@ if [ "$SO" = "Darwin" ]; then
   for b in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
-           "/Applications/Chromium.app/Contents/MacOS/Chromium"; do
+           "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+           "$HOME/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"; do
     [ -x "$b" ] && BROWSER="$b" && break
   done
 fi
@@ -55,10 +57,13 @@ fi
 health() { "$PY" -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('$URL/api/health',timeout=2).status==200 else 1)" >/dev/null 2>&1; }
 
 # --- arranca el servidor si no responde ---
+# el registro de arranque va aparte: el servidor ya escribe el suyo en server.log
 if ! health; then
-  ( cd "$APP_DIR" && nohup "$PY" server.py >>"$LOG" 2>&1 & echo $! >"$PIDFILE" )
-  for _ in $(seq 1 50); do
+  ( cd "$APP_DIR" && nohup "$PY" server.py >>"$LOG_ARRANQUE" 2>&1 & echo $! >"$PIDFILE" )
+  intento=0
+  while [ "$intento" -lt 50 ]; do
     health && break
+    intento=$((intento + 1))
     sleep 0.2
   done
 fi
@@ -67,18 +72,22 @@ if ! health; then
   echo "No se pudo iniciar NEXUS. Revisa el registro: $LOG" >&2
   if command -v zenity >/dev/null 2>&1; then
     zenity --error --title="NEXUS" --text="No se pudo iniciar el backend.\nRevisa: $LOG" || true
+  elif [ "$SO" = "Darwin" ]; then
+    osascript -e 'display alert "NEXUS" message "No se pudo iniciar el backend. Revisa el registro."' >/dev/null 2>&1 || true
   fi
   exit 1
 fi
 
 # --- abre la ventana (modo app, sin barra del navegador) ---
 if [ -n "$BROWSER" ]; then
-  exec "$BROWSER" \
-    --app="$URL" \
-    --class=NEXUS \
-    --user-data-dir="$DATA_DIR/browser-profile" \
-    --no-first-run --no-default-browser-check \
-    --window-size=1360,880
+  COMUNES=(--app="$URL" --user-data-dir="$DATA_DIR/browser-profile"
+           --no-first-run --no-default-browser-check --window-size=1360,880)
+  if [ "$SO" = "Linux" ]; then
+    # --class solo lo entiende Chromium en Linux; en macOS se ignora o da guerra
+    exec "$BROWSER" --class=NEXUS "${COMUNES[@]}"
+  else
+    exec "$BROWSER" "${COMUNES[@]}"
+  fi
 else
   echo "NEXUS listo en $URL (abrelo en tu navegador)"
   if [ "$SO" = "Darwin" ]; then exec open "$URL"; else exec xdg-open "$URL" 2>/dev/null || true; fi

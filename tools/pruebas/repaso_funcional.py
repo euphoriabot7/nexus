@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Repaso funcional completo de NEXUS con el modelo local."""
 import json
+import os
 import time
 import urllib.request
 
 BASE = "http://127.0.0.1:8765"
-MODELO = "huihui_ai/qwen2.5-abliterate:0.5b"
+MODELO = os.environ.get("NEXUS_TEST_MODEL", "huihui_ai/qwen3-abliterated:1.7b")
 
 
 def api(ruta, cuerpo=None, metodo=None, timeout=180):
@@ -79,7 +80,9 @@ for pid in ("seo", "analista", "vida"):
     prompt = (ag["sugerencias"] or ["Hola"])[0]
     primera, total, salida, meta, error = sse_chat(chat["id"], prompt)
     pal = len(salida.split())
-    print(f"  {ag['emoji']} {ag['nombre']:22} | 1ª palabra {primera:.1f}s | total {total:.1f}s | "
+    t1 = f"{primera:.1f}s" if primera is not None else ">espera"
+    tt = f"{total:.1f}s" if total is not None else "-"
+    print(f"  {ag['emoji']} {ag['nombre']:22} | 1ª palabra {t1} | total {tt} | "
           f"{pal} palabras | {'OK' if salida and not error else 'ERROR'}")
     print(f"      {salida[:110].replace(chr(10), ' ')!r}")
     api(f"/api/chats/{chat['id']}", metodo="DELETE")
@@ -88,6 +91,7 @@ print("=== 5) Regenerar y adjuntos ===")
 chat = api("/api/chats", {"title": "prueba interna", "provider": "ollama", "model": MODELO})["chat"]
 primera, total, salida, _, _ = sse_chat(chat["id"], "Di la palabra prueba")
 msgs = api(f"/api/chats/{chat['id']}/messages")["messages"]
-print(f"  turno: {total:.1f}s | mensajes guardados: {len(msgs)} | roles: {[m['role'] for m in msgs]}")
+tt = f"{total:.1f}s" if total is not None else "-"
+print(f"  turno: {tt} | mensajes guardados: {len(msgs)} | roles: {[m['role'] for m in msgs]}")
 api(f"/api/chats/{chat['id']}", metodo="DELETE")
 print("  (chat de prueba borrado)")

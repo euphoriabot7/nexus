@@ -77,5 +77,5 @@ print("CONFIG_DIR:", server.CONFIG_PATH.parent)
 print("pidfile:", server.PID_FILE)
 print("hermes:", server.hermes_bin())
 '''
-r = subprocess.run([sys.executable, "-c", codigo.replace("APP_DIR", str(APP_DIR))], capture_output=True, text=True, timeout=120)
+r = subprocess.run([sys.executable, "-c", codigo.replace("APP_DIR", str(APP_DIR))], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
 print(r.stdout.strip() or r.stderr.strip()[:400])

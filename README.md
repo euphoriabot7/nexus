@@ -63,9 +63,16 @@ bash install-desktop.sh  # adds a launcher to the app menu and desktop
 bash stop.sh             # stops the backend
 ```
 
-**On Windows** (no need for WSL): double-click `run.bat`. It looks for Python 3.9+, starts the backend and opens the
-app window with Edge or Chrome in *app mode*. `install-windows.bat` adds the shortcut to the desktop and the Start
-menu, and `stop.bat` stops the backend. You can also keep using the website at <http://127.0.0.1:8765> from any browser.
+**On Windows** (no WSL, nothing to install but Python): **two clicks**.
+
+1. Double-click **`install-windows.bat`**. It checks for Python 3.9+ (if it's missing it opens python.org and tells you
+   to tick *Add python.exe to PATH*), creates the **NEXUS** shortcut on your Desktop and Start menu with the app icon,
+   and launches it.
+2. From then on, double-click **NEXUS** — the backend starts and the app opens in its own window (Edge or Chrome in
+   *app mode*: no address bar, no tabs), like any other program.
+
+`run.bat` does the same without creating anything, `stop.bat` stops the backend and `update.bat` pulls the latest version
+from GitHub without touching your chats or keys. You can still use the website at <http://127.0.0.1:8765> from any browser.
 
 ## ⚡ Features
 

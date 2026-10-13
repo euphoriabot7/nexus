@@ -2,13 +2,18 @@
 # NEXUS · instala los accesos directos (menu de aplicaciones + Escritorio).
 set -euo pipefail
 
+if [ "$(uname -s)" = "Darwin" ]; then
+  echo "En macOS los accesos directos se crean con:  bash install-mac.command" >&2
+  exit 1
+fi
+
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ICON="$APP_DIR/app/assets/icon.svg"
 DESKTOP_DIR="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Escritorio")"
 APPS_DIR="$HOME/.local/share/applications"
 
 mkdir -p "$APPS_DIR"
-chmod +x "$APP_DIR/run.sh" "$APP_DIR/stop.sh" 2>/dev/null || true
+chmod +x "$APP_DIR/run.sh" "$APP_DIR/stop.sh" "$APP_DIR/install-mac.command" 2>/dev/null || true
 
 write_desktop() {
   cat >"$1" <<EOF
