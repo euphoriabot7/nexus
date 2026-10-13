@@ -276,6 +276,15 @@
       </div>
       <div class="upd-estado" id="updEstado"></div>
       <div class="upd-notas hidden" id="updNotas"></div>
+      <div class="upd-token">
+        <div class="upd-token-fila">
+          <input type="password" id="updToken" autocomplete="off" spellcheck="false"
+                 data-i18n-ph="upd_token_ph" placeholder="Token de GitHub (solo si el repositorio es privado)" />
+          <button class="mini-btn" id="updTokenGuardar" data-i18n="upd_token_save">Guardar</button>
+          <button class="mini-btn hidden" id="updTokenBorrar" data-i18n="upd_token_clear">Quitar</button>
+        </div>
+        <div class="upd-token-estado" id="updTokenEstado"></div>
+      </div>
       <label class="upd-auto">
         <input type="checkbox" id="updAuto" />
         <span data-i18n="upd_auto">Comprobar al arrancar y, si es una copia de git, actualizar sola a la última versión</span>

@@ -1439,14 +1439,37 @@ def tiene_git():
     return (APP_DIR / ".git").exists() and bool(shutil.which("git"))
 
 
-def _descarga(url, timeout=20):
-    req = urllib.request.Request(url, headers={"User-Agent": "NEXUS"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+def update_token():
+    """Token opcional de GitHub para actualizar desde un repositorio PRIVADO.
+
+    Vive unicamente en la config local (0600) o en la variable de entorno del
+    propio usuario; nunca sale de este equipo ni se escribe en los registros.
+    """
+    try:
+        tok = str(((user_config().get("update") or {}).get("token")) or "").strip()
+    except Exception:  # noqa: BLE001
+        tok = ""
+    return tok or (os.environ.get("NEXUS_GITHUB_TOKEN") or "").strip()
+
+
+def _peticion(url, timeout=20, auth=False, accept=None):
+    cabeceras = {"User-Agent": "NEXUS"}
+    if accept:
+        cabeceras["Accept"] = accept
+    if auth:
+        tok = update_token()
+        if tok:
+            cabeceras["Authorization"] = f"Bearer {tok}"
+    return urllib.request.Request(url, headers=cabeceras)
+
+
+def _descarga(url, timeout=20, auth=False, accept=None):
+    with urllib.request.urlopen(_peticion(url, timeout, auth, accept), timeout=timeout) as r:
         return r.read()
 
 
-def _json_github(url, timeout=20):
-    return json.loads(_descarga(url, timeout).decode("utf-8", "replace"))
+def _json_github(url, timeout=20, auth=True):
+    return json.loads(_descarga(url, timeout, auth=auth).decode("utf-8", "replace"))
 
 
 def notas_ultimos_cambios(cuantos=4):
@@ -1473,20 +1496,64 @@ def _tupla_version(v):
 
 
 def comprobar_actualizacion(guardar=True, con_notas=True):
-    """Comprueba si hay una version mas nueva publicada en GitHub."""
+    """Comprueba si hay una version mas nueva publicada.
+
+    Orden de busqueda: (1) la ultima version etiquetada en GitHub Releases, que es
+    el modelo "por versiones" y ademas trae las notas de cambio; (2) el fichero
+    VERSION de la rama principal por la API; (3) el mismo fichero por el CDN
+    publico, por si la API limitase las peticiones. Todo con token opcional, asi
+    que funciona igual si el repositorio es privado.
+    """
     info = {"revisado": time.time(), "local": version_local(), "remoto": "", "hay": False,
-            "notas": "", "metodo": ("git" if tiene_git() else "zip"), "error": "", "descargando": False}
+            "notas": "", "metodo": ("git" if tiene_git() else "zip"), "error": "",
+            "descargando": False, "fuente": "", "etiqueta": "", "privado": bool(update_token())}
+    problemas = []
+
+    # 1) version etiquetada (releases): lo que queremos seguir
     try:
-        remoto = _descarga(f"https://raw.githubusercontent.com/{REPO_GITHUB}/main/VERSION").decode("utf-8", "replace").strip()
-        info["remoto"] = remoto
-        if not remoto:
-            raise RuntimeError("el repositorio no publica ninguna version")
+        rel = _json_github(f"https://api.github.com/repos/{REPO_GITHUB}/releases/latest")
+        etiqueta = str(rel.get("tag_name") or "").strip()
+        if etiqueta:
+            info["etiqueta"] = etiqueta
+            info["remoto"] = etiqueta.lstrip("vV").strip()
+            info["fuente"] = "release"
+            if con_notas:
+                info["notas"] = " · ".join(
+                    l.strip() for l in (rel.get("body") or "").splitlines() if l.strip())[:400]
+    except Exception as exc:  # noqa: BLE001
+        problemas.append(f"releases: {type(exc).__name__}")
+
+    # 2) fichero VERSION por la API (sirve tambien en repos privados con token)
+    if not info["remoto"]:
+        try:
+            info["remoto"] = _descarga(
+                f"https://api.github.com/repos/{REPO_GITHUB}/contents/VERSION?ref=main",
+                auth=True, accept="application/vnd.github.raw").decode("utf-8", "replace").strip()
+            info["fuente"] = "api"
+        except Exception as exc:  # noqa: BLE001
+            problemas.append(f"api: {type(exc).__name__}")
+
+    # 3) ultimo recurso: el CDN publico (no vale para repos privados)
+    if not info["remoto"]:
+        try:
+            info["remoto"] = _descarga(
+                f"https://raw.githubusercontent.com/{REPO_GITHUB}/main/VERSION").decode(
+                    "utf-8", "replace").strip()
+            info["fuente"] = "cdn"
+        except Exception as exc:  # noqa: BLE001
+            problemas.append(f"cdn: {type(exc).__name__}")
+
+    try:
+        if not info["remoto"]:
+            raise RuntimeError("no se pudo leer la version publicada")
         # solo hay actualizacion si la publicada es MAS NUEVA (comparando numeros, no texto)
-        info["hay"] = _tupla_version(remoto) > _tupla_version(info["local"])
-        if info["hay"] and con_notas:
+        info["hay"] = _tupla_version(info["remoto"]) > _tupla_version(info["local"])
+        if info["hay"] and con_notas and not info["notas"]:
             info["notas"] = notas_ultimos_cambios()
     except Exception as exc:  # noqa: BLE001
         info["error"] = f"{type(exc).__name__}: {str(exc)[:160]}"
+        if problemas:
+            info["error"] += " (" + ", ".join(problemas) + ")"
     if guardar:
         UPDATE_INFO.update(info)
     return info
@@ -1512,31 +1579,63 @@ def _copia_arbol(origen, destino):
     return copiados
 
 
-def aplicar_actualizacion():
-    """Trae la ultima version de GitHub. No toca la configuracion ni los datos del usuario."""
+def _raiz_extraida(tmp):
+    raices = [p for p in Path(tmp).iterdir() if p.is_dir()]
+    return raices[0] if raices else None
+
+
+def aplicar_actualizacion(ref=None):
+    """Trae la ultima version. No toca la configuracion ni los datos del usuario.
+
+    Sirve para repositorios publicos y privados: con token guardado se pide el
+    paquete por la API (unica via que autoriza un repositorio privado); sin token
+    se usa el paquete publico. Si la copia viene de git se intenta primero
+    'git pull', que es lo mas rapido y no pisa nada.
+    """
     UPDATE_INFO["descargando"] = True
     try:
         if tiene_git():
             r = subprocess.run(["git", "pull", "--ff-only"], cwd=str(APP_DIR), capture_output=True,
                                text=True, encoding="utf-8", errors="replace", timeout=240)
             salida = ((r.stdout or "") + (r.stderr or "")).strip()[-400:]
-            return r.returncode == 0, salida or "ya estaba al dia"
-        # instalacion sin git: se baja el paquete y se copia encima
+            if r.returncode == 0:
+                return True, salida or "ya estaba al dia"
+            respaldo = salida or f"git salio con {r.returncode}"
+        else:
+            respaldo = ""
+
+        import io
         import tarfile
         import tempfile
-        datos = _descarga(f"https://github.com/{REPO_GITHUB}/archive/refs/heads/main.tar.gz", timeout=180)
+        import zipfile
+        con_token = bool(update_token())
+        if con_token:
+            destino = ref or UPDATE_INFO.get("etiqueta") or "main"
+            datos = _descarga(f"https://api.github.com/repos/{REPO_GITHUB}/zipball/{destino}",
+                              timeout=180, auth=True)
+        else:
+            datos = _descarga(f"https://github.com/{REPO_GITHUB}/archive/refs/heads/main.tar.gz",
+                              timeout=180)
         with tempfile.TemporaryDirectory() as tmp:
-            paquete = Path(tmp) / "nexus.tar.gz"
-            paquete.write_bytes(datos)
-            with tarfile.open(paquete) as tf:
-                tf.extractall(tmp)
-            raices = [p for p in Path(tmp).iterdir() if p.is_dir()]
-            if not raices:
+            if datos[:2] == b"PK":
+                with zipfile.ZipFile(io.BytesIO(datos)) as zf:
+                    zf.extractall(tmp)
+            else:
+                paquete = Path(tmp) / "nexus.tar.gz"
+                paquete.write_bytes(datos)
+                with tarfile.open(paquete) as tf:
+                    tf.extractall(tmp)
+            raiz = _raiz_extraida(tmp)
+            if raiz is None:
                 return False, "el paquete descargado no tiene la forma esperada"
-            copiados = _copia_arbol(raices[0], APP_DIR)
-            return True, f"{copiados} archivos actualizados desde GitHub"
+            copiados = _copia_arbol(raiz, APP_DIR)
+            extra = " (repositorio privado)" if con_token else ""
+            return True, f"{copiados} archivos actualizados{extra}"
     except Exception as exc:  # noqa: BLE001
-        return False, f"{type(exc).__name__}: {str(exc)[:200]}"
+        detalle = f"{type(exc).__name__}: {str(exc)[:200]}"
+        if respaldo:
+            detalle += f" | git: {respaldo[:160]}"
+        return False, detalle
     finally:
         UPDATE_INFO["descargando"] = False
 
@@ -2387,7 +2486,11 @@ class Handler(BaseHTTPRequestHandler):
                    "config_path": str(CONFIG_PATH),
                    "catalog": {pid: {k: v for k, v in spec.items() if k != "models"}
                                for pid, spec in CATALOG_PROVIDERS.items()},
-                   "needs_setup": needs_setup()}
+                   "needs_setup": needs_setup(),
+                   "update": {"auto": bool((cfg.get("update") or {}).get("auto", True)),
+                              "has_token": bool((cfg.get("update") or {}).get("token")),
+                              "token_hint": (f"…{str((cfg.get('update') or {}).get('token'))[-4:]}"
+                                             if (cfg.get("update") or {}).get("token") else "")}}
             return self.send_json(pub)
         if path == "/api/hermes":
             st = hermes_status()
@@ -2545,10 +2648,22 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/config":
             body = self.read_body()
             cfg = user_config()
-            if "update_auto" in body:
-                cfg["update"] = {"auto": bool(body.get("update_auto"))}
+            if "update_auto" in body or "update_token" in body:
+                upd = dict(cfg.get("update") or {})
+                if "update_auto" in body:
+                    upd["auto"] = bool(body.get("update_auto"))
+                if "update_token" in body:
+                    tok = str(body.get("update_token") or "").strip()
+                    if tok:
+                        upd["token"] = tok
+                    else:
+                        upd.pop("token", None)
+                cfg["update"] = upd
                 save_user_config(cfg)
-                return self.send_json({"ok": True, "update_auto": bool(body.get("update_auto"))})
+                UPDATE_INFO["privado"] = bool(update_token())
+                return self.send_json({"ok": True, "update_auto": bool(upd.get("auto", True)),
+                                       "has_token": bool(upd.get("token")),
+                                       "token_hint": (f"…{upd['token'][-4:]}" if upd.get("token") else "")})
             if body.get("delete"):
                 pid = str(body["delete"])
                 cfg.get("providers", {}).pop(pid, None)

@@ -1040,3 +1040,7 @@ body.rtl .ci-title,body.rtl .pt-title,body.rtl .pt-body{text-align:right}
 .upd-auto{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--txt-dim);margin-top:10px;cursor:pointer}
 .upd-auto input{margin-top:2px}
 .upd-pie{font-size:11.5px;color:var(--txt-dim);margin-top:8px;opacity:.85}
+.upd-token{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line, #2a2f3a)}
+.upd-token-fila{display:flex;gap:8px;align-items:center}
+.upd-token-fila input{flex:1;min-width:0;background:var(--bg-in, #12151c);border:1px solid var(--line, #2a2f3a);border-radius:8px;color:var(--txt, #e8ecf3);font-size:12.5px;padding:7px 9px}
+.upd-token-estado{font-size:11.5px;color:var(--txt-dim);margin-top:6px}

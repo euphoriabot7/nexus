@@ -1206,6 +1206,7 @@ function openSettings() {
   if ($("#updBox")) {
     try { $("#updAuto").checked = (state.update_auto !== false) && localStorage.getItem("nexus_updAuto") !== "0"; } catch (e) { $("#updAuto").checked = true; }
     pintaUpdate(UPD.info || (state.update || {})); if (!UPD.info) buscarActualizacion(false);
+    cargaTokenEstado();
   }
   $$(".accent-swatch").forEach((s) => s.classList.toggle("sel", s.dataset.accent === LS.get("nexus_accent", "cyan")));
   $("#systemPrompt").value = state.chat ? (state.chat.system || "") : "";
@@ -1504,6 +1505,9 @@ $("#updAuto").addEventListener("change", () => {
   api("/api/config", { method: "POST", body: { update_auto: $("#updAuto").checked } }).catch(() => {});
 });
 $("#updAplicar").addEventListener("click", () => aplicarActualizacion());
+$("#updTokenGuardar").addEventListener("click", () => guardarToken(true));
+$("#updTokenBorrar").addEventListener("click", () => guardarToken(false));
+$("#updToken").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); guardarToken(true); } });
 $("#closeSettings").addEventListener("click", () => $("#settingsModal").classList.add("hidden"));
 $("#saveSettings").addEventListener("click", async () => {
   if ($("#notifyChk").checked && window.Notification && Notification.permission === "default") { try { await Notification.requestPermission(); } catch {} }
@@ -2615,6 +2619,7 @@ function pintaUpdate(info) {
     else if (i.error) txt = t("upd_error") + " " + i.error;
     else if (hay) txt = `${t("upd_available")} (${i.metodo === "git" ? t("upd_via_git") : t("upd_via_zip")})`;
     else txt = t("upd_uptodate");
+    if (i.privado) txt += " · " + t("upd_private");
     $("#updEstado").textContent = txt;
   }
 }
@@ -2650,5 +2655,38 @@ async function aplicarActualizacion() {
   } finally {
     if (b) b.disabled = false;
   }
+}
+
+/* Token de GitHub: se guarda solo en el equipo (config 0600) para poder
+   actualizar desde un repositorio privado. Nunca se muestra de vuelta. */
+async function cargaTokenEstado() {
+  try {
+    const c = await api("/api/config");
+    const u = (c && c.update) || {};
+    if ($("#updTokenBorrar")) $("#updTokenBorrar").classList.toggle("hidden", !u.has_token);
+    if ($("#updTokenEstado")) {
+      $("#updTokenEstado").textContent = u.has_token
+        ? `${t("upd_token_saved")} ${u.token_hint || ""}`.trim()
+        : t("upd_token_none");
+    }
+  } catch (e) { /* sin configuracion no hay nada que pintar */ }
+}
+
+async function guardarToken(guardar) {
+  const inp = $("#updToken");
+  const valor = guardar ? (inp ? inp.value.trim() : "") : "";
+  if (guardar && !valor) { toast(t("upd_token_empty")); return; }
+  try {
+    const r = await api("/api/config", { method: "POST", body: { update_token: valor } });
+    if (inp) inp.value = "";
+    if ($("#updTokenBorrar")) $("#updTokenBorrar").classList.toggle("hidden", !r.has_token);
+    if ($("#updTokenEstado")) {
+      $("#updTokenEstado").textContent = r.has_token
+        ? `${t("upd_token_saved")} ${r.token_hint || ""}`.trim()
+        : t("upd_token_none");
+    }
+    toast(guardar ? t("upd_token_ok") : t("upd_token_cleared"));
+    buscarActualizacion(true);
+  } catch (e) { toast(t("upd_fail") + " " + e.message); }
 }
 
