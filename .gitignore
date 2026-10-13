@@ -1,0 +1,26 @@
+# datos y configuracion local: nunca al repositorio
+config.json
+*.log
+*.db
+*.db-wal
+*.db-shm
+nexus-install.log
+hermes-install.log
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# perfiles de navegador / capturas temporales
+browser-profile/
+.screenshots/
+
+# sistemas operativos y editores
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

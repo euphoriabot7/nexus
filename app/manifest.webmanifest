@@ -1,0 +1,15 @@
+{
+  "name": "NEXUS",
+  "short_name": "NEXUS",
+  "description": "Consola de chat con IA: multi-chat, agente y panel de control",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
+  "icons": [
+    { "src": "/assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

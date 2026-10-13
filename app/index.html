@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NEXUS</title>
+<meta name="theme-color" content="#05070d">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEXUS">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icon.svg">
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body class="accent-cyan">
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<div id="app">
+  <div id="drawerBackdrop"></div>
+
+  <!-- ░░ SIDEBAR ░░ -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="logo">◈</div>
+      <div class="brand-text">
+        <h1>NEXUS</h1>
+        <span data-i18n="brand_sub">consola de chat</span>
+      </div>
+      <button id="collapseBtn" class="icon-btn" title="Colapsar (Ctrl+B)" data-i18n-title="collapse_sidebar">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 4v16" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+    </div>
+
+    <button id="newChatBtn" class="new-chat">
+      <span class="plus">+</span> Nuevo chat <kbd>Ctrl N</kbd>
+    </button>
+
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="1.7"/></svg>
+      <input id="chatSearch" type="text" placeholder="Buscar chats y mensajes..." data-i18n-ph="search_chats_ph" autocomplete="off">
+    </div>
+
+    <div id="chatList" class="chat-list"></div>
+
+    <div class="sidebar-foot">
+      <button id="panelBtn" class="foot-btn" title="Panel de control (Ctrl+D)">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+        <span data-i18n="panel_btn">Panel</span>
+      </button>
+      <button id="settingsBtn" class="foot-btn" title="Ajustes">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="1.4"/></svg>
+      </button>
+      <div id="providerStatus" class="status"><i></i><span data-i18n="status_connecting">conectando…</span></div>
+    </div>
+  </aside>
+  <div id="dragHandle" title="Redimensionar"></div>
+
+  <!-- ░░ MAIN ░░ -->
+  <main id="main">
+    <header id="topbar">
+      <button id="menuBtn" class="icon-btn" title="Mostrar/ocultar historial (Ctrl+B)" data-i18n-title="toggle_history"><span id="menuIcon">‹</span></button>
+      <div class="title-block">
+        <input id="chatTitle" class="chat-title" value="NEXUS" spellcheck="false">
+        <div class="subtitle"><span id="msgCount">0</span> mensajes · <span id="statsInline">—</span></div>
+      </div>
+      <div class="msg-sugg" id="suggBar"></div>
+  <div class="top-actions">
+        <button id="agentBtn" class="agent-pill" title="Modo agente: usa herramientas reales de Hermes (archivos, shell, web)">
+          <span class="agent-ico">◆</span><span id="agentLabel">Chat</span>
+        </button>
+        <button id="modelBtn" class="model-pill" title="Cambiar modelo (Ctrl+K)">
+          <span class="dot"></span><span id="modelLabel">modelo</span>
+          <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <button id="presetBtn" class="icon-btn" title="Plantillas de prompt">
+          <svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 12h7M9 16h7M9 8h3" stroke="currentColor" stroke-width="1.4"/></svg>
+        </button>
+        <button class="icon-btn" id="agentsBtn" title="Especialistas" data-i18n-title="agents_btn">✨</button>
+      <button id="localBtn" class="icon-btn" title="Modelos locales (Ollama / LM Studio)" data-i18n-title="local_btn_title">
+          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button id="quickKey" class="icon-btn" title="Proveedores y claves" data-i18n-title="providers_btn">
+          <svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11.4 12H21M18 12v3M15 12v2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        <button id="langBtn" class="lang-pill" title="Cambiar idioma">
+          <span class="lang-globe">🌐</span><span id="langLabel">ES</span>
+        </button>
+        <button id="menuMoreBtn" class="icon-btn" title="Más acciones">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section id="messages" class="messages"></section>
+
+    <button id="scrollBtn" class="scroll-btn" title="Ir al final">
+      <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+
+    <footer id="composer-wrap">
+      <div id="composer" class="composer">
+        <div id="attachChips" class="attach-chips hidden"></div>
+        <div class="composer-row">
+          <textarea id="input" rows="1" placeholder="Escribe un mensaje...  (Enter envía · Shift+Enter salto · Ctrl+P comandos)"></textarea>
+          <div class="composer-tools">
+            <button id="attachBtn" class="tool-btn" title="Adjuntar archivo o imagen" data-i18n-title="attach_title">
+              <svg viewBox="0 0 24 24"><path d="M8 12l7-7a3.5 3.5 0 0 1 5 5l-9 9a5 5 0 0 1-7-7l9-9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+            </button>
+            <button id="micBtn" class="tool-btn" title="Dictar por voz" data-i18n-title="mic_title">
+              <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+            </button>
+            <button id="sendBtn" class="send-btn" title="Enviar" data-i18n-title="send_title">
+              <svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 8 6 8z" fill="currentColor"/></svg>
+            </button>
+            <button id="stopBtn" class="stop-btn hidden" title="Detener" data-i18n-title="stop_title">
+              <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="composer-hint">
+        <span id="hintModel">—</span> · <span id="tokenHint">0 tok</span>
+        <span id="modeHint" class="mode-hint"></span>
+      </div>
+      <input id="fileInput" type="file" multiple class="hidden">
+    </footer>
+
+    <!-- ░░ VISTA PREVIA LATERAL (estilo artifacts) ░░ -->
+    <aside id="splitPane" class="hidden">
+      <div id="splitGrip" title="Redimensionar" data-i18n-title="preview_resize"></div>
+      <div class="sp-head">
+        <span id="spKind" class="sp-kind">▤</span>
+        <span id="spTitle" class="sp-title" data-i18n="preview">vista previa</span>
+        <span id="spLive" class="sp-live hidden" data-i18n="preview_live">● en vivo</span>
+        <span class="sp-actions">
+          <button id="spReload" class="sp-btn" title="Recargar" data-i18n-title="preview_reload">⟳</button>
+          <button id="spTab" class="sp-btn" title="Abrir aparte" data-i18n-title="preview_open_tab">⤢</button>
+          <button id="spDock" class="sp-btn" title="Enviar al panel de proyecto" data-i18n-title="preview_to_panel">▤</button>
+          <button id="spClose" class="sp-btn" title="Cerrar (Esc)" data-i18n-title="preview_close">✕</button>
+        </span>
+      </div>
+      <div id="spBody" class="sp-body"></div>
+    </aside>
+    <div class="modal hidden" id="agentsModal">
+    <div class="modal-box wide">
+      <header class="modal-head">
+        <h2><span data-i18n="agents_title">Especialistas</span></h2>
+        <button class="icon-btn" id="agentsClose" title="Cerrar" data-i18n-title="close">✕</button>
+      </header>
+      <p class="modal-sub" data-i18n="agents_sub">Un especialista es un asistente ya preparado para una tarea concreta: trae sus instrucciones, las herramientas que necesita y sus modelos recomendados. Eliges uno, y ese chat ya trabaja como un profesional de ese oficio.</p>
+
+      <div class="ag-primer" id="agentsPrimer">
+        <div class="ap-txt">
+          <strong data-i18n="agents_first_t">Empieza por aquí</strong>
+          <span data-i18n="agents_first_d">El especialista más ligero que además sabe usar herramientas. Si tu ordenador es modesto, este es el que funciona: descarga un modelo pequeño sin censura, lo deja listo y abre el chat contigo.</span>
+        </div>
+        <div class="ap-acciones">
+          <button class="mini-btn primary" id="agentsFirstGo" data-i18n="agents_first_go">Preparar y empezar</button>
+          <span class="ap-estado" id="agentsFirstEstado"></span>
+        </div>
+      </div>
+
+      <div class="ag-filtros">
+        <input id="agentsBuscar" class="inp" placeholder="Buscar especialista…" data-i18n-ph="agents_search" />
+        <div class="ag-chips" id="agentsCategorias"></div>
+      </div>
+
+      <div class="ag-grid" id="agentsGrid"></div>
+
+      <details class="ag-editor" id="agentsEditorBox">
+        <summary data-i18n="agents_new">Crear o editar un especialista</summary>
+        <div class="ag-form">
+          <label><span data-i18n="agents_f_name">Nombre</span><input id="agNombre" class="inp" /></label>
+          <label><span data-i18n="agents_f_emoji">Icono</span><input id="agEmoji" class="inp" maxlength="4" placeholder="🤖" /></label>
+          <label><span data-i18n="agents_f_cat">Categoría</span><input id="agCategoria" class="inp" /></label>
+          <label class="ancho"><span data-i18n="agents_f_hook">Gancho (una línea, para qué sirve)</span><input id="agGancho" class="inp" /></label>
+          <label class="ancho"><span data-i18n="agents_f_desc">Descripción</span><textarea id="agDescripcion" class="inp" rows="2"></textarea></label>
+          <label class="ancho"><span data-i18n="agents_f_sys">Instrucciones del especialista</span><textarea id="agSistema" class="inp" rows="4"></textarea></label>
+          <label><span data-i18n="agents_f_tools">Herramientas</span>
+            <select id="agHerramientas" class="inp">
+              <option value="">Solo charla</option>
+              <option value="files">Lectura de archivos</option>
+              <option value="files,shell">Archivos y comandos (agente)</option>
+            </select>
+          </label>
+          <label><span data-i18n="agents_f_agent">¿Trabaja como agente?</span>
+            <select id="agAgente" class="inp">
+              <option value="0">No, solo conversa</option>
+              <option value="1">Sí, toma el control del ordenador</option>
+            </select>
+          </label>
+          <label><span data-i18n="agents_f_local">Modelo local recomendado</span><input id="agModelo" class="inp" placeholder="qwen3:4b" /></label>
+          <label><span data-i18n="agents_f_min">Modelo local mínimo</span><input id="agMinimo" class="inp" placeholder="huihui_ai/qwen2.5-abliterate:0.5b" /></label>
+          <label><span data-i18n="agents_f_cloud">Modelo en la nube</span><input id="agNube" class="inp" placeholder="openai/gpt-6-astra" /></label>
+          <label class="ancho"><span data-i18n="agents_f_sugg">Prompts de arranque (uno por línea)</span><textarea id="agSugerencias" class="inp" rows="3"></textarea></label>
+        </div>
+        <div class="ag-acciones-fila">
+          <button class="mini-btn primary" id="agGuardar" data-i18n="agents_save">Guardar especialista</button>
+          <button class="mini-btn" id="agLimpiar" data-i18n="agents_clear">Empezar de cero</button>
+          <span class="ap-estado" id="agEstado"></span>
+        </div>
+      </details>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<button id="expandTab" title="Mostrar historial (Ctrl+B)" data-i18n-title="expand_sidebar">›</button>
+
+<!-- ░░ POPOVER MODELOS ░░ -->
+<div id="modelPop" class="pop hidden">
+  <div class="pop-head">
+    <input id="modelSearch" type="text" placeholder="Buscar modelo..." data-i18n-ph="search_model_ph" autocomplete="off">
+    <label class="fav-filter"><input id="favOnly" type="checkbox"> <span data-i18n="only_favs">solo favoritos ★</span></label>
+  </div>
+  <div id="modelList" class="pop-list"></div>
+</div>
+
+<!-- ░░ POPOVER PLANTILLAS ░░ -->
+<div id="presetPop" class="pop hidden">
+  <div class="pop-head"><span class="pop-title" data-i18n="presets_title">Plantillas de prompt</span></div>
+  <div id="presetList" class="pop-list"></div>
+  <div class="pop-foot">
+    <button id="savePresetBtn" class="mini-btn" data-i18n="save_written">＋ Guardar lo escrito</button>
+    <button id="seedPresetBtn" class="mini-btn" title="Vuelve a añadir los prompts de ejemplo que falten" data-i18n="restore_examples">↺ Restaurar ejemplos</button>
+  </div>
+</div>
+
+<!-- ░░ POPOVER IDIOMAS ░░ -->
+<div id="langPop" class="pop hidden small">
+  <div class="pop-head"><span class="pop-title" data-i18n="language">Idioma</span></div>
+  <div id="langList" class="pop-list"></div>
+</div>
+
+<!-- ░░ MENU ░░ -->
+<div id="morePop" class="pop hidden small">
+  <button data-act="rename" data-i18n="act_rename">Renombrar</button>
+  <button data-act="duplicate" data-i18n="act_duplicate">Duplicar chat</button>
+  <button data-act="presets" data-i18n="act_presets">Plantillas de prompt</button>
+  <button data-act="system" data-i18n="act_system">Instrucciones y carpeta</button>
+  <button data-act="stats" data-i18n="act_stats">Estadísticas del chat</button>
+  <button data-act="read" data-i18n="act_read">Leer última respuesta</button>
+  <button data-act="export" data-i18n="act_export">Exportar Markdown</button>
+  <button data-act="clear" data-i18n="act_clear">Vaciar mensajes</button>
+  <button data-act="delete" class="danger" data-i18n="act_delete">Borrar chat</button>
+</div>
+
+<!-- ░░ PALETA DE COMANDOS ░░ -->
+<div id="palette" class="modal hidden">
+  <div class="palette-card">
+    <input id="paletteInput" type="text" placeholder="Comando o chat... (Enter para ejecutar)" data-i18n-ph="palette_ph" autocomplete="off">
+    <div id="paletteList" class="palette-list"></div>
+  </div>
+</div>
+
+<!-- ░░ AJUSTES ░░ -->
+<div id="settingsModal" class="modal hidden">
+  <div class="modal-card">
+    <h2 data-i18n="settings">Ajustes</h2>
+
+    <div class="upd-box" id="updBox">
+      <div class="upd-fila">
+        <div>
+          <strong data-i18n="upd_title">Actualizaciones</strong>
+          <div class="upd-version"><span id="updLocal">—</span> <span id="updFlecha" class="hidden">→</span> <span id="updRemoto" class="upd-nueva"></span></div>
+        </div>
+        <div class="upd-botones">
+          <button class="mini-btn" id="updBuscar" data-i18n="upd_check">Buscar actualización</button>
+          <button class="mini-btn primary hidden" id="updAplicar" data-i18n="upd_apply">Actualizar ahora</button>
+        </div>
+      </div>
+      <div class="upd-estado" id="updEstado"></div>
+      <div class="upd-notas hidden" id="updNotas"></div>
+      <div class="upd-token">
+        <div class="upd-token-fila">
+          <input type="password" id="updToken" autocomplete="off" spellcheck="false"
+                 data-i18n-ph="upd_token_ph" placeholder="Token de GitHub (solo si el repositorio es privado)" />
+          <button class="mini-btn" id="updTokenGuardar" data-i18n="upd_token_save">Guardar</button>
+          <button class="mini-btn hidden" id="updTokenBorrar" data-i18n="upd_token_clear">Quitar</button>
+        </div>
+        <div class="upd-token-estado" id="updTokenEstado"></div>
+      </div>
+      <label class="upd-auto">
+        <input type="checkbox" id="updAuto" />
+        <span data-i18n="upd_auto">Comprobar al arrancar y, si es una copia de git, actualizar sola a la última versión</span>
+      </label>
+      <div class="upd-pie" data-i18n="upd_footer">Se descarga de github.com/euphoriabot7/nexus. Tus chats, tus claves y tus ajustes no se tocan: viven fuera de la aplicación.</div>
+    </div>
+
+    <label data-i18n="accent_color">Color de acento</label>
+    <div class="accents">
+      <button class="accent-swatch" data-accent="cyan"    style="--c:#38f5ff"></button>
+      <button class="accent-swatch" data-accent="violet"  style="--c:#a06bff"></button>
+      <button class="accent-swatch" data-accent="emerald" style="--c:#39ffb0"></button>
+      <button class="accent-swatch" data-accent="amber"   style="--c:#ffb347"></button>
+      <button class="accent-swatch" data-accent="rose"    style="--c:#ff5d8f"></button>
+      <button class="accent-swatch" data-accent="ice"     style="--c:#cfe4ff"></button>
+    </div>
+
+    <label data-i18n="language">Idioma</label>
+    <select id="langSelect" class="lang-select"></select>
+
+    <label data-i18n="system_prompt">Instrucciones del sistema (chat actual)</label>
+    <textarea id="systemPrompt" rows="3" placeholder="Ej: responde siempre en español, sé conciso..." data-i18n-ph="system_prompt_ph"></textarea>
+
+    <div class="two-col">
+      <div>
+        <label data-i18n="workdir">Carpeta de trabajo (agente)</label>
+        <input id="workdirInput" type="text" placeholder="/home/tu-usuario" data-i18n-ph="workdir_ph">
+      </div>
+      <div>
+        <label data-i18n="toolsets">Herramientas (toolsets)</label>
+        <input id="toolsetsInput" type="text" placeholder="web,terminal,files" data-i18n-ph="toolsets_ph">
+      </div>
+    </div>
+
+    <label class="row-check"><input id="agentDefault" type="checkbox"> <span data-i18n="opt_agent_default">Modo agente por defecto en chats nuevos</span></label>
+    <label class="row-check"><input id="autoRead" type="checkbox"> <span data-i18n="opt_autoread">Leer en alto las respuestas</span></label>
+    <label class="row-check"><input id="autoView" type="checkbox" checked> <span data-i18n="opt_autoview">Vista previa automática del código de las respuestas</span></label>
+    <label class="row-check"><input id="autoPreview" type="checkbox" checked> <span data-i18n="opt_autopreview">Abrir el panel de proyecto en lo que escribe el agente</span></label>
+    <label class="row-check"><input id="splitView" type="checkbox" checked> <span data-i18n="opt_splitview">Vista previa lateral estilo Claude (panel partido)</span></label>
+    <label class="row-check"><input id="notifyChk" type="checkbox" checked> <span data-i18n="opt_notify">Notificación al terminar (si no estás mirando)</span></label>
+    <label class="row-check"><input id="soundChk" type="checkbox" checked> <span data-i18n="opt_sound">Sonido sutil al terminar</span></label>
+
+    <div class="modal-actions">
+      <button id="saveSettings" class="primary" data-i18n="save">Guardar</button>
+      <button id="closeSettings" data-i18n="close">Cerrar</button>
+    </div>
+    <div class="modal-actions">
+      <button id="openProviders" class="mini-btn" data-i18n="providers_btn">Proveedores y claves</button>
+      <button id="exportAll" class="mini-btn" data-i18n="export_all">Exportar todo</button>
+      <button id="importBtn" class="mini-btn" data-i18n="import_json">Importar JSON</button>
+    </div>
+    <input id="importFile" type="file" accept=".json" class="hidden">
+    <p class="modal-note">Tus claves se guardan solo en tu equipo (<code id="settingsCfgPath">~/.config/nexus/config.json</code>). El <b>modo agente</b> ejecuta Hermes con herramientas reales en la carpeta de trabajo: puede leer y escribir archivos y ejecutar comandos.</p>
+  </div>
+</div>
+
+<!-- ░░ PRIMERA VEZ: PROVEEDOR Y CLAVE ░░ -->
+<div id="setupModal" class="modal hidden">
+  <div class="modal-card setup-card">
+    <h2 id="setupTitle" data-i18n="setup_title">Elige tu proveedor de IA</h2>
+    <p class="modal-note" id="setupIntro">
+      NEXUS habla con cualquier servicio <b>compatible con la API de OpenAI</b>. Elige uno, pega tu
+      clave y prueba la conexión. La clave se guarda en tu equipo, en
+      <code id="setupPath">~/.config/nexus/config.json</code>, y nunca sale de ahí (solo se envía al
+      proveedor que elijas).
+    </p>
+
+    <div id="setupGrid" class="setup-grid"></div>
+
+    <button id="setupLocalBtn" class="setup-local">
+      <span class="sl-ico">🧩</span>
+      <span>
+        <b data-i18n="local_setup_title">No tengo clave de API: usar un modelo local</b>
+        <small data-i18n="local_setup_sub">Descarga un modelo pequeño sin censura (menos de 2 GB) y chatea sin cuenta ni conexión</small>
+      </span>
+    </button>
+
+    <div class="setup-form">
+      <div class="two-col">
+        <div><label data-i18n="setup_name">Nombre</label><input id="spLabel" type="text" placeholder="Mi proveedor"></div>
+        <div><label data-i18n="setup_base">URL base</label><input id="spBase" type="text" placeholder="https://api.openai.com/v1"></div>
+      </div>
+      <label><span data-i18n="setup_key">Clave de API</span> <a id="spDocs" class="setup-docs hidden" href="#" target="_blank" rel="noopener" data-i18n="setup_get_key">¿dónde la consigo?</a></label>
+      <input id="spKey" type="password" placeholder="sk-..." autocomplete="off">
+      <label><span data-i18n="setup_model">Modelo</span>
+        <button id="spModelsLoad" class="mini-btn" data-i18n="setup_models_load">Ver modelos</button>
+        <span class="hint-inline" data-i18n="setup_model_hint">(si lo dejas vacío, pruebo con el primero que ofrezca)</span></label>
+      <div class="model-pick">
+        <input id="spBuscar" type="text" placeholder="Buscar modelo... (o escribelo abajo)" data-i18n-ph="setup_models_search">
+        <div id="spModelList" class="model-list"></div>
+      </div>
+      <input id="spModel" type="text" placeholder="gpt-4o-mini">
+    </div>
+
+    <div id="setupResult" class="setup-result hidden"></div>
+
+    <div class="modal-actions">
+      <button id="setupTest" class="mini-btn" data-i18n="setup_test">Probar conexión</button>
+      <button id="setupSave" class="primary" data-i18n="setup_save">Guardar y usar</button>
+      <button id="setupClose" data-i18n="close">Cerrar</button>
+    </div>
+
+    <div id="setupList" class="setup-list"></div>
+
+    <details id="hermesBox" class="setup-hermes">
+      <summary data-i18n="agent_optional">Modo agente (opcional): que la IA toque archivos y ejecute comandos</summary>
+      <p class="modal-note">
+        Necesita el CLI de <b>Hermes</b> instalado. <span id="hermesState">comprobando…</span>
+        NEXUS funciona igual sin él: el modo chat sirve para conversar y generar código.
+      </p>
+      <div class="modal-actions">
+        <button id="hermesInstall" class="mini-btn" data-i18n="install_hermes">Instalar Hermes</button>
+        <button id="hermesCheck" class="mini-btn" data-i18n="check_again">Comprobar de nuevo</button>
+        <a id="hermesDocs" class="mini-btn" href="#" target="_blank" rel="noopener" data-i18n="docs">Documentación</a>
+      </div>
+      <pre id="hermesLog" class="setup-log hidden"></pre>
+    </details>
+  </div>
+</div>
+
+<!-- ░░ MODELOS LOCALES ░░ -->
+<div id="localModal" class="modal hidden">
+  <div class="modal-card local-card">
+    <header class="local-head">
+      <h2 data-i18n="local_title">Modelos locales</h2>
+      <button id="localClose" class="icon-btn" title="Cerrar" data-i18n-title="close">✕</button>
+    </header>
+    <p class="modal-note" data-i18n="local_note">Todo ocurre en tu equipo: sin cuenta, sin claves y sin conexión una vez descargado. Necesitas Ollama o LM Studio; NEXUS los detecta, los instala y descarga el modelo por ti.</p>
+
+    <div id="localEstado" class="local-estado"></div>
+    <p id="localNota" class="modal-note local-nota"></p>
+
+    <div class="local-barra">
+      <input id="localBuscar" type="text" placeholder="Buscar modelo..." data-i18n-ph="local_search">
+      <label class="chk"><input type="checkbox" id="localFiltroCensura"> <span data-i18n="local_filter_uncensored">sin censura</span></label>
+      <label class="chk"><input type="checkbox" id="localFiltroTools"> <span data-i18n="local_filter_tools">con herramientas (agente)</span></label>
+      <label class="chk"><input type="checkbox" id="localLigero"> <span data-i18n="local_only_tiny">ligeros (&lt; 1,5 GB)</span></label>
+      <label class="chk"><input type="checkbox" id="localInstalados"> <span data-i18n="local_only_installed">solo instalados</span></label>
+      <span id="localCuenta" class="hint"></span>
+      <button id="localRefresh" class="mini-btn" data-i18n="refresh">Actualizar</button>
+    </div>
+
+    <div id="localDisco" class="local-disco"></div>
+
+    <div id="localProgreso" class="local-progreso hidden">
+      <div class="lp-cabeza"><span id="lpModelo">—</span><span id="lpPct">0%</span></div>
+      <div class="lp-barra"><i id="lpRelleno"></i></div>
+      <div class="lp-linea" id="lpLinea"></div>
+      <button id="localCancelar" class="mini-btn" data-i18n="local_cancel">Cancelar</button>
+    </div>
+
+    <div id="localLista" class="local-lista"></div>
+
+    <details id="localLmBox" class="setup-hermes">
+      <summary data-i18n="local_lm_title">LM Studio (alternativa a Ollama)</summary>
+      <div id="localLmEstado" class="modal-note"></div>
+      <div id="localLmLista" class="local-lista"></div>
+      <div class="modal-actions">
+        <button id="localLmDescargar" class="mini-btn" data-i18n="local_lm_download">Descargar LM Studio</button>
+        <button id="localLmDocs" class="mini-btn" data-i18n="docs">Documentación</button>
+      </div>
+    </details>
+
+    <div class="modal-actions">
+      <button id="localCarpeta" class="mini-btn" data-i18n="local_folder">Abrir carpeta de modelos</button>
+      <button id="localOllamaWeb" class="mini-btn" data-i18n="local_ollama_web">Web de Ollama</button>
+    </div>
+    <pre id="localLog" class="setup-log hidden"></pre>
+  </div>
+</div>
+
+<!-- ░░ ATAJOS ░░ -->
+<div id="helpModal" class="modal hidden">
+  <div class="modal-card">
+    <h2 data-i18n="help_title">Atajos y trucos</h2>
+    <div class="help-grid">
+      <div class="k">Ctrl N</div><div data-i18n="help_new_chat">Nuevo chat</div>
+      <div class="k">Ctrl P</div><div data-i18n="help_palette">Paleta de comandos</div>
+      <div class="k">Ctrl K</div><div data-i18n="help_change_model">Cambiar modelo</div>
+      <div class="k">Ctrl F</div><div data-i18n="help_search">Buscar en chats y mensajes</div>
+      <div class="k">Ctrl B</div><div data-i18n="help_history">Mostrar / ocultar el historial</div>
+      <div class="k">Ctrl D</div><div data-i18n="help_panel">Panel de control (gasto, tareas, proyecto, red)</div>
+      <div class="k">Alt ↑ / Alt ↓</div><div data-i18n="help_prev_next">Chat anterior / siguiente</div>
+      <div class="k">Alt 1…9</div><div data-i18n="help_jump">Saltar al chat nº</div>
+      <div class="k">Enter</div><div data-i18n="help_send">Enviar (Shift+Enter = salto de línea)</div>
+      <div class="k">Esc</div><div data-i18n="help_esc">Cerrar ventanas flotantes · detener lectura</div>
+      <div class="k">?</div><div data-i18n="help_this">Esta ayuda</div>
+    </div>
+    <p class="modal-note">Arrastra el borde de la barra lateral para ensancharla. Pasa el ratón por un mensaje para <b>copiar</b>, <b>editar y reenviar</b> o <b>regenerar</b>. Adjunta con 📎, arrastrando o pegando. Elige <b>Chat</b> o <b>Agente</b> en la barra superior.</p>
+    <div class="modal-actions"><button id="closeHelp" class="primary" data-i18n="got_it">Entendido</button></div>
+  </div>
+</div>
+
+<!-- ░░ PANEL DE CONTROL ░░ -->
+<div id="panel" class="panel hidden" data-theme="default">
+  <canvas id="rainCanvas" class="rain hidden"></canvas>
+  <header class="panel-top">
+    <div class="panel-brand">◈ <span data-i18n="panel_title">Panel de control</span></div>
+    <nav class="panel-tabs">
+      <button class="ptab on" data-tab="resumen" data-i18n="tab_summary">Resumen</button>
+      <button class="ptab" data-tab="tareas" data-i18n="tab_tasks">Tareas</button>
+      <button class="ptab" data-tab="proyecto" data-i18n="tab_project">Proyecto</button>
+      <button class="ptab" data-tab="registro" data-i18n="tab_log">Registro</button>
+      <button class="ptab" data-tab="red" data-i18n="tab_lan">Red local</button>
+    </nav>
+    <div class="panel-actions">
+      <label class="theme-label"><span data-i18n="theme">tema</span>
+        <select id="dashTheme">
+          <option value="default">Nexus</option>
+          <option value="termynal">Termynal</option>
+          <option value="matrix">Matrix</option>
+          <option value="amber">Ámbar CRT</option>
+          <option value="synthwave">Synthwave</option>
+          <option value="paper">Papel</option>
+        </select>
+      </label>
+      <button id="panelClose" class="icon-btn" title="Cerrar (Esc)" data-i18n-title="preview_close">✕</button>
+    </div>
+  </header>
+
+  <div class="panel-body">
+    <!-- RESUMEN -->
+    <section class="panel-tab on" data-tab="resumen">
+      <div class="panel-toolbar">
+        <div class="kpis" id="kpis"></div>
+        <div id="pricingInfo" class="hint pricing-info"></div>
+        <div class="tool-right">
+          <select id="daysSel">
+            <option value="7" data-i18n="days7">7 días</option>
+            <option value="30" selected data-i18n="days30">30 días</option>
+            <option value="90" data-i18n="days90">90 días</option>
+            <option value="365" data-i18n="days365">1 año</option>
+          </select>
+          <button id="refreshAnalytics" class="mini-btn" data-i18n="refresh">Actualizar</button>
+          <button id="refreshPrices" class="mini-btn" data-i18n-title="refresh_prices" title="Descargar la tabla de precios">↻ <span data-i18n="prices">Precios</span></button>
+          <button id="exportCsv" class="mini-btn" data-i18n="export_csv">Exportar CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3 data-i18n="daily_activity">Actividad diaria</h3><span class="hint" data-i18n="daily_activity_sub">tokens de entrada / salida por día</span></div>
+        <div id="chartDaily" class="chart"></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-head"><h3 data-i18n="cost_by_model">Gasto y uso por modelo</h3><span class="hint" data-i18n="cost_by_model_sub">ordenado por tokens</span></div>
+          <div id="modelTable"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3 data-i18n="when_used">Cuándo lo usas</h3><span class="hint" data-i18n="when_used_sub">por hora y día de la semana</span></div>
+          <div id="hourHeat"></div>
+          <div id="weekBars" class="mt"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAREAS -->
+    <section class="panel-tab" data-tab="tareas">
+      <div class="card">
+        <div class="card-head"><h3 data-i18n="task_head">Encargar un trabajo al agente</h3><span class="hint" data-i18n="task_head_sub">se ejecuta en segundo plano</span></div>
+        <div class="task-form">
+          <input id="taskTitle" type="text" placeholder="Título (opcional)">
+          <textarea id="taskPrompt" rows="3" placeholder="¿Qué quieres que haga? Ej: crea una web de portafolio en ~/proyectos/mi-web con HTML y CSS"></textarea>
+          <div class="form-row">
+            <input id="taskWorkdir" type="text" placeholder="Carpeta de trabajo (por defecto, tu carpeta personal)">
+            <input id="taskToolsets" type="text" placeholder="Herramientas (web,terminal,files)">
+          </div>
+          <div class="form-row">
+            <select id="taskProvider"></select>
+            <select id="taskModel"></select>
+            <button id="taskCreate" class="primary-btn" data-i18n="task_launch">▶ Encargar</button>
+          </div>
+        </div>
+      </div>
+      <div id="taskList" class="task-list"></div>
+    </section>
+
+    <!-- PROYECTO -->
+    <section class="panel-tab" data-tab="proyecto">
+      <div class="card">
+        <div class="card-head"><h3 data-i18n="project_head">Explorar y previsualizar</h3><span class="hint" data-i18n="project_head_sub">HTML, CSS, imágenes y código</span></div>
+        <div class="proj-bar">
+          <button id="projUp" class="mini-btn" title="Subir un nivel">↑</button>
+          <input id="projPath" type="text" placeholder="/home/tu-usuario">
+          <button id="projOpen" class="mini-btn" data-i18n="open">Abrir</button>
+          <button id="projRefresh" class="mini-btn">↻</button>
+        </div>
+      </div>
+      <div class="proj-split">
+        <div id="projList" class="proj-list"></div>
+        <div class="proj-view">
+          <div class="proj-view-head">
+            <span id="projFile" data-i18n="no_selection">sin selección</span>
+            <span class="proj-view-actions">
+              <button id="projReload" class="mini-btn" data-i18n="reload">↻ Recargar</button>
+              <button id="projNewTab" class="mini-btn" data-i18n="open_tab">Abrir aparte</button>
+            </span>
+          </div>
+          <div id="projPreview" class="proj-preview"><div class="proj-empty">Elige un archivo a la izquierda<br><span>los .html se renderizan; el código y las imágenes se muestran tal cual</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTRO -->
+    <section class="panel-tab" data-tab="registro">
+      <div class="card">
+        <div class="card-head"><h3 data-i18n="log_head">Registro de actividad</h3>
+          <span class="tool-right">
+            <select id="logFilter">
+              <option value="" data-i18n="log_all">todo</option>
+              <option value="chat_created" data-i18n="log_chats">chats creados</option>
+              <option value="chat" data-i18n="log_chat">modo chat</option>
+              <option value="agente" data-i18n="log_agent">modo agente</option>
+              <option value="task_created" data-i18n="log_tasks">tareas</option>
+              <option value="task_done" data-i18n="log_tasks_done">tareas terminadas</option>
+              <option value="app_active" data-i18n="log_app">sesiones de app</option>
+            </select>
+            <button id="logRefresh" class="mini-btn">↻</button>
+          </span>
+        </div>
+        <div id="logList" class="log-list"></div>
+      </div>
+    </section>
+
+    <!-- RED LOCAL -->
+    <section class="panel-tab" data-tab="red">
+      <div class="card">
+        <div class="card-head"><h3 data-i18n="lan_head">Acceso desde la red local</h3><span class="hint" data-i18n="lan_head_sub">móvil, tablet, otro equipo</span></div>
+        <div id="lanInfo" class="lan-info">cargando…</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3 data-i18n="lan_how">Cómo entrar desde otro dispositivo</h3></div>
+        <ol class="lan-steps">
+          <li>Asegúrate de estar en la misma red wifi.</li>
+          <li>Abre en el otro dispositivo la dirección <b>LAN</b> de arriba.</li>
+          <li>Si pide acceso, usa el enlace con el token: <code id="lanLink">—</code> <button id="lanCopy" class="mini-btn">copiar enlace</button></li>
+          <li>Queda guardado en ese navegador; no hay que repetirlo.</li>
+        </ol>
+        <p class="modal-note">El token protege el acceso: sin él, cualquier consulta desde fuera de este equipo responde <b>401</b>. El modo agente puede ejecutar comandos, así que no compartas el enlace. Para desactivar el acceso por red: <code>NEXUS_LAN=0 bash ~/ocdesk/run.sh</code>.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/i18n.js"></script>
+<script src="/lang/en.js"></script>
+<script src="/lang/es.js"></script>
+<script src="/lang/zh.js"></script>
+<script src="/lang/ja.js"></script>
+<script src="/lang/ko.js"></script>
+<script src="/lang/ar.js"></script>
+<script src="/lang/id.js"></script>
+<script src="/app.js"></script>
+<script src="/panel.js"></script>
+</body>
+</html>

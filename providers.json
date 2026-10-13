@@ -1,0 +1,88 @@
+{
+  "_comment": "Catalogo de proveedores de ejemplo. La app funciona con CUALQUIER endpoint compatible con la API de OpenAI. Tus claves NO van aqui: se guardan en ~/.config/nexus/config.json (o en la variable de entorno indicada en key_env).",
+  "default": null,
+  "providers": {
+    "openai": {
+      "label": "OpenAI",
+      "base_url": "https://api.openai.com/v1",
+      "key_env": "OPENAI_API_KEY",
+      "docs": "https://platform.openai.com/api-keys",
+      "requires_key": true,
+      "models": []
+    },
+    "openrouter": {
+      "label": "OpenRouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "key_env": "OPENROUTER_API_KEY",
+      "docs": "https://openrouter.ai/keys",
+      "requires_key": true,
+      "models": []
+    },
+    "groq": {
+      "label": "Groq",
+      "base_url": "https://api.groq.com/openai/v1",
+      "key_env": "GROQ_API_KEY",
+      "docs": "https://console.groq.com/keys",
+      "requires_key": true,
+      "models": []
+    },
+    "deepseek": {
+      "label": "DeepSeek",
+      "base_url": "https://api.deepseek.com/v1",
+      "key_env": "DEEPSEEK_API_KEY",
+      "docs": "https://platform.deepseek.com/api_keys",
+      "requires_key": true,
+      "models": []
+    },
+    "mistral": {
+      "label": "Mistral",
+      "base_url": "https://api.mistral.ai/v1",
+      "key_env": "MISTRAL_API_KEY",
+      "docs": "https://console.mistral.ai/api-keys",
+      "requires_key": true,
+      "models": []
+    },
+    "xai": {
+      "label": "xAI (Grok)",
+      "base_url": "https://api.x.ai/v1",
+      "key_env": "XAI_API_KEY",
+      "docs": "https://console.x.ai",
+      "requires_key": true,
+      "models": []
+    },
+    "gemini": {
+      "label": "Google Gemini (endpoint OpenAI)",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "key_env": "GEMINI_API_KEY",
+      "docs": "https://aistudio.google.com/apikey",
+      "requires_key": true,
+      "models": []
+    },
+    "ollama": {
+      "label": "Ollama (local, sin clave)",
+      "base_url": "http://127.0.0.1:11434/v1",
+      "key_env": "",
+      "docs": "https://ollama.com/download",
+      "requires_key": false,
+      "models": []
+    },
+    "lmstudio": {
+      "label": "LM Studio (local, sin clave)",
+      "base_url": "http://127.0.0.1:1234/v1",
+      "key_env": "",
+      "docs": "https://lmstudio.ai",
+      "requires_key": false,
+      "models": []
+    },
+    "opencode-go": {
+      "label": "OpenCode Go",
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "base_url_env": "OPENCODE_GO_BASE_URL",
+      "key_env": "OPENCODE_GO_API_KEY",
+      "session_header": "x-opencode-session",
+      "session_prefix": "sess-",
+      "requires_key": true,
+      "models": []
+    }
+  }
+}
