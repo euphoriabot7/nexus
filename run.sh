@@ -55,16 +55,31 @@ if [ -z "$BROWSER" ]; then
 fi
 
 health() { "$PY" -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('$URL/api/health',timeout=2).status==200 else 1)" >/dev/null 2>&1; }
+health_de() { "$PY" -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:$1/api/health',timeout=2).status==200 else 1)" >/dev/null 2>&1; }
+
+# server.py puede haberse visto obligado a usar otro puerto (porque el 8765
+# estuviera pillado): en ese caso deja el numero en puerto.txt.
+PUERTO_FILE="$DATA_DIR/puerto.txt"
+if [ -f "$PUERTO_FILE" ]; then
+  P_ANT="$(tr -dc '0-9' <"$PUERTO_FILE" 2>/dev/null || true)"
+  if [ -n "$P_ANT" ] && health_de "$P_ANT"; then PORT="$P_ANT"; URL="http://127.0.0.1:$PORT"; fi
+fi
 
 # --- arranca el servidor si no responde ---
 # el registro de arranque va aparte: el servidor ya escribe el suyo en server.log
 if ! health; then
   ( cd "$APP_DIR" && nohup "$PY" server.py >>"$LOG_ARRANQUE" 2>&1 & echo $! >"$PIDFILE" )
   intento=0
-  while [ "$intento" -lt 50 ]; do
+  while [ "$intento" -lt 60 ]; do
     health && break
+    if [ -f "$PUERTO_FILE" ]; then
+      P_ANT="$(tr -dc '0-9' <"$PUERTO_FILE" 2>/dev/null || true)"
+      if [ -n "$P_ANT" ] && [ "$P_ANT" != "$PORT" ] && health_de "$P_ANT"; then
+        PORT="$P_ANT"; URL="http://127.0.0.1:$PORT"; break
+      fi
+    fi
     intento=$((intento + 1))
-    sleep 0.2
+    sleep 0.25
   done
 fi
 

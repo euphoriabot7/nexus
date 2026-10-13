@@ -7,6 +7,13 @@ PORT="${NEXUS_PORT:-8765}"
 DATA_DIR="${NEXUS_DATA:-$HOME/.local/share/nexus}"
 [ -d "$DATA_DIR" ] || DATA_DIR="$HOME/.local/share/ocdesk"
 
+# el servidor anota aquí el puerto que acabó usando (si el 8765 estaba pillado)
+PUERTO_FILE="$DATA_DIR/puerto.txt"
+if [ -f "$PUERTO_FILE" ]; then
+  P_ANT="$(tr -dc '0-9' <"$PUERTO_FILE" 2>/dev/null || true)"
+  [ -n "$P_ANT" ] && PORT="$P_ANT"
+fi
+
 if [ "$(id -u)" -ne 0 ]; then
   echo "Hace falta root. Ejecuta:  sudo bash lan-allow.sh"
   exit 1

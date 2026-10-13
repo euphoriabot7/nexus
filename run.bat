@@ -38,6 +38,12 @@ if "!PY!"=="" goto :sin_python
 %PY% -c "import sys; sys.exit(0 if sys.version_info>=(3,9) else 1)" >nul 2>nul
 if errorlevel 1 goto :python_viejo
 
+rem ---------- 1b) el servidor pudo quedarse con otro puerto ----------
+rem Si el 8765 estaba ocupado, server.py usa el siguiente libre y anota el
+rem numero en puerto.txt: aqui se lee para comprobar/abrir la direccion real.
+set "PUERTO_FILE=%NEXUS_DATA%\puerto.txt"
+call :leer_puerto
+
 rem ---------- 2) arranca el backend si no responde ----------
 %PY% -c "import urllib.request as u,sys;sys.exit(0 if u.urlopen('%URL%/api/health',timeout=2).status==200 else 1)" >nul 2>nul
 if not errorlevel 1 goto :abrir
@@ -49,6 +55,7 @@ start "NEXUS" %PYW% "%APP_DIR%server.py" >>"%LOG_ARRANQUE%" 2>&1
 set "LISTO="
 for /l %%i in (1,1,60) do (
   if "!LISTO!"=="" (
+    call :leer_puerto
     %PY% -c "import urllib.request as u,sys;sys.exit(0 if u.urlopen('%URL%/api/health',timeout=2).status==200 else 1)" >nul 2>nul
     if not errorlevel 1 set "LISTO=1"
     rem Espera de 1 s con el propio Python: "timeout" falla si no hay consola.
@@ -97,6 +104,20 @@ exit /b 1
 rem ============================================================
 rem  Subrutinas
 rem ============================================================
+
+rem Lee puerto.txt: si el servidor arranco en otro puerto y responde, pasa
+rem a usarlo (actualiza NEXUS_PORT y URL). Devuelve 0 si lo ha cambiado.
+:leer_puerto
+if not exist "%PUERTO_FILE%" exit /b 1
+set "P_ANT="
+set /p P_ANT=<"%PUERTO_FILE%"
+if "!P_ANT!"=="" exit /b 1
+if "!P_ANT!"=="%NEXUS_PORT%" exit /b 1
+%PY% -c "import urllib.request as u,sys;sys.exit(0 if u.urlopen('http://127.0.0.1:!P_ANT!/api/health',timeout=2).status==200 else 1)" >nul 2>nul
+if errorlevel 1 exit /b 1
+set "NEXUS_PORT=!P_ANT!"
+set "URL=http://127.0.0.1:!P_ANT!"
+exit /b 0
 
 :usa_python
 rem Fija PY/PYW/PY_EXE a partir de la ruta indicada en %~1.

@@ -3383,25 +3383,97 @@ local_models.init(app_dir=APP_DIR, data_dir=DATA_DIR, config_dir=CONFIG_DIR,
                   env_builder=agent_env, shell_runner=shell_command,
                   config_get=user_config, config_save=save_user_config)
 
+
+class NexusServer(ThreadingHTTPServer):
+    """Servidor de NEXUS.
+
+    En Windows, SO_REUSEADDR (que trae ThreadingHTTPServer por defecto) permite
+    que DOS programas abran el mismo puerto y se repartan las conexiones a
+    suertes: es el origen clasico de los arranques "errantes" (a veces contesta
+    uno, a veces el otro). Por eso alli se desactiva: si el puerto esta pillado,
+    falla de forma limpia y se usa el siguiente.
+    """
+    daemon_threads = True
+    allow_reuse_address = not IS_WIN
+
+
+# El puerto 8765 es el de siempre, pero no siempre esta libre: otro programa
+# puede tenerlo, y en Windows hay rangos reservados (Hyper-V/WSL/Docker) donde
+# el sistema contesta "acceso denegado" (winerror 10013) al abrir el socket.
+# Antes, en ese caso, NEXUS moria con un error raro. Ahora se prueban los
+# siguientes puertos y el que se use queda anotado en puerto.txt, para que los
+# lanzadores (run.bat / run.sh) abran la direccion correcta.
+PUERTO_FILE = DATA_DIR / "puerto.txt"
+PUERTOS_EXTRA = 10
+
+
+def _puerto_ocupado(host, puerto):
+    """True si ya hay algo escuchando en ese puerto (sin llegar a abrirlo)."""
+    destino = "127.0.0.1" if host in ("0.0.0.0", "") else host
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.4)
+            return s.connect_ex((destino, puerto)) == 0
+    except OSError:
+        return False
+
+
+def guardar_puerto(puerto):
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        # con salto de linea final: el `set /p` de cmd.exe de Windows se come el
+        # ultimo caracter si el fichero no termina en nueva linea
+        PUERTO_FILE.write_text(str(puerto) + "\n", encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def abrir_servidor(host, preferido):
+    """Abre el servidor en `preferido` o, si esta pillado, en el siguiente libre.
+
+    Devuelve (servidor, puerto) o (None, motivo) si no hay ninguno disponible.
+    """
+    ultimo = ""
+    for puerto in range(preferido, preferido + PUERTOS_EXTRA + 1):
+        if _puerto_ocupado(host, puerto):
+            ultimo = f"el puerto {puerto} ya esta ocupado"
+            continue
+        try:
+            return NexusServer((host, puerto), Handler), puerto
+        except OSError as exc:
+            # 98/10048 = en uso · 13/10013 = permiso denegado (puerto reservado)
+            codigo = getattr(exc, "errno", None) or getattr(exc, "winerror", None)
+            ultimo = f"el puerto {puerto} no se pudo abrir ({exc})"
+            if codigo in (13, 48, 98, 10013, 10048):
+                continue
+            return None, ultimo
+    return None, ultimo or "no encontre ningun puerto libre"
+
+
 def main():
+    global PORT
     setup_logging()
     init_db()
     lan_config()
     auto_refresh_pricing()          # en segundo plano: no bloquea el arranque
     bind_host = "0.0.0.0" if LAN_ENABLED else HOST
-    try:
-        srv = ThreadingHTTPServer((bind_host, PORT), Handler)
-    except OSError as exc:
-        # lo mas habitual: ya hay otro NEXUS en marcha (o el puerto esta pillado)
-        if getattr(exc, "errno", None) == 98 or "Address already in use" in str(exc) or getattr(exc, "errno", None) == 10048:
-            print(f"NEXUS ya esta en marcha: el puerto {PORT} esta ocupado. "
-                  f"Abre http://{HOST}:{PORT} o para el otro proceso (stop.sh / stop.bat).", flush=True)
+    preferido = PORT
+    srv, elegido = abrir_servidor(bind_host, preferido)
+    if srv is None:
+        if _puerto_ocupado(bind_host, preferido):
+            print(f"NEXUS ya esta en marcha: el puerto {preferido} esta ocupado. "
+                  f"Abre http://{HOST}:{preferido} o para el otro proceso (stop.sh / stop.bat).", flush=True)
         else:
-            print(f"No se pudo abrir el puerto {PORT}: {exc}", flush=True)
+            print(f"No se pudo abrir ningun puerto entre {preferido} y {preferido + PUERTOS_EXTRA}: {elegido}",
+                  flush=True)
+            if IS_WIN:
+                print("Puede ser un rango de puertos reservado por Windows (Hyper-V/WSL). "
+                      "Arranca fijando otro: NEXUS_PORT=8800", flush=True)
         return 1
-    finally:
-        pass
-    srv.daemon_threads = True
+    PORT = elegido
+    guardar_puerto(PORT)
+    if PORT != preferido:
+        print(f"El puerto {preferido} estaba ocupado: NEXUS usa el {PORT}.", flush=True)
     print(f"NEXUS listo en http://{HOST}:{PORT}  (datos: {DB_PATH})", flush=True)
     if LAN_ENABLED:
         for ip in lan_addresses():
