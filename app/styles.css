@@ -975,6 +975,7 @@ body.rtl .ci-title,body.rtl .pt-title,body.rtl .pt-body{text-align:right}
 .local-nota{font-size:11.5px;color:var(--txt-faint);line-height:1.5;margin:-4px 0 12px}
 
 .local-wait{color:var(--txt-dim);font-size:12.5px;font-style:italic}
+.local-wait .wait-secs{font-style:normal;color:var(--txt-faint);font-variant-numeric:tabular-nums}
 
 
 /* ---------------------------- especialistas ----------------------------- */

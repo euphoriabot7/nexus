@@ -800,6 +800,7 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
         }
       },
       onDelta: (piece) => {
+        pararEspera();
         acc += piece;
         if (!raf) raf = requestAnimationFrame(() => {
           contentEl.innerHTML = mdToHtml(acc) + '<span class="cursor"></span>';
@@ -817,9 +818,19 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
         handleSplitArtifact(d);
       },
       onNotice: (n) => {
-        if (n && n.kind === "local_agent" && !asst.meta.noticeLocal) {
-          asst.meta.noticeLocal = true;
-          contentEl.innerHTML = `<span class="local-wait">⏳ ${t("local_wait_agent")}</span>`;
+        const textos = {
+          local_agent: t("local_wait_agent"),
+          agent_prep: t("agent_wait_prep"),
+          agent_hermes: t("agent_wait_hermes"),
+          agent_run: t("agent_wait_run"),
+          agent_slow: t("agent_wait_slow"),
+          agent_tool: t("agent_wait_tool").replace("{tool}", (n && n.tool) || "…"),
+        };
+        const clave = n ? n.kind + (n.tool || "") : "";
+        if (n && textos[n.kind] && asst.meta.noticeLast !== clave) {
+          asst.meta.noticeLast = clave;
+          asst.meta.noticeLocal = n.kind === "local_agent" || asst.meta.noticeLocal;
+          mostrarEspera(contentEl, textos[n.kind]);
           scrollBottom();
         }
         if (n && n.kind === "no_vision" && !asst.meta.noticeVision) {
@@ -827,13 +838,15 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
           toast(t("attach_no_vision"), 8000);
         }
       },
-      onError: (msg) => { asst.meta = { error: msg, agent: !!agent }; },
+      onError: (msg) => { pararEspera(); asst.meta = { error: msg, agent: !!agent }; },
     });
   } catch (e) {
+    pararEspera();
     asst.meta = e.name === "AbortError" ? { interrupted: true, agent: !!agent } : { error: e.message, agent: !!agent };
   }
 
   asst.content = acc;
+  pararEspera();
   const fallo = asst.meta && (asst.meta.error || asst.meta.interrupted);
   contentEl.innerHTML = mdToHtml(acc) || (fallo ? "" : '<span style="color:var(--txt-faint)">' + t("msg_empty") + '</span>');
   if (LS.get("nexus_autoView", true) && !splitEnabled()) {
@@ -852,6 +865,21 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
     $("#chatTitle").value = state.chat.title;
   }
 }
+
+/* Aviso de espera con contador: las fases del agente (preparar Hermes, cargar el
+   modelo, turno) se muestran con los segundos que llevan, para que no parezca colgado. */
+let esperaTimer = null, esperaIni = 0;
+function mostrarEspera(nodo, texto) {
+  pararEspera();
+  esperaIni = Date.now();
+  const pinta = () => {
+    if (!nodo || !nodo.isConnected) { pararEspera(); return; }
+    nodo.innerHTML = `<span class="local-wait">⏳ ${texto} <b class="wait-secs">${Math.round((Date.now() - esperaIni) / 1000)}s</b></span>`;
+  };
+  pinta();
+  esperaTimer = setInterval(pinta, 1000);
+}
+function pararEspera() { if (esperaTimer) { clearInterval(esperaTimer); esperaTimer = null; } }
 
 function setStreaming(on) {
   state.streaming = on;
@@ -2053,7 +2081,7 @@ async function usarLocal(m, backend) {
     const inp = $("#input");
     if (inp && !inp.value.trim()) { inp.value = t("local_try_msg"); autoGrow(); inp.focus(); }
     if (state.chat && state.chat.agent) {
-      const poco = LOCAL.info && LOCAL.info.ram_libre && LOCAL.info.ram_libre < 3;
+      const poco = LOCAL.info && LOCAL.info.ram_libre && LOCAL.info.ram_libre < 1.5;
       if (m.herramientas) {
         toast(poco ? t("local_agent_ram") : t("local_agent_warn_tools"), 7000);
       } else {

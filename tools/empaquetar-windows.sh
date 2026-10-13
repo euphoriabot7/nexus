@@ -28,7 +28,7 @@ DESTINO="$DIST/tmp/$NOMBRE"
 
 # Que se lleva el paquete
 ficheros=(
-  server.py local_models.py local_models.json providers.json prompts.json
+  server.py local_models.py agent_local.py local_models.json providers.json prompts.json
   pricing.json VERSION LICENSE README.md
   run.bat stop.bat update.bat install-windows.bat NEXUS.vbs
   run.sh stop.sh update.sh install-desktop.sh install-mac.command

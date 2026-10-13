@@ -1,7 +1,33 @@
 {
-  "nota": "Modelos locales de hasta 3 GB para equipos ligeros. 'Sin censura' = afinados para no rechazar peticiones (Dolphin, abliterated, heretic). Tamanos y capacidades comprobados contra el registro de Ollama y con `ollama show` (que dice si el modelo declara 'tools'). MODO AGENTE: hacen falta dos cosas, que el modelo declare herramientas y que quepa en memoria; Hermes exige ademas una ventana de 64k. Los GGUF traidos de Hugging Face (hf.co/...) NO declaran herramientas en Ollama. Si el equipo anda justo de RAM, el modo agente local no es buena idea: usa un proveedor por API.",
-  "revisado": "2026-10-11",
+  "nota": "Modelos locales de hasta 3 GB para equipos ligeros. 'Sin censura' = afinados para no rechazar peticiones (Dolphin, abliterated, heretic). Tamanos y capacidades comprobados contra el registro de Ollama y con `ollama show` (que dice si el modelo declara 'tools'). MODO AGENTE: el modelo tiene que declarar herramientas Y ser pequeno, porque el prompt del agente ronda los 5.000 tokens y en una CPU de portatil se procesan a 6-10 tokens/s: el primer turno tarda minutos aunque el contexto se reduzca. NEXUS le crea al modelo una variante con ventana de 8k (`...-agente-8k`), que es lo unico que Ollama respeta de verdad; el 8k ya no es el cuello de botella, lo es la velocidad de la CPU. Los GGUF traidos de Hugging Face (`hf.co/...`) SI declaran herramientas si su plantilla de chat las trae (comprobado con qwen3-0.6b-nx). En equipos justos: proveedor por API, el modelo mas pequeno, o paciencia.",
+  "revisado": "2026-10-13",
   "modelos": [
+    {
+      "id": "hf.co/Andycurrent/Qwen3-0.6B-heretic-abliterated-uncensored-GGUF:Q4_k_m",
+      "nombre": "Qwen3 0.6B heretic (sin censura)",
+      "backend": "ollama",
+      "params": "0.6B",
+      "mb": 397,
+      "familia": "Qwen3 abliterado/heretic (sin rechazos)",
+      "sin_censura": true,
+      "multilingue": true,
+      "contexto": 40960,
+      "herramientas": true,
+      "resumen": "El mas ligero con herramientas de verdad (probado: declara tools y emite llamadas). Va lento igual en un portatil de 2 nucleos, pero es el unico que cabe y responde en equipos de 4-8 GB.",
+      "sabe": [
+        "charlar",
+        "llamar a herramientas",
+        "listar y leer ficheros",
+        "respuestas cortas"
+      ],
+      "no_sabe": [
+        "razonamiento largo",
+        "codigo complejo",
+        "planes de varios pasos"
+      ],
+      "recomendado": "Traido de Hugging Face (no esta en el registro de Ollama). Instalacion: `ollama pull hf.co/Andycurrent/Qwen3-0.6B-heretic-abliterated-uncensored-GGUF:Q4_k_m`. Para el modo agente en equipos con poca RAM es la mejor opcion: NEXUS le creara la variante de 8k al vuelo.",
+      "herramientas_nota": "Comprobado aqui: `ollama show` dice 'tools' y devuelve tool_calls."
+    },
     {
       "id": "huihui_ai/qwen2.5-abliterate:0.5b",
       "nombre": "Qwen2.5 0.5B abliterated",

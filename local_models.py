@@ -289,8 +289,7 @@ def status():
         "espacio_libre": _free_gb(),
         "carpeta_modelos": models_dir(),
         "ram_libre": ram_gb()[0], "ram_total": ram_gb()[1],
-        "agente": {"contexto_sugerido": agent_context_goal("")[0] if False else None,
-                   "aviso": agent_context_goal("")[1] if False else ""},
+        "agente": {"contexto_sugerido": None, "aviso": ""},
     }
 
 
@@ -584,21 +583,19 @@ def model_context(model):
     return 0
 
 
-def agent_context_goal(model, min_ctx=64000):
+def agent_context_goal(model, min_ctx=8192):
     """Ventana que se le va a pedir al modelo para el agente, con el por que.
 
-    Hermes exige >= 64k para el modo agente. Ollama reserva memoria para esa
-    ventana (KV cache): en un equipo de 7 GB, 40k se come la RAM entera. Por eso
-    se limita a lo que quepa segun la memoria libre, sin pasar del maximo del
-    modelo. Devuelve (contexto, motivo)."""
+    Al principio se pedia una ventana enorme (64k), pero eso es un error: el
+    prompt del agente ocupa unos miles de tokens y cada token de ventana cuesta
+    memoria (KV cache) y velocidad de prellenado. En un equipo normal 8192 sobra;
+    solo se baja mas si la memoria libre es muy justa, y nunca se pasa del
+    maximo que anuncia el modelo. Devuelve (contexto, motivo)."""
     libre, _total = ram_gb()
     techo = min_ctx
-    motivo = "ventana completa"
-    if libre is not None:
-        if libre < 3.5:
-            techo, motivo = 24576, "memoria libre baja: ventana reducida a 24k"
-        elif libre < 5.5:
-            techo, motivo = 32768, "memoria libre justa: ventana reducida a 32k"
+    motivo = "ventana de agente (8k)"
+    if libre is not None and libre < 1.2:
+        techo, motivo = 4096, "memoria libre muy justa: ventana reducida a 4k"
     propio = model_context(model)
     if propio and propio < techo:
         techo, motivo = propio, f"el modelo admite {propio} como maximo"
@@ -615,7 +612,40 @@ def _modelo_base(model):
         base = limpio
 
 
-def agent_variant(model, min_ctx=64000):
+def _hilos_cpu():
+    """Hilos de CPU que puede usar Ollama (los fisicos, o todos si hay HT).
+
+    Ollama por defecto usa solo los nucleos fisicos: en un portatil de 2 nucleos
+    y 4 hilos eso deja medio equipo sin usar y el prellenado del prompt (lo que
+    mas tarda en el modo agente) va la mitad de rapido."""
+    try:
+        total = os.cpu_count() or 2
+    except Exception:  # noqa: BLE001
+        total = 2
+    return max(2, min(int(total), 8))
+
+
+def precargar(model, minutos=30):
+    """Deja el modelo cargado y caliente en Ollama (keep_alive) antes del turno.
+
+    Sin esto, la carga del modelo entra dentro del primer turno del agente y la
+    app parece colgada. Devuelve (ok, mensaje)."""
+    if not model:
+        return False, "sin modelo"
+    cuerpo = json.dumps({"model": model, "prompt": "", "stream": False,
+                         "keep_alive": f"{int(minutos)}m",
+                         "options": {"num_predict": 1}}).encode("utf-8")
+    req = urllib.request.Request(f"{OLLAMA_URL}/api/generate", data=cuerpo,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            json.loads(r.read().decode("utf-8", "replace") or "{}")
+        return True, f"{model} cargado y en memoria {minutos} min"
+    except Exception as exc:  # noqa: BLE001
+        return False, f"no se pudo precargar {model}: {exc}"
+
+
+def agent_variant(model, min_ctx=8192):
     """Modelo que hay que usar para el modo agente (crea la variante si hace falta).
 
     Ollama ignora el `num_ctx` que Hermes manda por la API compatible con OpenAI
@@ -625,20 +655,20 @@ def agent_variant(model, min_ctx=64000):
     if not b:
         return model, "Ollama no esta instalado", 0
     objetivo, motivo = agent_context_goal(model, min_ctx)
-    ctx_modelo = model_context(model)
-    if ctx_modelo and ctx_modelo >= min_ctx and objetivo >= min_ctx:
-        return model, f"{model}: {ctx_modelo} de contexto, vale para agente tal cual", ctx_modelo
     base = _modelo_base(model) or model
     variante = f"{base}-agente-{objetivo // 1024}k"
-    if variante.endswith("-agente") or variante == base:
-        variante = f"{base}-agente"
+    if (model or "").strip() == variante:
+        return model, f"ya uso la variante de agente {variante}", objetivo
     instalados = {m["name"] for m in ollama_models()}
     if variante in instalados:
-        return variante, f"reutilizo la variante {variante}", objetivo
+        return variante, f"reutilizo la variante {variante} ({motivo})", objetivo
     trabajo = Path(CTX["data_dir"]) / "modelfiles"
     trabajo.mkdir(parents=True, exist_ok=True)
     archivo = trabajo / (variante.replace("/", "_").replace(":", "_") + ".Modelfile")
-    archivo.write_text(f"FROM {base}\nPARAMETER num_ctx {objetivo}\nPARAMETER temperature 0.7\n", encoding="utf-8")
+    archivo.write_text(
+        f"FROM {base}\nPARAMETER num_ctx {objetivo}\n"
+        f"PARAMETER num_thread {_hilos_cpu()}\nPARAMETER temperature 0.7\n",
+        encoding="utf-8")
     try:
         r = _run([b, "create", variante, "-f", str(archivo)], capture_output=True, text=True, encoding="utf-8", errors="replace",
                            timeout=600, env=(CTX["env"]() if CTX["env"] else None))

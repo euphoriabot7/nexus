@@ -21,8 +21,10 @@ import atexit
 import json
 import mimetypes
 import os
+import queue
 import re
 import shutil
+import signal
 import socket
 import sqlite3
 import subprocess
@@ -37,6 +39,7 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import agent_local
 import local_models
 
 APP_DIR = Path(__file__).resolve().parent
@@ -260,6 +263,48 @@ def hermes_bin():
 # En Windows los .exe de consola lanzados desde pythonw abren una ventana negra
 # nueva: con esto no. En Linux/macOS vale 0.
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+# grupo propio para los procesos hijos (asi se puede matar el arbol entero)
+NEW_GROUP = 0x00000200 if os.name == "nt" else 0
+
+
+def grupo_kwargs(flags=NO_WINDOW):
+    """Argumentos de Popen para que el hijo y sus nietos se puedan matar de golpe.
+
+    El agente (hermes chat) puede lanzar a su vez llama-server u otros procesos:
+    si solo se mata al hijo directo, los nietos siguen comiendo CPU y la maquina
+    parece colgada. En Windows se usa un grupo de proceso nuevo; en Linux/macOS,
+    una sesion nueva (setsid) para poder hacer killpg."""
+    if os.name == "nt":
+        return {"creationflags": flags | NEW_GROUP}
+    return {"start_new_session": True}
+
+
+def matar_arbol(proc):
+    """Mata el proceso y todos sus descendientes. Nunca lanza excepcion."""
+    if proc is None:
+        return
+    try:
+        if proc.poll() is not None:
+            return
+    except Exception:
+        pass
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                           capture_output=True, creationflags=NO_WINDOW, timeout=20)
+        else:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    except Exception:
+        pass
+    try:
+        if proc.poll() is None:
+            proc.kill()
+    except Exception:
+        pass
+    try:
+        proc.wait(timeout=5)      # recoge el proceso y evita que quede zombi
+    except Exception:
+        pass
 
 
 def agent_env():
@@ -316,6 +361,11 @@ def save_user_config(cfg):
     except Exception:
         pass
     tmp.replace(CONFIG_PATH)
+    # la configuracion cambio: que el proximo turno del agente vuelva a preparar Hermes
+    try:
+        olvidar_prep_hermes()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def read_env_file(path=HERMES_ENV):
@@ -1718,15 +1768,53 @@ def hermes_config_set(clave, valor):
     return False, (detalle[-1] if detalle else "fallo al guardar")[:200]
 
 
+# Cache de la preparacion de Hermes para el modo agente: cada `hermes config set`
+# cuesta un arranque completo del CLI (2-6 s; mas en Windows). Sin cache, cada turno
+# del agente se pasaba ~30 s reescribiendo la misma configuracion antes de arrancar.
+_HERMES_PREP = {}                      # (provider, base) -> (mensaje, cuando)
+_HERMES_PREP_LOCK = threading.Lock()
+HERMES_PREP_TTL = 6 * 3600             # segundos que vale lo ya configurado
+
+
+def _prep_cacheados(pid, base):
+    with _HERMES_PREP_LOCK:
+        dato = _HERMES_PREP.get((pid, base))
+    if dato and (time.time() - dato[1]) < HERMES_PREP_TTL:
+        return True, f"{dato[0]} (ya configurado)"
+    return None
+
+
+def _prep_guardar(pid, base, mensaje):
+    with _HERMES_PREP_LOCK:
+        _HERMES_PREP[(pid, base)] = (mensaje, time.time())
+
+
+def olvidar_prep_hermes(pid=None):
+    """Olvida lo configurado (al cambiar ajustes hay que reescribirlo la proxima vez)."""
+    with _HERMES_PREP_LOCK:
+        if pid is None:
+            _HERMES_PREP.clear()
+        else:
+            for clave in [k for k in _HERMES_PREP if k[0] == pid]:
+                _HERMES_PREP.pop(clave, None)
+
+
 def ensure_hermes_provider(pid, base, api_key="local"):
     """Prepara Hermes para hablar con un proveedor local (modo agente).
 
     Deja el endpoint, el modo de API y **stream: false** (con streaming, Ollama se
-    queda colgado en el modo agente de Hermes). Devuelve (ok, mensaje)."""
+    queda colgado en el modo agente de Hermes). Devuelve (ok, mensaje).
+
+    Cada `hermes config set` es un arranque completo del CLI (segundos), asi que el
+    resultado se recuerda: sin la cache, TODOS los turnos del agente pagaban esos
+    arranques antes de empezar a responder (la app se veia colgada)."""
     if not base or not pid:
         return False, "sin endpoint"
     if not hermes_bin():
         return False, "Hermes no esta instalado: el modo agente no esta disponible"
+    ya = _prep_cacheados(pid, base)
+    if ya:
+        return ya
     hechos = []
     for clave, valor in ((f"providers.{pid}.base_url", base),
                          (f"providers.{pid}.api_key", api_key),
@@ -1737,7 +1825,9 @@ def ensure_hermes_provider(pid, base, api_key="local"):
             hechos.append(clave.rsplit(".", 1)[-1])
     if not hechos:
         return False, f"no se pudo configurar el proveedor '{pid}' en Hermes"
-    return True, f"Hermes listo para '{pid}' ({base})"
+    msg = f"Hermes listo para '{pid}' ({base})"
+    _prep_guardar(pid, base, msg)
+    return True, msg
 
 
 def ensure_hermes_ollama_ctx(valor=64000):
@@ -1745,24 +1835,73 @@ def ensure_hermes_ollama_ctx(valor=64000):
     manda num_ctx, asi que se declara model.ollama_num_ctx (solo afecta a local)."""
     if not hermes_bin():
         return False, "Hermes no esta instalado"
+    ya = _prep_cacheados("model.ollama_num_ctx", str(valor))
+    if ya:
+        return ya
     ok, detalle = hermes_config_set("model.ollama_num_ctx", int(valor))
+    if ok:
+        _prep_guardar("model.ollama_num_ctx", str(valor), f"Hermes: ollama_num_ctx = {int(valor)}")
     return ok, (f"Hermes: ollama_num_ctx = {int(valor)}" if ok else detalle)
 
 
-def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifact=None):
-    """Ejecuta un turno del agente Hermes y transmite los deltas de texto."""
+def motivo_agente_fallido(detalle, code=None):
+    """Traduce los rechazos tipicos del CLI del agente a algo entendible."""
+    d = (detalle or "").lower()
+    if "session_not_owned" in d:
+        return ("Hermes tiene esa sesion abierta en otra ventana o terminal. Cierra la otra ventana de "
+                "Hermes (o empieza un chat nuevo aqui) y vuelve a intentarlo.")
+    if "refusal" in d and "session" in d:
+        return ("Hermes ha rechazado la sesion del agente (suele ser que esta abierta en otro sitio). "
+                "Prueba con un chat nuevo.")
+    if "api key" in d or "unauthorized" in d or "401" in d:
+        return "Al agente le falta o no le vale la clave de API del proveedor: revisala en Ajustes."
+    if "connection" in d or "connect" in d or "timed out" in d or "unreachable" in d:
+        return ("El agente no ha podido conectar con el proveedor: comprueba que Ollama esta encendido "
+                "(si es local) o tu conexion de red.")
+    if "not found" in d and "model" in d:
+        return "El modelo que tiene el chat no existe en el proveedor: elige otro en Ajustes."
+    if code not in (None, 0):
+        return f"El agente termino con un error (codigo {code}). {detalle[:300]}".strip()
+    return (detalle or "").strip()
+
+
+def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifact=None, on_phase=None):
+    """Ejecuta un turno del agente Hermes y transmite los deltas de texto.
+
+    Antes de lanzar nada se avisa por fases (on_phase): preparar Hermes es lento la
+    primera vez y sin avisos la app parece colgada. Durante el turno un vigilante
+    corta si el agente se queda minutos sin decir nada, en vez de esperar sin fin."""
+    def fase(nombre):
+        if on_phase:
+            try:
+                on_phase(nombre)
+            except Exception:  # noqa: BLE001
+                pass
+
+    binario = hermes_bin()
+    if not binario:
+        raise RuntimeError(
+            "El modo agente lo ejecuta el CLI de Hermes y no lo encuentro en este equipo. "
+            "Instala Hermes (en Windows suele quedar en %LOCALAPPDATA%\\Programs\\hermes\\hermes.exe) "
+            "o usa el modo charla, que no lo necesita.")
     base = local_endpoint(chat.get("provider") or "")
+    local = bool(base)
     if base and (chat.get("provider") or "") == "ollama" and chat.get("model"):
         try:
-            # Ollama solo respeta num_ctx en el propio modelo: se usa una variante de 64k
+            # Ollama solo respeta num_ctx en el propio modelo: se usa una variante
+            fase("agent_prep")
             nombre, aviso, ctx = local_models.agent_variant(chat["model"])
             print(f"[agente] {aviso}", flush=True)
             if nombre != chat["model"]:
                 chat = dict(chat, model=nombre)
+            # dejar el modelo cargado ya: si no, la carga entra en el primer turno
+            ok_pre, msg_pre = local_models.precargar(chat["model"], 30)
+            print(f"[agente] {msg_pre}", flush=True)
         except Exception as exc:  # noqa: BLE001
             print(f"[agente] no se pudo preparar la variante: {exc}", flush=True)
     if base:
         try:
+            fase("agent_hermes")
             ok, msg = ensure_hermes_provider(chat["provider"], base)
             print(f"[agente] {msg}", flush=True)
             if (chat.get("provider") or "") == "ollama":
@@ -1773,33 +1912,89 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
                 print(f"[agente] {msg2}", flush=True)
         except Exception as exc:  # noqa: BLE001
             print(f"[agente] no se pudo preparar Hermes para {chat.get('provider')}: {exc}", flush=True)
-    cmd = [hermes_bin(), "chat", "-q", text, "--format", "stream-json"]
+    cmd = [binario, "chat", "-q", text, "--format", "stream-json"]
     if chat.get("agent_session"):
         cmd += ["--resume", chat["agent_session"]]
     if chat.get("model"):
         cmd += ["-m", chat["model"]]
     if chat.get("provider"):
         cmd += ["--provider", chat["provider"]]
-    if chat.get("toolsets"):
-        cmd += ["-t", chat["toolsets"]]
-    if base:
+    toolsets = (chat.get("toolsets") or "").strip()
+    if not toolsets and local:
+        # sin herramientas el agente local no sirve para nada; si el usuario no ha
+        # elegido ninguna se le dan las dos basicas para tocar el equipo
+        toolsets = "file,terminal"
+    if toolsets:
+        cmd += ["-t", toolsets]
+    if local:
+        # En local el prompt es lo que mas tarda (prellenado token a token): se
+        # quita el "pensamiento" y las reglas/memoria, que en un modelo pequeno
+        # solo alargan el turno sin aportar, y se acotan los turnos del bucle.
+        cmd += ["--reasoning", "none", "--ignore-rules", "--max-turns", "8"]
         # en local va lento: presupuesto de tiempo para que no se quede colgado
         cmd += ["--run-budget", "600"]
     cwd = chat.get("workdir") or DEFAULT_WORKDIR
 
     proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env(),
-                            creationflags=NO_WINDOW)
+                            **grupo_kwargs())
     text_parts, meta, session = [], {"agent": True, "usage": None}, ""
     quejas = []                     # lineas que no son JSON (errores del CLI)
     pending = {}  # tool_call_id -> ruta, para avisar cuando el archivo ya esta escrito
     t0 = time.time()
+    cola = queue.Queue()
+    # tope de silencio (segundos sin ninguna salida antes de cortar el turno). Es
+    # ajustable con NEXUS_AGENT_SILENCIO para pruebas o equipos muy lentos.
+    limite_silencio = int(os.environ.get("NEXUS_AGENT_SILENCIO") or (900 if base else 240))
+    limite_total = int(os.environ.get("NEXUS_AGENT_TOTAL") or 3600)   # tope duro del turno
+    # segundos de silencio antes de avisar "sigue pensando" (se puede tocar en pruebas)
+    aviso_lento_s = int(os.environ.get("NEXUS_AGENT_AVISO_LENTO") or 90)
+    ultimo = time.time()
+
+    def _leer():
+        """Lee el CLI en un hilo: asi el turno se puede vigilar y cortar."""
+        try:
+            for salida in proc.stdout:
+                cola.put(salida)
+        except Exception:  # noqa: BLE001
+            pass
+        finally:
+            cola.put(None)
+
+    threading.Thread(target=_leer, daemon=True).start()
+    fase("agent_run")
+    aviso_lento = False
     try:
-        for line in proc.stdout:
+        while True:
             if stop_event is not None and stop_event.is_set():
-                proc.kill()
+                matar_arbol(proc)   # mata tambien a los nietos (llama-server y demas)
                 break
-            line = line.strip()
+            try:
+                pendiente = cola.get(timeout=1)
+            except queue.Empty:
+                ahora = time.time()
+                # aviso unico si el modelo se toma su tiempo (tipico en locales pequenos):
+                # asi el usuario sabe que sigue vivo y no parece que se haya colgado
+                if not aviso_lento and ahora - t0 > aviso_lento_s and not text_parts:
+                    aviso_lento = True
+                    fase("agent_slow")
+                if ahora - ultimo > limite_silencio:
+                    matar_arbol(proc)   # mata tambien a los nietos (llama-server y demas)
+                    espera = (f"{limite_silencio // 60} minutos" if limite_silencio >= 120
+                              else f"{limite_silencio} segundos")
+                    meta["error"] = (f"El agente ha pasado {espera} sin dar señales: lo he cortado. "
+                                     "Prueba con un modelo mas ligero, el modo charla, o revisa la "
+                                     "conexion con el proveedor.")
+                    break
+                if ahora - t0 > limite_total:
+                    matar_arbol(proc)   # mata tambien a los nietos (llama-server y demas)
+                    meta["error"] = "El turno del agente ha pasado de una hora: lo he cortado."
+                    break
+                continue
+            if pendiente is None:
+                break
+            ultimo = time.time()
+            line = pendiente.strip()
             if not line.startswith("{"):
                 if line and not line.startswith(("session_id:", "Bye", "\u271d")):
                     quejas.append(line)
@@ -1843,12 +2038,21 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
         try:
             proc.wait(timeout=5)
         except Exception:
-            proc.kill()
+            matar_arbol(proc)   # mata tambien a los nietos (llama-server y demas)
     if not text_parts and not meta.get("error"):
         code = meta.get("exit_code")
         detalle = " ".join(quejas[-3:])[:400]
         if code not in (0, None) or detalle:
-            meta["error"] = (f"El modo agente no respondio (codigo {code}). {detalle}").strip()
+            meta["error"] = (motivo_agente_fallido(detalle, code)
+                             or f"El modo agente no respondio (codigo {code}).").strip()
+    if (not text_parts and chat.get("agent_session")
+            and any("session_not_owned" in (q or "").lower() for q in quejas)):
+        # la sesion vieja esta pillada en otro sitio: se reintenta limpio, sin --resume
+        print("[agente] sesion ajena: reintento sin reanudar", flush=True)
+        limpio = dict(chat)
+        limpio.pop("agent_session", None)
+        return run_agent_turn(limpio, text, on_delta, on_session, stop_event,
+                              on_artifact=on_artifact, on_phase=on_phase)
     return "".join(text_parts), meta, session
 
 
@@ -2215,11 +2419,11 @@ def run_task(tid):
     try:
         proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                 text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env(),
-                                creationflags=NO_WINDOW)
+                                **grupo_kwargs())
         run["proc"] = proc
         for line in proc.stdout:
             if stop.is_set():
-                proc.kill()
+                matar_arbol(proc)   # mata tambien a los nietos (llama-server y demas)
                 break
             s = line.strip()
             if not s or s.startswith("session_id:"):
@@ -2263,7 +2467,7 @@ def cancel_task(tid):
         proc = run.get("proc")
         if proc and proc.poll() is None:
             try:
-                proc.kill()
+                matar_arbol(proc)   # mata tambien a los nietos (llama-server y demas)
             except Exception:
                 pass
         return True
@@ -3021,11 +3225,86 @@ class Handler(BaseHTTPRequestHandler):
                 if attachments and any(str(a.get("mime") or "").startswith("image/") for a in attachments):
                     # el modo agente no le pasa imagenes al modelo: se avisa
                     self._safe_sse("notice", {"kind": "no_vision"})
-                if local_endpoint(chat.get("provider") or ""):
-                    # el arranque del agente local puede tardar minutos: que se vea
+                endpoint_local = local_endpoint(chat.get("provider") or "")
+
+                def on_phase(nombre):
+                    self._safe_sse("notice", {"kind": nombre})
+
+                if endpoint_local:
+                    # Modo agente con modelo local: el bucle lo lleva NEXUS contra
+                    # Ollama. Asi no hace falta instalar el CLI de Hermes ni pagar
+                    # su prompt de ~5.000 tokens (en un portatil, minutos).
+                    palos = (chat.get("toolsets") or "").lower()
+                    permitir = ("shell" in palos) or ("terminal" in palos)
+                    base_trabajo = chat.get("workdir") or os.path.expanduser("~")
+
+                    def on_tool(nombre, argumentos):
+                        self._safe_sse("notice", {"kind": "agent_tool", "tool": nombre})
+                        ruta = (argumentos or {}).get("ruta")
+                        if ruta and nombre in ("leer", "escribir", "listar", "contar"):
+                            try:
+                                on_artifact(os.path.abspath(os.path.join(base_trabajo, ruta)), nombre)
+                            except Exception:
+                                pass
+
+                    try:
+                        ctx, motivo_ctx = local_models.agent_context_goal(chat["model"])
+                    except Exception:
+                        ctx, motivo_ctx = 8192, ""
+                    try:
+                        hilos = local_models._hilos_cpu()
+                    except Exception:
+                        hilos = None
+                    # que la app avise desde ya y que el modelo este cargado: la
+                    # primera llamada de un modelo frio tarda bastante en local.
                     self._safe_sse("notice", {"kind": "local_agent"})
-                text, meta, _ = run_agent_turn(chat, content, on_delta, on_session, stop_event,
-                                               on_artifact=on_artifact)
+                    try:
+                        local_models.precargar(chat["model"], 30)
+                    except Exception:
+                        pass
+                    # Vigilante: si el modelo local se queda callado mucho rato
+                    # (equipo lento o modelo grande), la app lo avisa en vez de
+                    # parecer colgada. NEXUS_AGENT_SILENCIO = segundos sin nada.
+                    def _fase_local(nombre):
+                        # "local_agent" ya lo avisa el servidor justo antes.
+                        if nombre and nombre != "local_agent":
+                            on_phase(nombre)
+
+                    latido = [time.time()]
+                    fin_vigila = threading.Event()
+
+                    def _delta_local(pieza):
+                        latido[0] = time.time()
+                        on_delta(pieza)
+
+                    def _vigila():
+                        try:
+                            limite = float(os.environ.get("NEXUS_AGENT_SILENCIO_LOCAL")
+                                           or os.environ.get("NEXUS_AGENT_SILENCIO") or 120)
+                        except Exception:
+                            limite = 120.0
+                        avisado = False
+                        while not fin_vigila.is_set():
+                            if fin_vigila.wait(5):
+                                break
+                            if time.time() - latido[0] >= limite:
+                                latido[0] = time.time()
+                                if not avisado:
+                                    avisado = True
+                                    self._safe_sse("notice", {"kind": "agent_slow"})
+
+                    threading.Thread(target=_vigila, daemon=True).start()
+                    try:
+                        text, meta = agent_local.turno(
+                            endpoint_local, chat["model"], history, workdir=base_trabajo,
+                            permitir_escritura=permitir, on_delta=_delta_local, stop_event=stop_event,
+                            on_tool=on_tool, on_notice=_fase_local, ctx=ctx, hilos=hilos)
+                    finally:
+                        fin_vigila.set()
+                else:
+                    self._safe_sse("notice", {"kind": "agent_prep"})
+                    text, meta, _ = run_agent_turn(chat, content, on_delta, on_session, stop_event,
+                                                   on_artifact=on_artifact, on_phase=on_phase)
                 if artifacts:
                     meta["artifacts"] = artifacts
             else:
