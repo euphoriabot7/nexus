@@ -12,6 +12,8 @@ Solo biblioteca estandar.
 import fnmatch
 import json
 import os
+import platform
+import shutil
 import subprocess
 import time
 import urllib.error
@@ -28,6 +30,8 @@ SISTEMA = (
     "contenidos ni cifras.\n"
     "- Para saber cuantos ficheros hay de un tipo usa la herramienta contar. "
     "Nunca cuentes de memoria.\n"
+    "- Para datos del ordenador (memoria RAM libre, sistema, disco) usa la "
+    "herramienta sistema o los datos que ya tienes abajo; no los inventes.\n"
     "- Trabaja dentro de la carpeta de trabajo. La carpeta de trabajo es '.' "
     "(rutas relativas a ella: '.', 'app'...). No inventes subcarpetas.\n"
     "- Contesta en el idioma en el que te escriben, corto y directo.\n"
@@ -96,6 +100,16 @@ _LEER = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "sistema",
+            "description": ("Datos reales de este ordenador: sistema operativo, CPU, memoria RAM "
+                            "total y libre, y disco libre. Usala cuando te pregunten por el "
+                            "equipo o por la memoria."),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
 ]
 
 _ESCRIBIR = [
@@ -157,12 +171,144 @@ def _corta(texto, limite=8000):
     return texto[:limite] + f"\n... (recortado, {len(texto)} caracteres en total)"
 
 
+def info_equipo(workdir=""):
+    """Datos reales del ordenador, sin dependencias. Se los pasamos al modelo
+    para que pueda responder por la RAM o el disco con cifras verdaderas (y lo
+    pueda comprobar cualquiera): asi se ve si un modelo ligero es valido."""
+    libre, total = _ram()
+    try:
+        sistema = f"{platform.system()} {platform.release()}"
+        if platform.machine():
+            sistema += f" ({platform.machine()})"
+    except Exception:
+        sistema = os.name
+    try:
+        cpu = platform.processor() or platform.machine() or "?"
+    except Exception:
+        cpu = "?"
+    try:
+        nucleos = os.cpu_count() or 0
+    except Exception:
+        nucleos = 0
+    carpeta = workdir or str(Path.home())
+    try:
+        disco = round(shutil.disk_usage(carpeta).free / 1024 ** 3, 1)
+    except Exception:
+        disco = None
+    return {"sistema": sistema, "cpu": cpu, "nucleos": nucleos,
+            "ram_libre": libre, "ram_total": total, "disco_libre": disco,
+            "carpeta": carpeta}
+
+
+def _ram():
+    """(libre, total) en GB, o (None, None). Linux/Windows/macOS, sin dependencias."""
+    try:
+        if os.name == "nt":
+            return _ram_windows()
+        if platform.system() == "Darwin":
+            return _ram_macos()
+        ruta = Path("/proc/meminfo")
+        if ruta.is_file():
+            datos = {}
+            for linea in ruta.read_text(encoding="utf-8", errors="replace").splitlines():
+                campos = linea.split()
+                if len(campos) >= 2:
+                    try:
+                        datos[campos[0].rstrip(":")] = int(campos[1])
+                    except ValueError:
+                        pass
+            if datos.get("MemTotal"):
+                return (round(datos.get("MemAvailable", 0) / 1024 ** 2, 1),
+                        round(datos["MemTotal"] / 1024 ** 2, 1))
+        pagina = os.sysconf("SC_PAGE_SIZE")
+        total = os.sysconf("SC_PHYS_PAGES") * pagina / 1024 ** 3
+        try:
+            libre = os.sysconf("SC_AVPHYS_PAGES") * pagina / 1024 ** 3
+        except (ValueError, OSError):
+            libre = total * 0.5
+        return round(libre, 1), round(total, 1)
+    except Exception:
+        return None, None
+
+
+def _ram_windows():
+    try:
+        import ctypes
+
+        class _Memoria(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+        datos = _Memoria()
+        datos.dwLength = ctypes.sizeof(_Memoria)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(datos)):
+            return None, None
+        return round(datos.ullAvailPhys / 1024 ** 3, 1), round(datos.ullTotalPhys / 1024 ** 3, 1)
+    except Exception:
+        return None, None
+
+
+def _ram_macos():
+    total = 0
+    try:
+        r = subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=10)
+        total = int((r.stdout or "").strip() or 0)
+    except Exception:
+        total = 0
+    if total <= 0:
+        return None, None
+    libre = None
+    try:
+        r = subprocess.run(["vm_stat"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=10)
+        pagina, libres = 4096, 0
+        for linea in (r.stdout or "").splitlines():
+            if "page size of" in linea:
+                try:
+                    pagina = int(linea.split("page size of")[1].split()[0])
+                except Exception:
+                    pass
+            elif linea.lower().startswith(("pages free", "pages inactive", "pages speculative")):
+                try:
+                    libres += int(linea.split(":")[1].strip().rstrip("."))
+                except Exception:
+                    pass
+        libre = libres * pagina
+    except Exception:
+        libre = None
+    return (round((libre if libre is not None else total * 0.5) / 1024 ** 3, 1),
+            round(total / 1024 ** 3, 1))
+
+
+def texto_equipo(workdir=""):
+    """El bloque de datos reales que va dentro del prompt de sistema."""
+    d = info_equipo(workdir)
+    ram = (f"{d['ram_libre']} GB libres de {d['ram_total']} GB"
+           if d["ram_total"] else "no se pudo medir")
+    lineas = [f"- memoria RAM: {ram}",
+              f"- sistema: {d['sistema']}",
+              f"- procesador: {d['cpu']} ({d['nucleos']} nucleos)"]
+    if d["disco_libre"] is not None:
+        lineas.append(f"- disco libre donde trabajo: {d['disco_libre']} GB")
+    lineas.append(f"- carpeta de trabajo: {d['carpeta']}")
+    return ("DATOS REALES DE ESTE ORDENADOR (medidos ahora mismo; si te preguntan por "
+            "la memoria o el equipo, responde con estas cifras, no las inventes):\n"
+            + "\n".join(lineas))
+
+
 def ejecutar(nombre, args, workdir, permitir_escritura=False):
     """Ejecuta una herramienta y devuelve el texto que vera el modelo."""
     base = workdir or str(Path.home())
     args = args or {}
     if not os.path.isdir(base):
         base = str(Path.home())
+
+    if nombre == "sistema":
+        return texto_equipo(workdir)
 
     if nombre == "listar":
         ruta = _dentro(args.get("ruta") or base, base)
@@ -313,6 +459,62 @@ def _raiz(endpoint):
     return base
 
 
+_SOPORTA = {}
+
+
+def soporta_tools(endpoint, model):
+    """True/False/None: si Ollama dice que el modelo admite herramientas.
+
+    None = no se pudo comprobar (Ollama antiguo). En ese caso se intenta igual
+    y, si Ollama rechaza la peticion con 400, se reintenta sin herramientas: en
+    Windows los errores 400 del modo agente venian de aqui.
+    """
+    clave = (_raiz(endpoint), model)
+    if clave in _SOPORTA:
+        return _SOPORTA[clave]
+    valor = None
+    try:
+        req = urllib.request.Request(_raiz(endpoint) + "/api/show",
+                                     data=json.dumps({"model": model}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            dato = json.loads(resp.read().decode("utf-8", "replace"))
+        caps = dato.get("capabilities")
+        if isinstance(caps, list):
+            valor = "tools" in [str(c).lower() for c in caps]
+    except Exception:
+        valor = None
+    _SOPORTA[clave] = valor
+    return valor
+
+
+def _expl(exc, model):
+    """Mensaje claro en castellano para el fallo HTTP de Ollama."""
+    cuerpo = ""
+    try:
+        cuerpo = (exc.read() or b"").decode("utf-8", "replace").strip()
+    except Exception:
+        cuerpo = ""
+    if cuerpo:
+        try:
+            cuerpo = (json.loads(cuerpo).get("error") or cuerpo).strip()
+        except Exception:
+            pass
+        cuerpo = cuerpo[:300]
+    cola = (" Detalle de Ollama: " + cuerpo) if cuerpo else ""
+    if exc.code == 400:
+        return (f"Ollama rechazo la peticion (400) para '{model}'. Suele ser una "
+                "version de Ollama antigua o un modelo que no acepta herramientas."
+                + cola)
+    if exc.code == 404:
+        return f"El modelo '{model}' no esta descargado en el proveedor local." + cola
+    if exc.code >= 500:
+        return (f"El proveedor local no pudo cargar '{model}' (error {exc.code}). "
+                "Casi siempre es falta de memoria; baja la ventana o usa un modelo "
+                "mas pequeno." + cola)
+    return f"El proveedor respondio {exc.code} para '{model}'." + cola
+
+
 def _pide(endpoint, cuerpo, on_delta, stop_event, timeout=900):
     """Una llamada a /api/chat en streaming. Devuelve (texto, tool_calls, uso)."""
     req = urllib.request.Request(_raiz(endpoint) + "/api/chat",
@@ -362,7 +564,7 @@ def turno(endpoint, model, historial, workdir="", permitir_escritura=False, on_d
     # cerca del turno del usuario pesa mas en el modelo (probado con 0.6B/1.7B,
     # al reves lo ignoraba).
     mensajes = [{"role": "system",
-                 "content": (SISTEMA + "\n\n" + propio) if propio else SISTEMA}]
+                 "content": "\n\n".join([SISTEMA, texto_equipo(workdir)] + ([propio] if propio else []))}]
     for m in historial or []:
         rol = m.get("role")
         if rol in ("user", "assistant") and (m.get("content") or "").strip():
@@ -382,6 +584,11 @@ def turno(endpoint, model, historial, workdir="", permitir_escritura=False, on_d
         "options": {"num_ctx": ctx or 8192,
                     "temperature": float(os.environ.get("NEXUS_AGENT_TEMP") or 0.2)},
     }
+    sin_tools = False
+    if soporta_tools(endpoint, model) is False:
+        # el modelo no admite herramientas: mejor no pedirlas (Ollama da 400)
+        sin_tools = True
+        cuerpo_base["tools"] = []
     if hilos:
         cuerpo_base["options"]["num_thread"] = hilos
 
@@ -402,7 +609,22 @@ def turno(endpoint, model, historial, workdir="", permitir_escritura=False, on_d
             if on_notice:
                 on_notice("local_agent")
         t_espera = time.time()
-        texto, llamadas, uso = _pide(endpoint, cuerpo, on_delta, stop_event)
+        try:
+            texto, llamadas, uso = _pide(endpoint, cuerpo, on_delta, stop_event)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 400 and cuerpo.get("tools"):
+                # Ollama no traga las herramientas: reintentamos sin ellas
+                sin_tools = True
+                cuerpo_base["tools"] = []
+                cuerpo["tools"] = []
+                if on_notice:
+                    on_notice("agent_sin_tools")
+                try:
+                    texto, llamadas, uso = _pide(endpoint, cuerpo, on_delta, stop_event)
+                except urllib.error.HTTPError as exc2:
+                    raise RuntimeError(_expl(exc2, model)) from exc2
+            else:
+                raise RuntimeError(_expl(exc, model)) from exc
         espera_total += time.time() - t_espera
         for k in uso_total:
             if k != "local":
@@ -427,9 +649,14 @@ def turno(endpoint, model, historial, workdir="", permitir_escritura=False, on_d
             resultado = ejecutar(nombre, args or {}, workdir, permitir_escritura)
             mensajes.append({"role": "tool", "tool_name": nombre, "content": _corta(resultado)})
     texto = "\n\n".join(t for t in texto_total if t.strip()).strip()
-    if not texto:
-        texto = "(el modelo no devolvio texto: prueba con una pregunta mas corta o un modelo mayor)"
+    if sin_tools:
+        texto += ("\n\n_(aviso: este modelo no admite herramientas, asi que respondio "
+                  "sin poder mirar tus ficheros ni ejecutar nada)_")
+    if not texto.strip():
+        texto = ("(el modelo no devolvio texto: prueba con una pregunta mas corta o un "
+                 "modelo mayor)")
     meta = {"usage": uso_total, "model": model, "local": True, "tools": usadas,
-            "agent": True, "segundos": round(time.time() - t0, 1),
+            "agent": True, "sin_tools": sin_tools,
+            "segundos": round(time.time() - t0, 1),
             "segundos_espera": round(espera_total, 1)}
     return texto, meta

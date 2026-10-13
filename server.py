@@ -3339,6 +3339,13 @@ class Handler(BaseHTTPRequestHandler):
                            "casi siempre es falta de memoria. Prueba un modelo mas pequeño, "
                            "cierra programas o baja el contexto en Ajustes. "
                            f"Detalle: {detail}")
+            elif exc.code == 400 and local_endpoint(chat.get("provider") or ""):
+                mensaje = (f"{chat.get('provider')} rechazo la peticion (400) para "
+                           f"'{chat.get('model')}'. Suele pasar con modelos o versiones de "
+                           "Ollama que no admiten herramientas: prueba en modo chat, "
+                           "actualiza Ollama o usa un modelo con herramientas "
+                           "(qwen3:1.7b, qwen3:4b). "
+                           f"Detalle: {detail}")
             else:
                 mensaje = f"El proveedor respondio {exc.code}. {detail}"
             update_message(asst_mid, "".join(parts), {"error": mensaje})
