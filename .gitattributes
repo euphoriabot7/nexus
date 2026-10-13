@@ -5,6 +5,7 @@
 *.bat   text eol=crlf
 *.cmd   text eol=crlf
 *.ps1   text eol=crlf
+*.vbs   text eol=crlf
 
 # Unix/macOS: siempre LF (un shebang con CR rompe el script)
 *.sh      text eol=lf

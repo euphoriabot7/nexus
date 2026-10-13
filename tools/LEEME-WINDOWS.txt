@@ -1,0 +1,61 @@
+============================================================
+  NEXUS - instalacion en Windows
+============================================================
+
+Que necesitas
+-------------
+Un Windows 10 u 11 normal. No hace falta ser administrador.
+Si no tienes Python, NEXUS lo instala solo en el primer arranque.
+
+Como instalarlo (2 pasos)
+-------------------------
+1) Descomprime este ZIP donde quieras. Por ejemplo en:
+      C:\Users\TU_USUARIO\NEXUS
+
+   Importante: descomprime TODOS los ficheros juntos, no abras
+   los .bat desde dentro del ZIP.
+
+2) Haz doble clic en:
+      install-windows.bat
+
+   Se abre una ventana, hace la instalacion y al final deja
+   NEXUS abierto. A partir de ahi, para usarlo:
+
+      - Acceso directo "NEXUS" del Escritorio, o
+      - "NEXUS" en el menu Inicio, o
+      - NEXUS.vbs (mismo efecto, sin ventana negra)
+
+NEXUS se abre en una ventana propia, sin barra de direcciones
+ni pestanas, como cualquier otro programa.
+
+Si algo no arranca
+------------------
+- La app abre pero no carga: espera unos segundos (la primera
+  vez tiene que preparar cosas) y refresca con F5.
+- Windows avisa de que el fichero viene de internet: el propio
+  instalador quita esa marca (Unblock-File). Si tu Windows sigue
+  bloqueando, haz clic derecho en install-windows.bat ->
+  Propiedades -> marcar "Desbloquear" -> Aceptar.
+- Antivirus o politica de empresa que bloquee scripts: NEXUS
+  necesita permiso para ejecutar .bat y .vbs en su carpeta.
+- Fichero de registro de errores:
+      %LOCALAPPDATA%\NEXUS\ultimo-error.txt
+      %LOCALAPPDATA%\NEXUS\server.log
+  Manda ese archivo si algo falla; ahi se ve la causa exacta.
+
+Donde guarda tus cosas
+----------------------
+  %LOCALAPPDATA%\NEXUS          datos y registro
+  %USERPROFILE%\.config\nexus   ajustes y claves (permisos 0600)
+Tu conversacion y tus claves no salen del ordenador.
+
+Como pararlo / actualizarlo
+---------------------------
+  stop.bat     cierra NEXUS
+  update.bat   busca y aplica la ultima version
+
+Desinstalarlo
+-------------
+Borra la carpeta donde lo descomprimiste, el acceso directo del
+Escritorio y las carpetas %LOCALAPPDATA%\NEXUS y
+%USERPROFILE%\.config\nexus si quieres borrar tambien tus datos.
