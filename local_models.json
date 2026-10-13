@@ -51,7 +51,13 @@
         "llamar a herramientas"
       ],
       "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. Probar la app en un PC viejo o con poca RAM (2 GB de RAM libre basta).",
-      "herramientas_nota": true
+      "herramientas_nota": true,
+      "espejo": {
+        "repo": "DevQuasar/huihui-ai.Qwen2.5-0.5B-Instruct-abliterated-v3-GGUF",
+        "archivo": "huihui-ai.Qwen2.5-0.5B-Instruct-abliterated-v3.Q4_K_M.gguf",
+        "mb": 398,
+        "url": "https://huggingface.co/DevQuasar/huihui-ai.Qwen2.5-0.5B-Instruct-abliterated-v3-GGUF/resolve/main/huihui-ai.Qwen2.5-0.5B-Instruct-abliterated-v3.Q4_K_M.gguf"
+      }
     },
     {
       "id": "tinydolphin:1.1b-v2.8-q4_K_M",
@@ -76,7 +82,13 @@
       ],
       "recomendado": "Primera prueba: descarga rápida y arranca en cualquier máquina.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "espejo": {
+        "repo": "mradermacher/TinyDolphin-2.8-1.1b-i1-GGUF",
+        "archivo": "TinyDolphin-2.8-1.1b.i1-Q4_K_M.gguf",
+        "mb": 668,
+        "url": "https://huggingface.co/mradermacher/TinyDolphin-2.8-1.1b-i1-GGUF/resolve/main/TinyDolphin-2.8-1.1b.i1-Q4_K_M.gguf"
+      }
     },
     {
       "id": "tinydolphin:1.1b-v2.8-q6_K",
@@ -100,7 +112,13 @@
       ],
       "recomendado": "Si el Q4 te deja respuestas incoherentes, prueba este.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "espejo": {
+        "repo": "mradermacher/TinyDolphin-2.8-1.1b-i1-GGUF",
+        "archivo": "TinyDolphin-2.8-1.1b.i1-Q6_K.gguf",
+        "mb": 903,
+        "url": "https://huggingface.co/mradermacher/TinyDolphin-2.8-1.1b-i1-GGUF/resolve/main/TinyDolphin-2.8-1.1b.i1-Q6_K.gguf"
+      }
     },
     {
       "id": "huihui_ai/qwen2.5-abliterate:1.5b",
@@ -128,7 +146,13 @@
       "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. El mejor equilibrio tamaño/uso para uso diario ligero.",
       "sin_censura": true,
       "_flag_deducido": true,
-      "herramientas_nota": true
+      "herramientas_nota": true,
+      "espejo": {
+        "repo": "DevQuasar/huihui-ai.Qwen2.5-1.5B-Instruct-abliterated-SFT-GGUF",
+        "archivo": "huihui-ai.Qwen2.5-1.5B-Instruct-abliterated-SFT.Q4_K_M.gguf",
+        "mb": 986,
+        "url": "https://huggingface.co/DevQuasar/huihui-ai.Qwen2.5-1.5B-Instruct-abliterated-SFT-GGUF/resolve/main/huihui-ai.Qwen2.5-1.5B-Instruct-abliterated-SFT.Q4_K_M.gguf"
+      }
     },
     {
       "id": "huihui_ai/llama3.2-abliterate:1b",
@@ -153,7 +177,13 @@
       ],
       "recomendado": "Cuando necesites meterle documentos largos en un PC modesto.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "espejo": {
+        "repo": "mradermacher/Llama-3.2-1B-Instruct-abliterated-i1-GGUF",
+        "archivo": "Llama-3.2-1B-Instruct-abliterated.i1-Q4_K_M.gguf",
+        "mb": 955,
+        "url": "https://huggingface.co/mradermacher/Llama-3.2-1B-Instruct-abliterated-i1-GGUF/resolve/main/Llama-3.2-1B-Instruct-abliterated.i1-Q4_K_M.gguf"
+      }
     },
     {
       "id": "huihui_ai/qwen3-abliterated:1.7b",
@@ -179,7 +209,13 @@
       "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. El más listo por debajo de 1,1 GB.",
       "sin_censura": true,
       "_flag_deducido": true,
-      "herramientas_nota": true
+      "herramientas_nota": true,
+      "espejo": {
+        "repo": "DevQuasar/huihui-ai.Qwen3-1.7B-abliterated-GGUF",
+        "archivo": "huihui-ai.Qwen3-1.7B-abliterated.Q4_K_M.gguf",
+        "mb": 1107,
+        "url": "https://huggingface.co/DevQuasar/huihui-ai.Qwen3-1.7B-abliterated-GGUF/resolve/main/huihui-ai.Qwen3-1.7B-abliterated.Q4_K_M.gguf"
+      }
     },
     {
       "id": "huihui_ai/qwen2.5-coder-abliterate:1.5b",
@@ -205,7 +241,13 @@
       ],
       "recomendado": "Para pegar un fragmento y que lo arregle o lo explique.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "espejo": {
+        "repo": "bartowski/Qwen2.5-Coder-1.5B-Instruct-abliterated-GGUF",
+        "archivo": "Qwen2.5-Coder-1.5B-Instruct-abliterated-Q4_K_M.gguf",
+        "mb": 1117,
+        "url": "https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-abliterated-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-abliterated-Q4_K_M.gguf"
+      }
     },
     {
       "id": "dolphin-phi:2.7b-v2.6-q2_K",
@@ -280,7 +322,13 @@
       ],
       "recomendado": "Si quieres que obedezca instrucciones y no te importa el tono.",
       "sin_censura": false,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "espejo": {
+        "repo": "TheBloke/stablelm-zephyr-3b-GGUF",
+        "archivo": "stablelm-zephyr-3b.Q4_K_M.gguf",
+        "mb": 1709,
+        "url": "https://huggingface.co/TheBloke/stablelm-zephyr-3b-GGUF/resolve/main/stablelm-zephyr-3b.Q4_K_M.gguf"
+      }
     },
     {
       "id": "huihui_ai/qwen2.5-abliterate:3b",
@@ -308,7 +356,13 @@
       "recomendado": "La mejor opción si el equipo aguanta ~4 GB de RAM libre.",
       "sin_censura": true,
       "_flag_deducido": true,
-      "herramientas_nota": true
+      "herramientas_nota": true,
+      "espejo": {
+        "repo": "DevQuasar/huihui-ai.Qwen2.5-3B-Instruct-abliterated-SFT-GGUF",
+        "archivo": "huihui-ai.Qwen2.5-3B-Instruct-abliterated-SFT.Q4_K_M.gguf",
+        "mb": 1930,
+        "url": "https://huggingface.co/DevQuasar/huihui-ai.Qwen2.5-3B-Instruct-abliterated-SFT-GGUF/resolve/main/huihui-ai.Qwen2.5-3B-Instruct-abliterated-SFT.Q4_K_M.gguf"
+      }
     },
     {
       "id": "huihui_ai/qwen2.5-coder-abliterate:3b",
@@ -333,7 +387,13 @@
       ],
       "recomendado": "Para trabajar con código en local sin censura.",
       "sin_censura": true,
-      "_flag_deducido": true
+      "_flag_deducido": true,
+      "espejo": {
+        "repo": "bartowski/Qwen2.5-Coder-3B-Instruct-abliterated-GGUF",
+        "archivo": "Qwen2.5-Coder-3B-Instruct-abliterated-Q4_K_M.gguf",
+        "mb": 1930,
+        "url": "https://huggingface.co/bartowski/Qwen2.5-Coder-3B-Instruct-abliterated-GGUF/resolve/main/Qwen2.5-Coder-3B-Instruct-abliterated-Q4_K_M.gguf"
+      }
     },
     {
       "id": "hermes3:3b",
@@ -513,7 +573,13 @@
         "herramientas",
         "código complejo"
       ],
-      "recomendado": "Si necesitas meterle mucho texto y no pasar de 2,1 GB."
+      "recomendado": "Si necesitas meterle mucho texto y no pasar de 2,1 GB.",
+      "espejo": {
+        "repo": "mradermacher/Llama-3.2-3B-Instruct-abliterated-i1-GGUF",
+        "archivo": "Llama-3.2-3B-Instruct-abliterated.i1-Q4_K_M.gguf",
+        "mb": 2241,
+        "url": "https://huggingface.co/mradermacher/Llama-3.2-3B-Instruct-abliterated-i1-GGUF/resolve/main/Llama-3.2-3B-Instruct-abliterated.i1-Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -539,7 +605,13 @@
         "contextos enormes"
       ],
       "recomendado": "La mejor calidad 'sin censura' si tienes 6 GB de RAM.",
-      "herramientas_nota": true
+      "herramientas_nota": true,
+      "espejo": {
+        "repo": "DevQuasar/huihui-ai.Qwen3-4B-abliterated-GGUF",
+        "archivo": "huihui-ai.Qwen3-4B-abliterated.Q4_K_M.gguf",
+        "mb": 2497,
+        "url": "https://huggingface.co/DevQuasar/huihui-ai.Qwen3-4B-abliterated-GGUF/resolve/main/huihui-ai.Qwen3-4B-abliterated.Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -611,7 +683,13 @@
         "español fino",
         "herramientas"
       ],
-      "recomendado": "Si quieres un 7B sin censura y no pasas de 3 GB."
+      "recomendado": "Si quieres un 7B sin censura y no pasas de 3 GB.",
+      "espejo": {
+        "repo": "TheBloke/dolphin-2.6-mistral-7B-GGUF",
+        "archivo": "dolphin-2.6-mistral-7b.Q2_K.gguf",
+        "mb": 3084,
+        "url": "https://huggingface.co/TheBloke/dolphin-2.6-mistral-7B-GGUF/resolve/main/dolphin-2.6-mistral-7b.Q2_K.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -635,7 +713,13 @@
         "contexto largo",
         "español"
       ],
-      "recomendado": "Para escritura creativa sin restricciones."
+      "recomendado": "Para escritura creativa sin restricciones.",
+      "espejo": {
+        "repo": "TheBloke/Wizard-Vicuna-7B-Uncensored-GGUF",
+        "archivo": "Wizard-Vicuna-7B-Uncensored.Q2_K.gguf",
+        "mb": 2826,
+        "url": "https://huggingface.co/TheBloke/Wizard-Vicuna-7B-Uncensored-GGUF/resolve/main/Wizard-Vicuna-7B-Uncensored.Q2_K.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -659,7 +743,13 @@
         "herramientas",
         "español fino"
       ],
-      "recomendado": "Si quieres obediencia más que libertad."
+      "recomendado": "Si quieres obediencia más que libertad.",
+      "espejo": {
+        "repo": "TheBloke/OpenHermes-2.5-Mistral-7B-GGUF",
+        "archivo": "openhermes-2.5-mistral-7b.Q2_K.gguf",
+        "mb": 3083,
+        "url": "https://huggingface.co/TheBloke/OpenHermes-2.5-Mistral-7B-GGUF/resolve/main/openhermes-2.5-mistral-7b.Q2_K.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -683,7 +773,13 @@
         "nada grave para su tamaño"
       ],
       "recomendado": "Para el modo agente local con un modelo moderno.",
-      "herramientas_nota": true
+      "herramientas_nota": true,
+      "espejo": {
+        "repo": "unsloth/Qwen3-4B-GGUF",
+        "archivo": "Qwen3-4B-Q4_K_M.gguf",
+        "mb": 2497,
+        "url": "https://huggingface.co/unsloth/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -706,7 +802,13 @@
         "tareas complejas"
       ],
       "recomendado": "Declara llamada a funciones, pero con tan pocos parametros las usa mal: mejor para charla. Prueba rápida del modo agente en un equipo justo.",
-      "herramientas_nota": true
+      "herramientas_nota": true,
+      "espejo": {
+        "repo": "unsloth/Qwen3-1.7B-GGUF",
+        "archivo": "Qwen3-1.7B-Q4_K_M.gguf",
+        "mb": 1107,
+        "url": "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -781,7 +883,13 @@
       "no_sabe": [
         "nada grave para su tamaño"
       ],
-      "recomendado": "Si quieres modo agente local sin censura, empieza por este."
+      "recomendado": "Si quieres modo agente local sin censura, empieza por este.",
+      "espejo": {
+        "repo": "richardyoung/Agents-A1-4B-heretic-GGUF",
+        "archivo": "Agents-A1-4B-heretic-Q4_K_M.gguf",
+        "mb": 2709,
+        "url": "https://huggingface.co/richardyoung/Agents-A1-4B-heretic-GGUF/resolve/main/Agents-A1-4B-heretic-Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -805,7 +913,13 @@
         "modo agente",
         "razonamiento complejo"
       ],
-      "recomendado": "Para equipos muy flojos o respuestas instantáneas."
+      "recomendado": "Para equipos muy flojos o respuestas instantáneas.",
+      "espejo": {
+        "repo": "richardyoung/LFM2.5-1.2B-Instruct-heretic-GGUF",
+        "archivo": "LFM2.5-1.2B-Instruct-heretic-Q4_K_M.gguf",
+        "mb": 731,
+        "url": "https://huggingface.co/richardyoung/LFM2.5-1.2B-Instruct-heretic-GGUF/resolve/main/LFM2.5-1.2B-Instruct-heretic-Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -830,7 +944,13 @@
         "herramientas",
         "español fino"
       ],
-      "recomendado": "Si buscas cabeza más que obediencia."
+      "recomendado": "Si buscas cabeza más que obediencia.",
+      "espejo": {
+        "repo": "richardyoung/Phi-4-mini-instruct-heretic-GGUF",
+        "archivo": "Phi-4-mini-instruct-heretic-Q4_K_M.gguf",
+        "mb": 2494,
+        "url": "https://huggingface.co/richardyoung/Phi-4-mini-instruct-heretic-GGUF/resolve/main/Phi-4-mini-instruct-heretic-Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",
@@ -877,7 +997,13 @@
         "herramientas",
         "código"
       ],
-      "recomendado": "Alternativa moderna a TinyDolphin cuando quieres algo más listo."
+      "recomendado": "Alternativa moderna a TinyDolphin cuando quieres algo más listo.",
+      "espejo": {
+        "repo": "bartowski/huihui-ai_gemma-3-1b-it-abliterated-GGUF",
+        "archivo": "huihui-ai_gemma-3-1b-it-abliterated-Q4_K_M.gguf",
+        "mb": 806,
+        "url": "https://huggingface.co/bartowski/huihui-ai_gemma-3-1b-it-abliterated-GGUF/resolve/main/huihui-ai_gemma-3-1b-it-abliterated-Q4_K_M.gguf"
+      }
     },
     {
       "backend": "ollama",

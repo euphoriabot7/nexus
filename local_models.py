@@ -266,14 +266,28 @@ def models_dir():
     return str(candidatas[0])
 
 
+def _con_tag(nombre):
+    """Ollama guarda los nombres sin etiqueta como '<nombre>:latest'.
+
+    El catalogo tiene ids sin etiqueta (p.ej. richardyoung/lfm2.5-...), asi que
+    hay que normalizar antes de comparar o la app cree que un modelo que SI esta
+    instalado sigue sin estarlo.
+    """
+    n = (nombre or "").strip()
+    if not n:
+        return n
+    return n if ":" in n.rsplit("/", 1)[-1] else n + ":latest"
+
+
 def status():
     cat = catalog()
-    instalados = {m["name"]: m for m in ollama_models()}
+    instalados = {_con_tag(m["name"]): m for m in ollama_models()}
     modelos = []
     for m in cat.get("modelos", []):
         mm = dict(m)
-        mm["instalado"] = bool(instalados.get(m["id"]))
-        mm["tamano_disco"] = instalados.get(m["id"], {}).get("size", 0)
+        tiene = instalados.get(_con_tag(m["id"]))
+        mm["instalado"] = bool(tiene)
+        mm["tamano_disco"] = (tiene or {}).get("size", 0)
         modelos.append(mm)
     return {
         "platform": PLATFORM,
@@ -659,8 +673,8 @@ def agent_variant(model, min_ctx=8192):
     variante = f"{base}-agente-{objetivo // 1024}k"
     if (model or "").strip() == variante:
         return model, f"ya uso la variante de agente {variante}", objetivo
-    instalados = {m["name"] for m in ollama_models()}
-    if variante in instalados:
+    instalados = {_con_tag(m["name"]) for m in ollama_models()}
+    if _con_tag(variante) in instalados:
         return variante, f"reutilizo la variante {variante} ({motivo})", objetivo
     trabajo = Path(CTX["data_dir"]) / "modelfiles"
     trabajo.mkdir(parents=True, exist_ok=True)
@@ -677,6 +691,113 @@ def agent_variant(model, min_ctx=8192):
     except Exception as exc:  # noqa: BLE001
         return model, f"no se pudo crear la variante: {exc}", 0
     return variante, f"variante {variante} lista para el agente ({motivo})", objetivo
+
+
+def _espejo(model):
+    """Espejo verificado en Hugging Face para un modelo del catalogo (o None).
+
+    El registro de Ollama se cuelga desde algunas redes (el CDN de blobs no
+    responde y `ollama pull` se queda en 'pulling manifest' eternamente). Para
+    esos casos el catalogo anota el .gguf equivalente en Hugging Face, que si
+    responde: se baja el fichero y se crea el modelo con `ollama create`.
+    """
+    for m in (catalog().get("modelos") or []):
+        if m.get("id") == model:
+            e = m.get("espejo")
+            if e and e.get("url") and e.get("archivo"):
+                return e
+    return None
+
+
+def _gguf_dir():
+    d = Path(CTX["data_dir"]) / "gguf"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _mf_path(model):
+    return _gguf_dir() / (model.replace("/", "_").replace(":", "_") + ".Modelfile")
+
+
+def _limpia_gguf(gguf, model):
+    """Tras un 'ollama create' correcto, el modelo ya vive dentro de Ollama.
+
+    Se borran el .gguf y su Modelfile para no dejar cientos de MB muertos en la
+    carpeta de datos. Solo se llama con create exitoso (una descarga a medias se
+    conserva para poder reanudarla).
+    """
+    for p in (Path(gguf), _mf_path(model)):
+        try:
+            if p.exists():
+                p.unlink()
+        except OSError:
+            pass
+
+
+def _descarga_hf(esp):
+    """Baja el .gguf del espejo a DATA_DIR/gguf, con reanudacion y progreso."""
+    destino = _gguf_dir() / esp["archivo"]
+    esperado = int(esp.get("mb") or 0) * 1000000
+    if destino.exists() and esperado and destino.stat().st_size >= esperado * 0.95:
+        PULL.update(line=f"ya estaba descargado: {destino.name}", percent=80)
+        return destino
+    cab_base = {"User-Agent": "nexus-local-models (+huggingface mirror)"}
+    ultimo_error = ""
+    for intento in range(1, 4):
+        ya = destino.stat().st_size if destino.exists() else 0
+        cab = dict(cab_base)
+        if ya:
+            cab["Range"] = "bytes=%d-" % ya
+        try:
+            req = urllib.request.Request(esp["url"], headers=cab)
+            with urllib.request.urlopen(req, timeout=60) as r:
+                parcial = getattr(r, "status", 200) == 206
+                total = int(r.headers.get("Content-Length") or 0)
+                total = (total + ya) if (parcial and total) else (total or esperado)
+                modo, bajado = ("ab", ya) if (parcial and ya) else ("wb", 0)
+                PULL.update(percent=2, line=f"espejo Hugging Face: {esp['archivo']}")
+                PULL["_ultimo"] = time.time()
+                with open(destino, modo) as f:
+                    while True:
+                        if not PULL["running"]:
+                            raise RuntimeError("cancelado")
+                        trozo = r.read(262144)
+                        if not trozo:
+                            break
+                        f.write(trozo)
+                        bajado += len(trozo)
+                        PULL["_ultimo"] = time.time()
+                        pct = int(bajado * 78 / total) if total else 40
+                        PULL.update(percent=max(2, min(78, pct)),
+                                    line="espejo Hugging Face: %d/%d MB" % (bajado // 1000000, total // 1000000))
+            if esperado and destino.stat().st_size < esperado * 0.5:
+                raise RuntimeError("descarga incompleta")
+            return destino
+        except Exception as exc:  # noqa: BLE001
+            if str(exc) == "cancelado":
+                raise
+            ultimo_error = str(exc)
+            if intento < 3:
+                PULL.update(line=f"fallo de red, reintento {intento}/3...")
+                time.sleep(2 * intento)
+    raise RuntimeError(ultimo_error or "no se pudo descargar el espejo")
+
+
+def _crea_desde_gguf(model, gguf, env):
+    """`ollama create <model> -f Modelfile` a partir de un .gguf ya bajado."""
+    mf = _mf_path(model)
+    mf.write_text(f"FROM {gguf}\n", encoding="utf-8")
+    b = ollama_bin()
+    PULL.update(line="creando el modelo en Ollama...", percent=82)
+    PULL["_ultimo"] = time.time()
+    proc = _popen([b, "create", model, "-f", str(mf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                  text=True, encoding="utf-8", errors="replace", bufsize=1, env=env)
+    PULL["proc"] = proc
+    for linea in proc.stdout or []:
+        linea = linea.rstrip()
+        if linea:
+            PULL.update(line=linea[:200], percent=min(99, (PULL.get("percent") or 0) + 1))
+    return proc.wait()
 
 
 def pull(model, backend="ollama"):
@@ -703,7 +824,27 @@ def pull(model, backend="ollama"):
     env = CTX["env"]() if CTX["env"] else dict(os.environ)
 
     def _hilo():
+        esp = _espejo(model) if backend == "ollama" else None
         try:
+            if esp:
+                # El espejo va PRIMERO: el registro de Ollama se queda colgado en algunas
+                # redes, asi que no tiene sentido esperar 150 s a que el vigilante lo corte.
+                try:
+                    gguf = _descarga_hf(esp)
+                    code = _crea_desde_gguf(model, gguf, env)
+                    if code != 0:
+                        raise RuntimeError(f"ollama create devolvio {code}")
+                    _limpia_gguf(gguf, model)
+                    olvidar_cache()
+                    PULL.update(done=True, percent=100, running=False, proc=None,
+                                line="descarga completada (espejo Hugging Face)")
+                    return
+                except Exception as exc:  # noqa: BLE001
+                    if str(exc) == "cancelado" or not PULL["running"]:
+                        PULL.update(done=True, running=False, proc=None, error="cancelado")
+                        return
+                    PULL.update(line=f"el espejo no ha funcionado ({exc}); probando el registro normal...",
+                                percent=0, _ultimo=time.time())
             proc = _popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                                     bufsize=1, env=env)
             PULL["proc"] = proc
@@ -749,8 +890,11 @@ def pull(model, backend="ollama"):
             else:
                 # si el vigilante ya explico el motivo, no se pisa con el codigo a secas
                 if not PULL.get("error"):
-                    PULL.update(error=_motivo_descarga(code, causas))
-                PULL.update(done=True, running=False)
+                    mensaje = _motivo_descarga(code, causas)
+                    if esp:
+                        mensaje += " El espejo de Hugging Face tampoco respondio."
+                    PULL.update(error=mensaje)
+                PULL.update(done=True, running=False, proc=None)
         except Exception as exc:  # noqa: BLE001
             PULL.update(done=True, running=False, error=str(exc))
     threading.Thread(target=_hilo, daemon=True).start()
@@ -759,13 +903,16 @@ def pull(model, backend="ollama"):
 
 def cancel_pull():
     proc = PULL.get("proc")
-    if proc and PULL["running"]:
-        try:
-            proc.terminate()
-            PULL.update(running=False, done=True, error="cancelado")
-            return True, "Descarga cancelada."
-        except Exception as exc:  # noqa: BLE001
-            return False, str(exc)
+    if PULL["running"]:
+        # Durante la descarga del espejo no hay subproceso: el hilo mira PULL["running"]
+        # en cada trozo y se corta solo.
+        if proc:
+            try:
+                proc.terminate()
+            except Exception:  # noqa: BLE001
+                pass
+        PULL.update(running=False, done=True, error="cancelado")
+        return True, "Descarga cancelada."
     return False, "No hay ninguna descarga en marcha."
 
 
