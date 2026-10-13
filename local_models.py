@@ -44,6 +44,42 @@ PULL = {"running": False, "model": "", "backend": "ollama", "line": "", "percent
         "done": False, "error": "", "proc": None, "started": 0.0}
 LOCK = threading.Lock()
 
+# En Windows, un .exe de consola lanzado desde un proceso SIN consola (pythonw.exe)
+# abre una ventana negra nueva cada vez. NEXUS arranca con pythonw, asi que sin esto
+# el usuario ve terminales saltando sin parar (y el bucle de estado las repite cada
+# pocos segundos). CREATE_NO_WINDOW lo evita. En Linux/macOS vale 0 y no hace nada.
+NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0) if IS_WIN else 0
+_CACHE = {}
+
+
+def _run(cmd, **kw):
+    """subprocess.run sin ventanas de consola en Windows."""
+    if NO_WINDOW:
+        kw.setdefault("creationflags", NO_WINDOW)
+    return subprocess.run(cmd, **kw)
+
+
+def _popen(cmd, **kw):
+    """subprocess.Popen sin ventanas de consola en Windows."""
+    if NO_WINDOW:
+        kw.setdefault("creationflags", NO_WINDOW)
+    return subprocess.Popen(cmd, **kw)
+
+
+def _cacheado(clave, ttl, fn):
+    """Valor cacheado unos segundos: evita lanzar un .exe en cada refresco."""
+    ahora = time.time()
+    guardado = _CACHE.get(clave)
+    if guardado and ahora - guardado[0] < ttl:
+        return guardado[1]
+    valor = fn()
+    _CACHE[clave] = (ahora, valor)
+    return valor
+
+
+def olvidar_cache():
+    _CACHE.clear()
+
 
 def init(app_dir, data_dir, config_dir, env_builder, shell_runner, config_get, config_save):
     CTX.update(app_dir=Path(app_dir), data_dir=Path(data_dir), config_dir=Path(config_dir),
@@ -97,12 +133,16 @@ def ollama_bin():
     return ""
 
 
-def ollama_version():
+def ollama_version(ttl=120):
+    return _cacheado("ollama_version", ttl, _ollama_version)
+
+
+def _ollama_version():
     b = ollama_bin()
     if not b:
         return ""
     try:
-        out = subprocess.run([b, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
+        out = _run([b, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
         return ((out.stdout or "") + (out.stderr or "")).strip().splitlines()[0][:60]
     except Exception:
         return ""
@@ -157,12 +197,16 @@ def lmstudio_running():
     return http_json(LMS_URL + "/v1/models") is not None
 
 
-def lmstudio_models():
+def lmstudio_models(ttl=15):
+    return _cacheado("lmstudio_models", ttl, _lmstudio_models)
+
+
+def _lmstudio_models():
     out = []
     b = lms_bin()
     if b:
         try:
-            r = subprocess.run([b, "ls", "--json"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+            r = _run([b, "ls", "--json"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
             data = json.loads(r.stdout or "[]")
             for it in (data if isinstance(data, list) else []):
                 mid = it.get("modelKey") or it.get("identifier") or it.get("path") or ""
@@ -305,13 +349,13 @@ def _ram_macos():
     """Memoria en macOS sin dependencias: sysctl hw.memsize + vm_stat."""
     total = libre = None
     try:
-        r = subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True,
+        r = _run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=10)
         total = int((r.stdout or "").strip() or 0) / 1024 ** 3
     except Exception:
         total = None
     try:
-        r = subprocess.run(["vm_stat"], capture_output=True, text=True,
+        r = _run(["vm_stat"], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=10)
         pagina, libres = 4096, 0
         for linea in (r.stdout or "").splitlines():
@@ -353,7 +397,7 @@ def _run_install(cmd, shell_env):
         fh.write(" ".join(cmd) + "\n\n")
     log = open(_log_path(), "a", encoding="utf-8")  # noqa: SIM115
     try:
-        proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, env=shell_env,
+        proc = _popen(cmd, stdout=log, stderr=subprocess.STDOUT, env=shell_env,
                                 cwd=str(Path.home()))
     except Exception as exc:  # noqa: BLE001
         return None, f"No se pudo lanzar la instalacion: {exc}"
@@ -417,7 +461,7 @@ def install(backend="ollama"):
     if not shutil.which("curl"):
         return False, "Hace falta curl para instalar Ollama."
     script = "curl -fsSL https://ollama.com/install.sh | sh"
-    puede_sudo = subprocess.run(["/usr/bin/sudo", "-n", "true"], capture_output=True).returncode == 0 \
+    puede_sudo = _run(["/usr/bin/sudo", "-n", "true"], capture_output=True).returncode == 0 \
         if Path("/usr/bin/sudo").exists() else False
     if puede_sudo:
         _run_install(["/bin/bash", "-lc", f"sudo {script}"], env)
@@ -447,7 +491,7 @@ def start_backend(backend="ollama"):
         if not b:
             return False, "LM Studio no esta instalado."
         try:
-            subprocess.Popen([b, "server", "start"], env=CTX["env"]() if CTX["env"] else None)
+            _popen([b, "server", "start"], env=CTX["env"]() if CTX["env"] else None)
             return True, "Arrancando el servidor de LM Studio..."
         except Exception as exc:  # noqa: BLE001
             return False, str(exc)
@@ -461,9 +505,9 @@ def start_backend(backend="ollama"):
         if IS_WIN:
             app = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama app.exe"
             exe = str(app) if app.is_file() else b
-            subprocess.Popen([exe], env=env, creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
+            _popen([exe], env=env, creationflags=getattr(subprocess, "DETACHED_PROCESS", 0) | NO_WINDOW)
         else:
-            subprocess.Popen([b, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            _popen([b, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              env=env, start_new_session=True)
     except Exception as exc:  # noqa: BLE001
         return False, f"No se pudo arrancar Ollama: {exc}"
@@ -484,13 +528,52 @@ def _percent(linea):
     return int(m.group(1)) if m else None
 
 
+def _es_barra(linea):
+    """True si la linea es solo la barra de progreso de Ollama (no explica nada)."""
+    b = linea.strip().lower()
+    if not b:
+        return True
+    if re.match(r"^[a-z ]*:?\s*[\d.]+\s*(b|kb|mb|gb|kib|mib|gib)/", b):
+        return True
+    if re.match(r"^[\d.]+%\s*", b) or re.match(r"^[\d.]+:\s", b):
+        return True
+    if re.match(r"^[|/\\#\-. ]+$", b):
+        return True
+    return b.startswith(("pulling ", "verifying ", "writing manifest", "downloading",
+                         "success", "done", "checking", "removing"))
+
+
+def _motivo_descarga(code, causas):
+    """Traduce el fallo de `ollama pull` a algo que el usuario pueda arreglar."""
+    texto = " ".join(causas).lower()
+    ult = [c for c in causas if c][-2:]
+    cola = " · ".join(ult)[:250]
+    if any(x in texto for x in ("could not connect", "connection refused", "is it running",
+                                "connectex", "actively refused", "failed to connect")):
+        return ("no se pudo conectar con Ollama (el servidor local no esta en marcha). "
+                "Abre Ollama una vez desde el menu Inicio y vuelve a intentarlo.")
+    if any(x in texto for x in ("no space left", "not enough space", "disk full")):
+        return "no hay espacio en disco para el modelo."
+    if any(x in texto for x in ("file does not exist", "not found", "manifest unknown", "404",
+                                "pull model manifest")):
+        return f"el registro de Ollama no tiene ese modelo o la version pedida ({cola})."
+    if any(x in texto for x in ("no matching manifest", "unsupported platform", "no matching manifest for")):
+        return "ese modelo no tiene version para este sistema."
+    if any(x in texto for x in ("x509", "certificate", "tls handshake timeout", "no such host",
+                                "proxyconnect", "eof", "connection reset")):
+        return ("fallo de red al descargar (cortafuegos, proxy o antivirus cortando la conexion). "
+                f"{cola}")
+    base = f"la descarga fallo (codigo {code})"
+    return f"{base}: {cola}" if cola else base
+
+
 def model_context(model):
     """Ventana de contexto que anuncia el modelo (0 si no se puede saber)."""
     b = ollama_bin()
     if not b:
         return 0
     try:
-        r = subprocess.run([b, "show", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45,
+        r = _run([b, "show", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45,
                            env=(CTX["env"]() if CTX["env"] else None))
         import re as _re
         m = _re.search(r"(?i)context length\s+([\d.,]+)", r.stdout or "")
@@ -557,7 +640,7 @@ def agent_variant(model, min_ctx=64000):
     archivo = trabajo / (variante.replace("/", "_").replace(":", "_") + ".Modelfile")
     archivo.write_text(f"FROM {base}\nPARAMETER num_ctx {objetivo}\nPARAMETER temperature 0.7\n", encoding="utf-8")
     try:
-        r = subprocess.run([b, "create", variante, "-f", str(archivo)], capture_output=True, text=True, encoding="utf-8", errors="replace",
+        r = _run([b, "create", variante, "-f", str(archivo)], capture_output=True, text=True, encoding="utf-8", errors="replace",
                            timeout=600, env=(CTX["env"]() if CTX["env"] else None))
         if r.returncode != 0:
             return model, f"no se pudo crear la variante: {(r.stderr or r.stdout or '')[:200]}", 0
@@ -583,14 +666,15 @@ def pull(model, backend="ollama"):
             if not ok:
                 return False, msg
         cmd = [b, "pull", model]
+    olvidar_cache()
     with LOCK:
         PULL.update(running=True, model=model, backend=backend, line="descargando...", percent=0,
                     done=False, error="", started=time.time(), proc=None, _ultimo=time.time())
     env = CTX["env"]() if CTX["env"] else dict(os.environ)
 
-    def _run():
+    def _hilo():
         try:
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
+            proc = _popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                                     bufsize=1, env=env)
             PULL["proc"] = proc
             # vigilante: si la descarga deja de dar senales, se corta y se avisa en vez de quedarse colgada.
@@ -617,6 +701,7 @@ def pull(model, backend="ollama"):
                         return
             threading.Thread(target=_vigila, daemon=True).start()
 
+            causas = []   # ultimas lineas que NO son la barra de progreso: ahi viene el motivo
             for linea in proc.stdout or []:
                 linea = linea.rstrip()
                 if not linea:
@@ -625,17 +710,20 @@ def pull(model, backend="ollama"):
                 p = _percent(linea)
                 if p is not None:
                     PULL["percent"] = p
+                elif not _es_barra(linea):
+                    causas.append(linea.strip())
+                    del causas[:-5]
             code = proc.wait()
             if code == 0:
                 PULL.update(done=True, percent=100, line="descarga completada", running=False)
             else:
                 # si el vigilante ya explico el motivo, no se pisa con el codigo a secas
                 if not PULL.get("error"):
-                    PULL.update(error=f"la descarga termino con codigo {code}")
+                    PULL.update(error=_motivo_descarga(code, causas))
                 PULL.update(done=True, running=False)
         except Exception as exc:  # noqa: BLE001
             PULL.update(done=True, running=False, error=str(exc))
-    threading.Thread(target=_run, daemon=True).start()
+    threading.Thread(target=_hilo, daemon=True).start()
     return True, "Descarga iniciada."
 
 
@@ -658,7 +746,7 @@ def remove(model, backend="ollama"):
             return False, "LM Studio no esta instalado."
         # descargarlo de memoria antes de borrarlo
         try:
-            subprocess.run([b, "unload", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
+            _run([b, "unload", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
                            env=(CTX["env"]() if CTX["env"] else None))
         except Exception:  # noqa: BLE001
             pass
@@ -670,15 +758,16 @@ def remove(model, backend="ollama"):
         # Si el modelo esta cargado en memoria, Ollama puede quedarse colgado ("Stopping...")
         # al borrarlo: primero se descarga y se le da un momento para soltarlo.
         try:
-            subprocess.run([b, "stop", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45,
+            _run([b, "stop", model], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45,
                            env=(CTX["env"]() if CTX["env"] else None))
             time.sleep(1.5)
         except Exception:  # noqa: BLE001
             pass
         cmd = [b, "rm", model]
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90,
+        r = _run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90,
                            env=(CTX["env"]() if CTX["env"] else None))
+        olvidar_cache()
         if r.returncode == 0:
             return True, "Modelo borrado."
         return False, (r.stderr or r.stdout or "no se pudo borrar").strip()[:300]
@@ -687,6 +776,7 @@ def remove(model, backend="ollama"):
 
 
 def use(model, backend="ollama"):
+    olvidar_cache()
     """Deja el proveedor local configurado con ese modelo y como predeterminado."""
     pid = "lmstudio" if backend == "lmstudio" else "ollama"
     base = (LMS_URL + "/v1") if pid == "lmstudio" else (OLLAMA_URL + "/v1")
@@ -722,10 +812,10 @@ def open_target(que):
     if que == "modelos":
         carpeta = Path.home() / ".ollama" / "models"
         if IS_WIN:
-            subprocess.Popen(["explorer", str(carpeta)], shell=True)
+            _popen(["explorer", str(carpeta)], shell=True)
         elif IS_MAC:
-            subprocess.Popen(["open", str(carpeta)])
+            _popen(["open", str(carpeta)])
         else:
-            subprocess.Popen(["xdg-open", str(carpeta)])
+            _popen(["xdg-open", str(carpeta)])
         return True, f"Abriendo {carpeta}"
     return False, "no se que abrir"

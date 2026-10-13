@@ -2576,7 +2576,7 @@ async function prepararPrimerContacto() {
     } else if (!loc.ollama_running) {
       await api("/api/local/start", { method: "POST", body: { backend: "ollama" } });
     }
-    const tiene = (loc.instalados || []).some((m) => m.name === modelo);
+    const tiene = (loc.ollama_instalados || []).some((m) => m.name === modelo);
     if (!tiene) {
       if (est) est.textContent = `${t("agents_first_downloading")} ${modelo}`;
       await api("/api/local/pull", { method: "POST", body: { model: modelo } });

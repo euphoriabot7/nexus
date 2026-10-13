@@ -257,6 +257,11 @@ def hermes_bin():
     return ""
 
 
+# En Windows los .exe de consola lanzados desde pythonw abren una ventana negra
+# nueva: con esto no. En Linux/macOS vale 0.
+NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+
+
 def agent_env():
     env = dict(os.environ)
     extra = [str(Path.home() / ".local" / "bin")]
@@ -655,7 +660,7 @@ def start_hermes_install():
             fh.write(f"$ {hermes_install_command()}\n\n")
         log = open(INSTALL_LOG, "a", encoding="utf-8")  # noqa: SIM115
         proc = subprocess.Popen(shell_command(hermes_install_command()), stdout=log, stderr=subprocess.STDOUT,
-                                env=agent_env(), cwd=str(Path.home()))
+                                env=agent_env(), cwd=str(Path.home()), creationflags=NO_WINDOW)
     except Exception as exc:  # noqa: BLE001
         return False, f"No se pudo lanzar el instalador: {exc}"
 
@@ -1269,7 +1274,7 @@ def modelo_ve_imagenes(chat):
         binario = local_models.ollama_bin() if pid == "ollama" else local_models.lms_bin()
         if binario:
             r = subprocess.run([binario, "show", modelo], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40,
-                               env=(agent_env() if pid == "ollama" else None))
+                               env=(agent_env() if pid == "ollama" else None), creationflags=NO_WINDOW)
             ve = "vision" in ((r.stdout or "") + (r.stderr or "")).lower()
     except Exception:  # noqa: BLE001
         ve = True
@@ -1596,7 +1601,7 @@ def aplicar_actualizacion(ref=None):
     try:
         if tiene_git():
             r = subprocess.run(["git", "pull", "--ff-only"], cwd=str(APP_DIR), capture_output=True,
-                               text=True, encoding="utf-8", errors="replace", timeout=240)
+                               text=True, encoding="utf-8", errors="replace", timeout=240, creationflags=NO_WINDOW)
             salida = ((r.stdout or "") + (r.stderr or "")).strip()[-400:]
             if r.returncode == 0:
                 return True, salida or "ya estaba al dia"
@@ -1703,7 +1708,8 @@ def hermes_config_set(clave, valor):
         return False, "Hermes no esta instalado"
     try:
         r = subprocess.run([binario, "config", "set", str(clave), str(valor)],
-                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90, env=agent_env())
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90,
+                           env=agent_env(), creationflags=NO_WINDOW)
     except Exception as exc:  # noqa: BLE001
         return False, f"no se pudo ejecutar hermes config set: {exc}"
     if r.returncode == 0:
@@ -1782,7 +1788,8 @@ def run_agent_turn(chat, text, on_delta, on_session, stop_event=None, on_artifac
     cwd = chat.get("workdir") or DEFAULT_WORKDIR
 
     proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env())
+                            text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env(),
+                            creationflags=NO_WINDOW)
     text_parts, meta, session = [], {"agent": True, "usage": None}, ""
     quejas = []                     # lineas que no son JSON (errores del CLI)
     pending = {}  # tool_call_id -> ruta, para avisar cuando el archivo ya esta escrito
@@ -2207,7 +2214,8 @@ def run_task(tid):
     parts, tokens, cost, err, rc = [], 0, 0.0, "", None
     try:
         proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env())
+                                text=True, encoding="utf-8", errors="replace", bufsize=1, env=agent_env(),
+                                creationflags=NO_WINDOW)
         run["proc"] = proc
         for line in proc.stdout:
             if stop.is_set():
