@@ -279,6 +279,22 @@ def _con_tag(nombre):
     return n if ":" in n.rsplit("/", 1)[-1] else n + ":latest"
 
 
+def model_mb(model):
+    """Peso real del modelo instalado, en MB. None si no se puede saber.
+
+    Sirve para decidir la ventana del agente: pedir 8k de contexto para un
+    modelo que apenas cabe en la memoria libre es la forma mas rapida de que
+    Ollama devuelva un 500 al cargarlo.
+    """
+    objetivo = _con_tag(model or "")
+    if not objetivo:
+        return None
+    for m in ollama_models():
+        if m["name"] == objetivo:
+            return round((m["size"] or 0) / 1e6, 1)
+    return None
+
+
 def status():
     cat = catalog()
     instalados = {_con_tag(m["name"]): m for m in ollama_models()}
@@ -610,6 +626,13 @@ def agent_context_goal(model, min_ctx=8192):
     motivo = "ventana de agente (8k)"
     if libre is not None and libre < 1.2:
         techo, motivo = 4096, "memoria libre muy justa: ventana reducida a 4k"
+    try:
+        mb = model_mb(model)
+    except Exception:  # noqa: BLE001
+        mb = None
+    if mb and libre is not None and (mb / 1024.0) * 1.25 > libre:
+        techo, motivo = 4096, (f"el modelo pesa {round(mb / 1024.0, 1)} GB y solo hay "
+                               f"{libre} GB libres: ventana reducida a 4k")
     propio = model_context(model)
     if propio and propio < techo:
         techo, motivo = propio, f"el modelo admite {propio} como maximo"

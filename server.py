@@ -3298,7 +3298,8 @@ class Handler(BaseHTTPRequestHandler):
                         text, meta = agent_local.turno(
                             endpoint_local, chat["model"], history, workdir=base_trabajo,
                             permitir_escritura=permitir, on_delta=_delta_local, stop_event=stop_event,
-                            on_tool=on_tool, on_notice=_fase_local, ctx=ctx, hilos=hilos)
+                            on_tool=on_tool, on_notice=_fase_local, ctx=ctx, hilos=hilos,
+                            sistema=chat.get("system"))
                     finally:
                         fin_vigila.set()
                 else:
@@ -3333,6 +3334,11 @@ class Handler(BaseHTTPRequestHandler):
                 mensaje = (f"El modelo '{nombre}' no esta descargado en "
                            f"{chat.get('provider')}. Abre Modelos locales (barra superior) y "
                            "descargalo, o elige en Ajustes otro de los que ya tienes.")
+            elif exc.code >= 500 and local_endpoint(chat.get("provider") or ""):
+                mensaje = (f"{chat.get('provider')} no pudo cargar '{chat.get('model')}': "
+                           "casi siempre es falta de memoria. Prueba un modelo mas pequeño, "
+                           "cierra programas o baja el contexto en Ajustes. "
+                           f"Detalle: {detail}")
             else:
                 mensaje = f"El proveedor respondio {exc.code}. {detail}"
             update_message(asst_mid, "".join(parts), {"error": mensaje})

@@ -349,10 +349,20 @@ def _pide(endpoint, cuerpo, on_delta, stop_event, timeout=900):
 
 def turno(endpoint, model, historial, workdir="", permitir_escritura=False, on_delta=None,
           stop_event=None, on_tool=None, on_notice=None, max_turnos=6, ctx=8192,
-          hilos=None, segundos_max=1800):
-    """Bucle de agente contra Ollama. Devuelve (texto, meta)."""
+          hilos=None, segundos_max=1800, sistema=None):
+    """Bucle de agente contra Ollama. Devuelve (texto, meta).
+
+    `sistema` es el prompt de sistema del chat (Ajustes / especialista). Se
+    antepone a las reglas del agente: antes se perdia y el modelo no veia el
+    "sistema" que la app le pasaba.
+    """
     t0 = time.time()
-    mensajes = [{"role": "system", "content": SISTEMA}]
+    propio = (sistema or "").strip()
+    # Las reglas van primero y el prompt del usuario al final: lo que queda mas
+    # cerca del turno del usuario pesa mas en el modelo (probado con 0.6B/1.7B,
+    # al reves lo ignoraba).
+    mensajes = [{"role": "system",
+                 "content": (SISTEMA + "\n\n" + propio) if propio else SISTEMA}]
     for m in historial or []:
         rol = m.get("role")
         if rol in ("user", "assistant") and (m.get("content") or "").strip():
