@@ -335,6 +335,7 @@ window.NEXUS_ADD_LANG({
     agent_wait_hermes: "⏳ يتم ضبط المزوّد في Hermes…",
     agent_wait_run: "⏳ الوكيل يعمل الآن…",
     agent_wait_tool: "⏳ أستخدم {tool}…",
+    agent_wait_sin_tools: "هذا الموديل لا يدعم الأدوات: سأجيب دون قراءة ملفاتك أو تنفيذ أي شيء.",
     agent_wait_slow: "⏳ الموديل لا يزال يفكّر (بطيء على هذا الجهاز)…",
     agents_btn: "المتخصّصون",
     agents_title: "المتخصّصون",

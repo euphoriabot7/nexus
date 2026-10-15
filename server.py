@@ -1738,6 +1738,17 @@ def local_endpoint(pid, spec=None):
     pid = pid or ""
     if pid in LOCAL_ENDPOINTS:
         return LOCAL_ENDPOINTS[pid]
+    if pid.startswith(("http://", "https://")):
+        # un cliente puede mandar la URL directa en vez del id del proveedor:
+        # si es de esta maquina, el modo agente local tambien vale.
+        if "127.0.0.1" in pid or "localhost" in pid:
+            url = pid.rstrip("/")
+            # misma forma que LOCAL_ENDPOINTS (...:11434/v1): el bucle local
+            # recorta el /v1 solo, y la via de Hermes lo necesita tal cual.
+            if not url.endswith("/v1"):
+                url += "/v1"
+            return url
+        return ""
     try:
         base, _ = provider_credentials(spec or provider_spec(pid))
     except Exception:

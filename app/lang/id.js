@@ -332,6 +332,7 @@ window.NEXUS_ADD_LANG({ code: "id", name: "Bahasa Indonesia", strings: {
     agent_wait_hermes: "⏳ Mengatur penyedia di Hermes…",
     agent_wait_run: "⏳ Agen sedang bekerja…",
     agent_wait_tool: "⏳ Memakai {tool}…",
+    agent_wait_sin_tools: "Model ini tidak mendukung alat: saya menjawab tanpa membaca berkas Anda atau menjalankan apa pun.",
     agent_wait_slow: "⏳ Model masih berpikir (lambat di perangkat ini)…",
     agents_btn: "Spesialis",
     agents_title: "Spesialis",

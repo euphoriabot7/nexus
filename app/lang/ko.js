@@ -332,6 +332,7 @@ window.NEXUS_ADD_LANG({ code: "ko", name: "한국어", strings: {
     agent_wait_hermes: "⏳ Hermes의 공급자를 설정 중…",
     agent_wait_run: "⏳ 에이전트가 작업 중입니다…",
     agent_wait_tool: "⏳ {tool} 사용 중…",
+    agent_wait_sin_tools: "이 모델은 도구를 지원하지 않습니다: 파일을 읽거나 명령을 실행할 수 없습니다.",
     agent_wait_slow: "⏳ 모델이 아직 생각 중입니다(이 기기에서는 느립니다)…",
     agents_btn: "전문가",
     agents_title: "전문가",

@@ -825,6 +825,7 @@ async function startTurn({ content = "", editId = null, regenerate = false }) {
           agent_run: t("agent_wait_run"),
           agent_slow: t("agent_wait_slow"),
           agent_tool: t("agent_wait_tool").replace("{tool}", (n && n.tool) || "…"),
+          agent_sin_tools: t("agent_wait_sin_tools"),
         };
         const clave = n ? n.kind + (n.tool || "") : "";
         if (n && textos[n.kind] && asst.meta.noticeLast !== clave) {

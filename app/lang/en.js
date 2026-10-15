@@ -353,6 +353,7 @@
     agent_wait_hermes: "⏳ Configuring the provider in Hermes…",
     agent_wait_run: "⏳ The agent is working…",
     agent_wait_tool: "⏳ Using {tool}…",
+    agent_wait_sin_tools: "This model does not support tools: I answer without reading your files or running anything.",
     agent_wait_slow: "⏳ The model is still thinking (it is slow on this machine)…",
     agents_btn: "Specialists",
     agents_title: "Specialists",

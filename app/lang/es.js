@@ -353,6 +353,7 @@
     agent_wait_hermes: "⏳ Ajustando el proveedor en Hermes…",
     agent_wait_run: "⏳ El agente está trabajando…",
     agent_wait_tool: "⏳ Usando {tool}…",
+    agent_wait_sin_tools: "Este modelo no admite herramientas: respondo sin poder mirar tus archivos ni ejecutar nada.",
     agent_wait_slow: "⏳ El modelo sigue pensando (va lento en este equipo)…",
     agents_btn: "Especialistas",
     agents_title: "Especialistas",

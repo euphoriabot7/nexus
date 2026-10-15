@@ -353,6 +353,7 @@
     agent_wait_hermes: "⏳ Hermes のプロバイダーを設定中…",
     agent_wait_run: "⏳ エージェントが作業中です…",
     agent_wait_tool: "⏳ {tool} を使っています…",
+    agent_wait_sin_tools: "このモデルはツールに対応していません：ファイルの閲覧やコマンド実行はできません。",
     agent_wait_slow: "⏳ モデルはまだ考えています（この端末では遅いです）…",
     agents_btn: "スペシャリスト",
     agents_title: "スペシャリスト",
